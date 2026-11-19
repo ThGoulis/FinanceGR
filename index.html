@@ -428,6 +428,18 @@ body.light-theme .mobile-bottom-nav {
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
 }
 
+@keyframes modalLockShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+}
+
+.modal-lock-shake {
+  animation: modalLockShake 0.28s ease;
+  border-color: var(--amber) !important;
+}
+
 /* Grids & Panels */
 .grid {
   display: grid;
@@ -1086,6 +1098,14 @@ th {
   justify-content: space-between;
 }
 
+.asset-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px;
+  margin-bottom: 10px;
+}
+
 .rule-row {
   margin-bottom: 14px;
 }
@@ -1720,12 +1740,12 @@ body.light-theme .first-use-panel {
   </div>
 </div>
 
-<!-- Smart Bank Statement Import Modal (CSV & Excel + Revolut) -->
+<!-- Smart Bank Statement Import Modal (Locked against accidental outside click) -->
 <div id="bankImportModal" class="modal-overlay" role="dialog" aria-modal="true">
-  <div class="modal-content" style="max-width: 860px; text-align: left;">
+  <div id="bankImportModalCard" class="modal-content" style="max-width: 860px; text-align: left;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div class="modal-title" style="margin:0;">🏦 Έξυπνη Εισαγωγή Κινήσεων Τράπεζας &amp; Revolut</div>
-      <button type="button" class="secondary small-btn" onclick="closeBankImportModal()">✕</button>
+      <button type="button" class="secondary small-btn" onclick="closeBankImportModal()">✕ Κλείσιμο</button>
     </div>
     <p class="small">Υποστηρίζει <strong>.csv</strong> και <strong>.xlsx</strong> από ελληνικές τράπεζες (Πειραιώς, Εθνική, Alpha, Eurobank) &amp; <strong>Revolut</strong>. Αγνοεί ακυρωμένες Revolut, φιλτράρει Top-ups και ελέγχει διπλοεγγραφές ±3 ημερών.</p>
 
@@ -2197,7 +2217,7 @@ body.light-theme .first-use-panel {
           <div class="val amber" id="nwGoalsTotal">€0</div>
         </div>
         <div class="mini-card">
-          <div class="label">📈 Επενδύσεις ETF</div>
+          <div class="label">📈 Επενδύσεις &amp; ETF</div>
           <div class="val purple" id="nwPortfolio">€0</div>
         </div>
         <div class="mini-card">
@@ -2471,6 +2491,16 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
+  <!-- ΦΑΣΗ 2: ΑΥΤΟΜΑΤΟΣ ΕΝΤΟΠΙΣΜΟΣ ΣΥΝΔΡΟΜΩΝ & ΚΡΥΦΩΝ ΠΑΓΙΩΝ -->
+  <div class="panel" data-section="budget">
+    <h2>
+      <span>🔍 Εντοπισμός Συνδρομών &amp; Επαναλαμβανόμενων Χρεώσεων</span>
+      <span class="badge badge-saving" id="detectedSubsBadge">Ανάλυση κινήσεων</span>
+    </h2>
+    <p class="small">Σαρώνει τις κινήσεις σου για χρεώσεις που επαναλαμβάνονται σε διαφορετικούς μήνες, ώστε να τις προσθέσεις στα Πάγια με 1 κλικ.</p>
+    <div id="detectedSubscriptionsContainer"></div>
+  </div>
+
   <!-- ΠΑΓΙΑ / ΕΠΑΝΑΛΑΜΒΑΝΟΜΕΝΕΣ ΣΥΝΑΛΛΑΓΕΣ -->
   <div class="panel" data-section="budget">
     <h2>
@@ -2553,6 +2583,53 @@ body.light-theme .first-use-panel {
         <tbody id="recurringTableBody"></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- ΦΑΣΗ 2: ΕΠΕΡΧΟΜΕΝΕΣ ΕΤΗΣΙΕΣ / ΕΠΟΧΙΚΕΣ ΥΠΟΧΡΕΩΣΕΙΣ -->
+  <div class="panel" data-section="budget">
+    <h2>
+      <span>📅 Επερχόμενες Ετήσιες / Εποχικές Υποχρεώσεις</span>
+      <button type="button" class="secondary small-btn" onclick="toggleAnnualBillCreator()">+ Νέα Υποχρέωση</button>
+    </h2>
+    <p class="small">Οργάνωσε ετήσια ή εποχικά έξοδα (Τέλη Κυκλοφορίας, Ασφάλεια, ΕΝΦΙΑ, Φόρος) ορίζοντας το <strong>ποσό</strong> και την <strong>ημερομηνία καταβολής</strong>.</p>
+
+    <div id="annualBillCreatorBox" class="budget-editor" style="margin-top:0; margin-bottom:14px; padding:14px; background:var(--bg-soft); border-radius:12px; border:1px solid var(--border);">
+      <div class="form-grid">
+        <div>
+          <label for="abTitleInput" style="margin-top:0;">Ονομασία Υποχρέωσης</label>
+          <input id="abTitleInput" placeholder="π.χ. Τέλη Κυκλοφορίας">
+        </div>
+        <div>
+          <label for="abCategoryInput" style="margin-top:0;">Κατηγορία</label>
+          <select id="abCategoryInput">
+            <option value="Μεταφορές">Μεταφορές</option>
+            <option value="Στέγαση">Στέγαση</option>
+            <option value="Λογαριασμοί" selected>Λογαριασμοί</option>
+            <option value="Υγεία">Υγεία</option>
+            <option value="Έκτακτο έξοδο">Έκτακτο έξοδο</option>
+            <option value="Άλλο">Άλλο</option>
+          </select>
+        </div>
+        <div>
+          <label for="abAmountInput" style="margin-top:0;">Ποσό Καταβολής (€)</label>
+          <input id="abAmountInput" type="number" min="0.01" step="0.01" placeholder="π.χ. 265">
+        </div>
+        <div>
+          <label for="abDueDateInput" style="margin-top:0;">Ημερομηνία Καταβολής</label>
+          <input id="abDueDateInput" type="date">
+        </div>
+        <div>
+          <label for="abSavedInput" style="margin-top:0;">Ήδη στην άκρη (€)</label>
+          <input id="abSavedInput" type="number" min="0" step="1" value="0">
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button type="button" class="success small-btn" onclick="addAnnualBill()">✓ Αποθήκευση Υποχρέωσης</button>
+        <button type="button" class="secondary small-btn" onclick="toggleAnnualBillCreator()">Ακύρωση</button>
+      </div>
+    </div>
+
+    <div id="annualBillsListContainer" class="goals-grid"></div>
   </div>
 
   <!-- ΚΑΝΟΝΑΣ 50/30/20 & ΚΟΥΜΠΑΡΑΔΕΣ ΣΤΟΧΩΝ -->
@@ -2657,22 +2734,31 @@ body.light-theme .first-use-panel {
   </div>
 
   <div class="grid-2" data-section="analytics">
+    <!-- ΦΑΣΗ 2: ΠΟΛΛΑΠΛΑ ΠΕΡΙΟΥΣΙΑΚΑ ΣΤΟΙΧΕΙΑ ΧΑΡΤΟΦΥΛΑΚΙΟΥ (MULTI-ASSET) -->
     <div class="panel" style="margin-bottom:0;">
       <h2>
-        <span>Χαρτοφυλάκιο Επενδύσεων (ETF)</span>
-        <button type="button" class="secondary small-btn" onclick="toggleEtfBuyHelper()">+ Αγορά ETF</button>
+        <span>📈 Χαρτοφυλάκιο Επενδύσεων</span>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="secondary small-btn" onclick="toggleAddAssetBox()">+ Νέα Θέση</button>
+          <button type="button" class="secondary small-btn" onclick="toggleEtfBuyHelper()">+ Αγορά</button>
+        </div>
       </h2>
 
+      <!-- Γρήγορη Αγορά σε υφιστάμενο asset -->
       <div id="etfBuyHelper" class="budget-editor" style="margin-top:0; margin-bottom:14px; background:var(--bg-soft); padding:14px; border-radius:10px; border:1px solid var(--border);">
-        <h3 style="color:var(--accent); margin-bottom:8px;">Γρήγορη Καταχώριση Αγοράς ETF</h3>
+        <h3 style="color:var(--accent); margin-bottom:8px;">Γρήγορη Καταχώριση Αγοράς</h3>
         <div class="form-grid">
+          <div>
+            <label for="buyAssetSelect">Τίτλος / Επένδυση</label>
+            <select id="buyAssetSelect"></select>
+          </div>
           <div>
             <label for="buyEtfAmount">Ποσό Αγοράς (€)</label>
             <input id="buyEtfAmount" type="number" min="0.01" step="0.01" placeholder="π.χ. 100.00">
           </div>
           <div>
-            <label for="buyEtfUnits">Τεμάχια</label>
-            <input id="buyEtfUnits" type="number" min="0.00000001" step="0.00000001" placeholder="π.χ. 0.7542">
+            <label for="buyEtfUnits">Τεμάχια (προαιρετικό)</label>
+            <input id="buyEtfUnits" type="number" min="0" step="0.00000001" placeholder="π.χ. 0.7542">
           </div>
         </div>
         <label class="checkbox-row">
@@ -2685,45 +2771,63 @@ body.light-theme .first-use-panel {
         </div>
       </div>
 
-      <div class="form-grid">
-        <div>
-          <label for="etfName">ETF / Τίτλος</label>
-          <input id="etfName" value="VUAA">
+      <!-- Προσθήκη Νέας Επενδυτικής Θέσης -->
+      <div id="addAssetBox" class="budget-editor" style="margin-top:0; margin-bottom:14px; background:var(--bg-soft); padding:14px; border-radius:10px; border:1px solid var(--border);">
+        <h3 style="color:var(--purple); margin-bottom:8px;">Προσθήκη Περιουσιακού Στοιχείου</h3>
+        <div class="form-grid">
+          <div>
+            <label for="newAssetName">Τίτλος / Όνομα</label>
+            <input id="newAssetName" placeholder="π.χ. VWCE, XEON, Bitcoin">
+          </div>
+          <div>
+            <label for="newAssetType">Κατηγορία</label>
+            <select id="newAssetType">
+              <option value="ETF">ETF</option>
+              <option value="Μετοχές">Μετοχές</option>
+              <option value="Ομόλογα / Καταθέσεις">Ομόλογα / Καταθέσεις</option>
+              <option value="Crypto">Crypto</option>
+              <option value="Άλλο">Άλλο</option>
+            </select>
+          </div>
+          <div>
+            <label for="newAssetUnits">Τεμάχια</label>
+            <input id="newAssetUnits" type="number" min="0" step="0.00000001" value="1">
+          </div>
+          <div>
+            <label for="newAssetValue">Τρέχουσα Αξία (€)</label>
+            <input id="newAssetValue" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label for="newAssetCost">Κόστος Κτήσης (€)</label>
+            <input id="newAssetCost" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
         </div>
-        <div>
-          <label for="etfUnits">Τεμάχια</label>
-          <input id="etfUnits" type="number" min="0" step="0.00000001">
-        </div>
-        <div>
-          <label for="etfValue">Τρέχουσα αξία ETF (€)</label>
-          <input id="etfValue" type="number" min="0" step="0.01">
-        </div>
-        <div>
-          <label for="etfCost">Συνολικό κόστος (€)</label>
-          <input id="etfCost" type="number" min="0" step="0.01">
-        </div>
-        <div>
-          <label for="brokerCash">Μετρητά Broker (€)</label>
-          <input id="brokerCash" type="number" min="0" step="0.01">
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button type="button" class="success small-btn" onclick="addPortfolioAsset()">✓ Δημιουργία Θέσης</button>
+          <button type="button" class="secondary small-btn" onclick="toggleAddAssetBox()">Ακύρωση</button>
         </div>
       </div>
-      <button type="button" onclick="savePortfolio()">Ενημέρωση Χαρτοφυλακίου</button>
 
-      <div class="grid" style="margin-top:16px; margin-bottom:8px;">
+      <!-- Σύνοψη Χαρτοφυλακίου -->
+      <div class="grid" style="margin-bottom:12px;">
         <div class="mini-card">
           <div class="label">Συνολική Αξία</div>
           <div class="val purple" id="portfolioValue">€0</div>
         </div>
         <div class="mini-card">
-          <div class="label">Κέρδος / Ζημία</div>
+          <div class="label">Συνολικό Κέρδος / Ζημία</div>
           <div class="val" id="portfolioProfit">€0</div>
         </div>
         <div class="mini-card">
-          <div class="label">Μέση Κτήσης → Τρέχουσα</div>
-          <div class="val accent" id="portfolioAvgVsCurrent" style="font-size:14px;">€0 / €0</div>
+          <div class="label">Μετρητά Broker (€)</div>
+          <div style="display:flex; gap:6px; align-items:center; margin-top:4px;">
+            <input id="brokerCash" type="number" min="0" step="0.01" style="padding:5px 8px; font-size:13px;" onchange="saveBrokerCash()">
+          </div>
         </div>
       </div>
-      <p class="small" id="portfolioUnitInfo" style="margin-bottom:0;"></p>
+
+      <!-- Λίστα Επενδυτικών Θέσεων -->
+      <div id="portfolioAssetsList"></div>
     </div>
 
     <div class="panel" style="margin-bottom:0;">
@@ -2824,7 +2928,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <!-- ======================================================================
-       ΕΝΟΤΗΤΑ 5: ΡΥΘΜΙΣΕΙΣ ΠΡΟΦΙΛ, ΑΝΑΛΟΓΙΑΣ & BACKUP
+       ΕΝΟΤΗΤΑ 5: ΡΥΘΜΙΣΕΙΣ ΠΡΟΦΙΛ, ΑΝΑΛΟΓΙΑΣ, ΚΑΝΟΝΩΝ AUTO-LEARN & BACKUP
        ====================================================================== -->
   <div class="panel" id="profileFormPanel" data-section="settings">
     <h2>⚙️ Οικονομικό Προφίλ, Κύκλος Μισθοδοσίας &amp; Αναλογία Σπιτιού</h2>
@@ -2887,6 +2991,39 @@ body.light-theme .first-use-panel {
     </div>
 
     <button type="button" onclick="saveProfile()">Αποθήκευση Προφίλ &amp; Ρυθμίσεων</button>
+  </div>
+
+  <!-- ΦΑΣΗ 2: ΔΙΑΧΕΙΡΙΣΗ ΑΠΟΜΝΗΜΟΝΕΥΜΕΝΩΝ ΚΑΝΟΝΩΝ ΕΜΠΟΡΩΝ (AUTO-LEARN) -->
+  <div class="panel" data-section="settings" id="merchantRulesPanel">
+    <h2>
+      <span>🧠 Διαχείριση Κανόνων Εμπόρων (Auto-Learn)</span>
+      <span class="badge badge-saving" id="merchantRulesCountBadge">0 κανόνες</span>
+    </h2>
+    <p class="small">Εδώ αποθηκεύονται αυτόματα οι προτιμήσεις σου κάθε φορά που κατηγοριοποιείς έναν έμπορο στην εισαγωγή τράπεζας/Revolut. Μπορείς να τους επεξεργαστείς ή να προσθέσεις νέους.</p>
+
+    <div style="background:var(--bg-soft); padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+      <div class="form-grid" style="align-items:end;">
+        <div>
+          <label for="newRuleKeywordInput" style="margin-top:0;">Λέξη-κλειδί Εμπόρου</label>
+          <input id="newRuleKeywordInput" placeholder="π.χ. SKLAVENITIS, ΔΕΗ, WOLT">
+        </div>
+        <div>
+          <label for="newRuleCategorySelect" style="margin-top:0;">Κατηγορία</label>
+          <select id="newRuleCategorySelect"></select>
+        </div>
+        <div id="newRuleSharedWrap" style="display:flex; align-items:center; height:40px;">
+          <label class="checkbox-row" style="margin:0;">
+            <input type="checkbox" id="newRuleSharedChk">
+            <span>👫 Κοινό έξοδο</span>
+          </label>
+        </div>
+        <div>
+          <button type="button" class="small-btn" style="width:100%; height:40px;" onclick="addManualMerchantRule()">+ Προσθήκη Κανόνα</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="merchantRulesListContainer"></div>
   </div>
 
   <!-- Hidden metric placeholders kept for backwards compatibility -->
@@ -2997,6 +3134,17 @@ const defaults = {
     cost: 371.90,
     cash: 0
   },
+  portfolioAssets: [
+    {
+      id: "asset-vuaa",
+      name: "VUAA",
+      assetType: "ETF",
+      units: 2.85984851,
+      value: 378.01,
+      cost: 371.90
+    }
+  ],
+  portfolioCash: 0,
   budgets: {
     "Στέγαση": 400,
     "Λογαριασμοί": 150,
@@ -3013,6 +3161,7 @@ const defaults = {
     { id: "rec-rent", title: "Ενοίκιο", type: "expense", category: "Στέγαση", amount: 380, day: 2 },
     { id: "rec-save", title: "Πάγια Αποταμίευση", type: "saving", category: "Αποταμίευση", amount: 100, day: 3 }
   ],
+  annualBills: [],
   goals: [
     { id: "goal-vacation", title: "Καλοκαιρινές Διακοπές", target: 600, saved: 150, targetMonth: "2026-08" },
     { id: "goal-car", title: "Service & Ασφάλεια Αυτοκινήτου", target: 450, saved: 120, targetMonth: "2026-10" }
@@ -3038,6 +3187,15 @@ let isPersistentStorageAvailable = false;
 let isIndexedDBAvailable = false;
 let sessionHasUnsavedChanges = false;
 let linkedFileHandle = null;
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
 function deepClone(obj) {
   if (typeof structuredClone === "function") {
@@ -3210,14 +3368,60 @@ function safeStorageSet(key, value) {
   return localSaved;
 }
 
+function normalizeLoadedState(saved, hasExistingStorage = true) {
+  if (!saved || typeof saved !== "object") return deepClone(defaults);
+
+  // Μετάπτωση παλαιού single-ETF portfolio σε multi-asset portfolioAssets
+  let assets = Array.isArray(saved.portfolioAssets) ? saved.portfolioAssets : null;
+  let brokerCash = Number(saved.portfolioCash);
+  if (!assets) {
+    const legacyPort = saved.portfolio || defaults.portfolio;
+    assets = [{
+      id: "asset-legacy-1",
+      name: legacyPort.name || "VUAA",
+      assetType: "ETF",
+      units: Number(legacyPort.units) || 0,
+      value: Number(legacyPort.value) || 0,
+      cost: Number(legacyPort.cost) || 0
+    }];
+    if (!Number.isFinite(brokerCash)) {
+      brokerCash = Number(legacyPort.cash) || 0;
+    }
+  }
+  if (!Number.isFinite(brokerCash)) brokerCash = 0;
+
+  return {
+    ...deepClone(defaults),
+    ...saved,
+    profile: { ...defaults.profile, ...(saved.profile || {}) },
+    portfolio: { ...defaults.portfolio, ...(saved.portfolio || {}) },
+    portfolioAssets: assets,
+    portfolioCash: brokerCash,
+    budgets: { ...defaults.budgets, ...(saved.budgets || {}) },
+    recurring: Array.isArray(saved.recurring) ? saved.recurring : deepClone(defaults.recurring),
+    annualBills: Array.isArray(saved.annualBills) ? saved.annualBills : [],
+    goals: Array.isArray(saved.goals) ? saved.goals : deepClone(defaults.goals),
+    merchantRules: (saved.merchantRules && typeof saved.merchantRules === "object") ? saved.merchantRules : {},
+    settings: {
+      ...defaults.settings,
+      ...(saved.settings || {}),
+      onboardingCompleted: saved.settings?.onboardingCompleted ?? hasExistingStorage
+    },
+    transactions: Array.isArray(saved.transactions) ? saved.transactions : []
+  };
+}
+
 function buildExportPayloadString() {
   const output = {
     exportedAt: new Date().toISOString(),
     version: "v5",
     profile: data.profile,
     portfolio: data.portfolio,
+    portfolioAssets: data.portfolioAssets,
+    portfolioCash: data.portfolioCash,
     budgets: data.budgets,
     recurring: data.recurring,
+    annualBills: data.annualBills,
     goals: data.goals,
     merchantRules: data.merchantRules,
     transactions: data.transactions
@@ -3275,18 +3479,10 @@ function handleQuickLoadFile(event) {
       if (!imported.profile || !Array.isArray(imported.transactions)) {
         throw new Error("Invalid");
       }
-      data = {
-        ...deepClone(defaults),
-        ...imported,
-        profile: { ...defaults.profile, ...imported.profile },
-        portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
-        budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
-        recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
-        goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
-        merchantRules: imported.merchantRules || {},
-        settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
-        transactions: imported.transactions
-      };
+      data = normalizeLoadedState(imported, true);
+      data.settings.lastBackupAt = new Date().toISOString();
+      data.settings.unsavedChangesCount = 0;
+      data.settings.onboardingCompleted = true;
       sessionHasUnsavedChanges = false;
       persist(false);
       closeDeviceSyncModal();
@@ -3363,23 +3559,7 @@ function loadData() {
     const saved = JSON.parse(rawV5 || rawV4 || rawV3 || rawV2 || rawV1 || "null");
 
     if (!saved) return deepClone(defaults);
-
-    return {
-      ...deepClone(defaults),
-      ...saved,
-      profile: { ...defaults.profile, ...(saved.profile || {}) },
-      portfolio: { ...defaults.portfolio, ...(saved.portfolio || {}) },
-      budgets: { ...defaults.budgets, ...(saved.budgets || {}) },
-      recurring: Array.isArray(saved.recurring) ? saved.recurring : deepClone(defaults.recurring),
-      goals: Array.isArray(saved.goals) ? saved.goals : deepClone(defaults.goals),
-      merchantRules: (saved.merchantRules && typeof saved.merchantRules === "object") ? saved.merchantRules : {},
-      settings: {
-        ...defaults.settings,
-        ...(saved.settings || {}),
-        onboardingCompleted: saved.settings?.onboardingCompleted ?? hasExistingStorage
-      },
-      transactions: Array.isArray(saved.transactions) ? saved.transactions : []
-    };
+    return normalizeLoadedState(saved, hasExistingStorage);
   } catch {
     return deepClone(defaults);
   }
@@ -3769,7 +3949,7 @@ function updateSharedExpensePreview() {
   const split = getCoupleSplit();
 
   if (rawAmount <= 0) {
-    preview.innerHTML = `Αναλογία: <strong>${split.userName} ${split.myPct}%</strong> / <strong>${split.partnerName} ${split.partnerPct}%</strong>. Συμπλήρωσε ποσό για προεπισκόπηση.`;
+    preview.innerHTML = `Αναλογία: <strong>${escapeHtml(split.userName)} ${split.myPct}%</strong> / <strong>${escapeHtml(split.partnerName)} ${split.partnerPct}%</strong>. Συμπλήρωσε ποσό για προεπισκόπηση.`;
     return;
   }
 
@@ -3786,13 +3966,13 @@ function updateSharedExpensePreview() {
 
   let settlementNote = "Χωρίς εκκρεμότητα εκκαθάρισης (πληρώθηκε χωριστά).";
   if (paidBy === "me") {
-    settlementNote = `${split.userName} πλήρωσε όλο το ποσό (${money(totalBill)}) ➔ <strong>${split.partnerName} χρωστάει ${money(partnerShare)}</strong>.`;
+    settlementNote = `${escapeHtml(split.userName)} πλήρωσε όλο το ποσό (${money(totalBill)}) ➔ <strong>${escapeHtml(split.partnerName)} χρωστάει ${money(partnerShare)}</strong>.`;
   } else if (paidBy === "partner") {
-    settlementNote = `${split.partnerName} πλήρωσε όλο το ποσό (${money(totalBill)}) ➔ <strong>${split.userName} χρωστάει ${money(myShare)}</strong>.`;
+    settlementNote = `${escapeHtml(split.partnerName)} πλήρωσε όλο το ποσό (${money(totalBill)}) ➔ <strong>${escapeHtml(split.userName)} χρωστάει ${money(myShare)}</strong>.`;
   }
 
   preview.innerHTML = `
-    <div>Σύνολο Λογαριασμού (100%): <strong>${money(totalBill)}</strong> ➔ Μερίδιο ${split.userName} (${split.myPct}%): <strong class="accent">${money(myShare)}</strong> | Μερίδιο ${split.partnerName} (${split.partnerPct}%): <strong class="purple">${money(partnerShare)}</strong></div>
+    <div>Σύνολο Λογαριασμού (100%): <strong>${money(totalBill)}</strong> ➔ Μερίδιο ${escapeHtml(split.userName)} (${split.myPct}%): <strong class="accent">${money(myShare)}</strong> | Μερίδιο ${escapeHtml(split.partnerName)} (${split.partnerPct}%): <strong class="purple">${money(partnerShare)}</strong></div>
     <div style="margin-top:4px; color:var(--muted);">${settlementNote}</div>
   `;
 }
@@ -4590,24 +4770,26 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankC
   const stateUp = String(revState || "").toUpperCase();
   const typeUp = String(revType || "").toUpperCase();
 
-  // 1. Revolut ακυρωμένες / απορριφθείσες
   if (["REVERTED", "DECLINED", "FAILED", "CANCELED", "CANCELLED"].includes(stateUp)) {
     return { skipReason: "reverted", statusBadge: "🚫 Ακυρωμένη Revolut", type: "expense", category: "Άλλο", isShared: false };
   }
 
-  // 2. Revolut ανταλλαγή συναλλάγματος
   if (typeUp === "EXCHANGE" || upper.startsWith("EXCHANGED TO ")) {
     return { skipReason: "exchange", statusBadge: "🔄 Συνάλλαγμα", type: "expense", category: "Άλλο", isShared: false };
   }
 
-  // 3. Εσωτερικές φορτίσεις (Revolut Top-up / μεταφορά μεταξύ δικών μου λογαριασμών)
   if (typeUp === "TOPUP" || INTERNAL_TRANSFER_KEYWORDS.some(k => upper.includes(stripGreekAccents(k)))) {
     return { skipReason: "topup", statusBadge: "🔄 Εσωτ. Μεταφορά", type: isCredit ? "income" : "expense", category: "Άλλο", isShared: false };
   }
 
-  // 4. Έλεγχος αποθηκευμένης μνήμης χρήστη (Auto-Learn)
+  // Έλεγχος αποθηκευμένης μνήμης χρήστη (Auto-Learn: ακριβές ή υποσυμβολοσειρά)
   const merchantKey = normalizeMerchantKey(desc);
-  const learnedRule = merchantKey ? data.merchantRules?.[merchantKey] : null;
+  let learnedRule = merchantKey ? data.merchantRules?.[merchantKey] : null;
+  if (!learnedRule && merchantKey && data.merchantRules) {
+    const matchedEntry = Object.entries(data.merchantRules).find(([k]) => k.length >= 4 && merchantKey.includes(k));
+    if (matchedEntry) learnedRule = matchedEntry[1];
+  }
+
   if (learnedRule && learnedRule.category) {
     const inferredType = isCredit
       ? "income"
@@ -4621,7 +4803,6 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankC
     };
   }
 
-  // 5. Λεξικό ελληνικών & διεθνών εμπόρων
   for (const rule of BANK_MERCHANT_KEYWORDS) {
     if (rule.keywords.some(kw => upper.includes(stripGreekAccents(kw)))) {
       if (isCredit && rule.type === "expense") continue;
@@ -4635,7 +4816,6 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankC
     }
   }
 
-  // 6. Κατηγορία που δίνει η ίδια η τράπεζα (π.χ. Πειραιώς στήλη Κατηγορία)
   const mappedBankCat = mapBankProvidedCategory(bankCatHint);
   if (mappedBankCat) {
     const inferredType = isCredit
@@ -4650,7 +4830,6 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankC
     };
   }
 
-  // 7. Επισήμανση ασαφών κινήσεων IRIS / ΜΕΤΑΦΟΡΑ
   const needsCheck = upper.includes("IRIS") || upper.includes("ΜΕΤΑΦΟΡΑ");
   return {
     skipReason: null,
@@ -4668,26 +4847,22 @@ function parseFlexibleDate(raw) {
   const s = String(raw || "").trim();
   if (!s) return null;
 
-  // YYYY-MM-DD or YYYY/MM/DD (with optional timestamp)
   let m = s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
   if (m) {
     return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
   }
 
-  // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
   m = s.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
   if (m) {
     return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   }
 
-  // DD/MM/YY (2-ψήφιο έτος)
   m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})(?:\s.*)?$/);
   if (m) {
     const fullYear = Number(m[3]) >= 70 ? `19${m[3]}` : `20${m[3]}`;
     return `${fullYear}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   }
 
-  // Excel serial date number (π.χ. 46345 ή 46345.45)
   if (/^\d{5}(\.\d+)?$/.test(s)) {
     const serial = Math.floor(Number(s));
     const utcDays = serial - 25569;
@@ -4706,7 +4881,6 @@ function parseFlexibleNumber(raw) {
   if (!s) return NaN;
   s = s.replace(/[€$£\s]/g, "");
 
-  // Ευρωπαϊκή μορφή: 1.250,50 -> 1250.50
   if (s.includes(",") && s.includes(".")) {
     if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
       s = s.replaceAll(".", "").replace(",", ".");
@@ -4763,7 +4937,6 @@ function detectDuplicateStatus(dateIso, amountAbs, description = "") {
 function parseBankGridRows(matrixRows, chosenSource) {
   if (!Array.isArray(matrixRows) || matrixRows.length < 2) return [];
 
-  // Σάρωση έως 45 γραμμών στην κορυφή (Πειραιώς: γραμμή 7)
   let headerIdx = 0;
   let bestScore = -1;
   const dateHeaderKeys = ["ΗΜΕΡΟΜΗΝΙΑ", "DATE", "STARTED DATE", "COMPLETED DATE", "VALEUR", "ΗΜ/ΝΙΑ", "ΗΜΝΙΑ"];
@@ -4818,7 +4991,6 @@ function parseBankGridRows(matrixRows, chosenSource) {
     const extraComment = (colComments !== -1 && colComments !== colDesc) ? String(row[colComments] ?? "").trim() : "";
     const bankCatHint = colBankCat !== -1 ? String(row[colBankCat] ?? "").trim() : "";
 
-    // Προτεραιότητα στο Σχόλιο / Κωδικό Αναφοράς ως κύρια περιγραφή συναλλαγής
     let desc = mainDesc;
     let movementTypeNote = "";
     if (extraComment) {
@@ -5183,28 +5355,28 @@ function renderBankPreviewTable() {
   tbody.innerHTML = visibleItems.map(({ row, idx }) => {
     const sign = row.type === "income" ? "+" : "-";
     const col = row.type === "income" ? "green" : (row.type === "saving" ? "accent" : "red");
-    const catOptions = ALL_CATEGORIES.map(c => `<option value="${c}" ${c === row.category ? "selected" : ""}>${c}</option>`).join("");
+    const catOptions = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${c === row.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
     const sharedCell = split.hasPartner
       ? `<td>${row.type === "expense" ? `<button type="button" class="small-btn ${row.isShared ? "success" : "secondary"}" onclick="toggleBankRowShared(${idx})" title="Επιμερισμός Κοινού Εξόδου (${split.myPct}%)">${row.isShared ? `👫 ${split.myPct}%` : "👤 100%"}</button>` : "—"}</td>`
       : "";
     const typeSub = row.movementTypeNote
-      ? `<span class="small" style="margin-left:6px; opacity:0.85;">• ${row.movementTypeNote}</span>`
+      ? `<span class="small" style="margin-left:6px; opacity:0.85;">• ${escapeHtml(row.movementTypeNote)}</span>`
       : "";
 
     return `
       <tr style="${row.checked ? "" : "opacity:0.55;"}">
         <td><input type="checkbox" ${row.checked ? "checked" : ""} style="width:16px; height:16px; margin:0;" onchange="toggleBankRowSelect(${idx}, this.checked)"></td>
-        <td style="white-space:nowrap;">${row.date}</td>
+        <td style="white-space:nowrap;">${escapeHtml(row.date)}</td>
         <td>
-          <div style="font-weight:600;">${row.description}</div>
-          <div><span class="badge badge-source" style="margin-left:0;">${row.source}</span>${typeSub}</div>
+          <div style="font-weight:600;">${escapeHtml(row.description)}</div>
+          <div><span class="badge badge-source" style="margin-left:0;">${escapeHtml(row.source)}</span>${typeSub}</div>
         </td>
         <td>
           <select style="padding:5px 8px; font-size:12px;" onchange="updateBankRowCategory(${idx}, this.value)">${catOptions}</select>
         </td>
         <td class="${col}" style="font-weight:700; white-space:nowrap;">${sign}${money(row.amount)}</td>
         ${sharedCell}
-        <td><span class="badge ${row.isWarning ? "badge-withdrawal" : "badge-saving"}">${row.statusText}</span></td>
+        <td><span class="badge ${row.isWarning ? "badge-withdrawal" : "badge-saving"}">${escapeHtml(row.statusText)}</span></td>
       </tr>
     `;
   }).join("");
@@ -5423,7 +5595,7 @@ function executePaydayAllocation() {
 }
 
 /* ==========================================================================
-6. ΠΡΟΫΠΟΛΟΓΙΣΜΟΣ ΚΑΤΗΓΟΡΙΩΝ, ΠΑΓΙΑ & ΚΟΥΜΠΑΡΑΔΕΣ ΣΤΟΧΩΝ
+6. ΠΡΟΫΠΟΛΟΓΙΣΜΟΣ, ΑΝΙΧΝΕΥΣΗ ΣΥΝΔΡΟΜΩΝ, ΠΑΓΙΑ, ΕΤΗΣΙΕΣ ΥΠΟΧΡΕΩΣΕΙΣ & ΣΤΟΧΟΙ
    ========================================================================== */
 function toggleBudgetEditor() {
   const editor = document.getElementById("budgetEditor");
@@ -5433,8 +5605,8 @@ function toggleBudgetEditor() {
     const container = document.getElementById("budgetInputsContainer");
     container.innerHTML = EXPENSE_CATEGORIES.map(cat => `
       <div>
-        <label for="budget-inp-${cat}">${cat} (€)</label>
-        <input id="budget-inp-${cat}" type="number" min="0" step="5" value="${Number(data.budgets[cat]) || 0}">
+        <label for="budget-inp-${escapeHtml(cat)}">${escapeHtml(cat)} (€)</label>
+        <input id="budget-inp-${escapeHtml(cat)}" type="number" min="0" step="5" value="${Number(data.budgets[cat]) || 0}">
       </div>
     `).join("");
   }
@@ -5485,7 +5657,7 @@ function renderCategoryBudgets(periodTransactions) {
     return `
       <div class="budget-card">
         <div class="budget-header">
-          <span class="budget-title">${cat}</span>
+          <span class="budget-title">${escapeHtml(cat)}</span>
           <span class="budget-amounts">${money(spent)} / ${money(limit)}</span>
         </div>
         <div class="progress" style="height:8px; margin-top:6px;">
@@ -5501,6 +5673,129 @@ function renderCategoryBudgets(periodTransactions) {
   if (summaryEl) {
     summaryEl.textContent = `Συνολικές δαπάνες κατηγοριών: ${money(totalSpent)} από συνολικό προϋπολογισμό ${money(totalBudget)}.`;
   }
+}
+
+/* --- ΦΑΣΗ 2: Αυτόματος Εντοπισμός Συνδρομών & Κρυφών Παγίων --- */
+let currentDetectedSubscriptions = [];
+
+function detectRecurringSubscriptions() {
+  const groups = {};
+  const existingRecKeys = new Set(
+    (data.recurring || []).map(r => normalizeMerchantKey(r.title)).filter(Boolean)
+  );
+
+  (data.transactions || []).forEach(t => {
+    if (t.type !== "expense" || t.category === "Ανάληψη") return;
+    const rawTitle = (t.description && t.description.trim()) ? t.description.trim() : t.category;
+    const key = normalizeMerchantKey(rawTitle);
+    if (!key || key.length < 3) return;
+    if (existingRecKeys.has(key)) return;
+
+    if (!groups[key]) {
+      groups[key] = {
+        key,
+        title: rawTitle,
+        category: t.category,
+        items: [],
+        months: new Set()
+      };
+    }
+    groups[key].items.push({
+      date: t.date,
+      amount: Number(t.totalBillAmount) || Number(t.amount) || 0,
+      isShared: Boolean(t.isShared),
+      day: Number(t.date.split("-")[2]) || 1
+    });
+    if (t.date && t.date.length >= 7) {
+      groups[key].months.add(t.date.slice(0, 7));
+    }
+  });
+
+  const detected = [];
+  Object.values(groups).forEach(g => {
+    if (g.months.size < 2) return;
+    const amounts = g.items.map(i => i.amount).filter(a => a > 0);
+    if (amounts.length < 2) return;
+
+    const avg = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+    const maxDiff = Math.max(...amounts.map(a => Math.abs(a - avg)));
+    // Σταθερό ή σχεδόν σταθερό μηνιαίο ποσό (απόκλιση <= 20% ή <= €4)
+    if (maxDiff <= Math.max(4, avg * 0.20)) {
+      const latestItem = [...g.items].sort((a, b) => b.date.localeCompare(a.date))[0];
+      const avgDay = Math.min(28, Math.max(1, Math.round(g.items.reduce((s, i) => s + i.day, 0) / g.items.length)));
+      detected.push({
+        key: g.key,
+        title: g.title,
+        category: g.category,
+        avgAmount: Number(latestItem.amount.toFixed(2)),
+        day: avgDay,
+        monthsCount: g.months.size,
+        isShared: latestItem.isShared
+      });
+    }
+  });
+
+  return detected.sort((a, b) => b.avgAmount - a.avgAmount);
+}
+
+function promoteSubscriptionToRecurring(idx) {
+  const sub = currentDetectedSubscriptions[idx];
+  if (!sub) return;
+
+  data.recurring.push({
+    id: generateId("rec"),
+    title: sub.title,
+    type: "expense",
+    category: sub.category,
+    amount: sub.avgAmount,
+    day: sub.day,
+    isShared: Boolean(sub.isShared),
+    paidBy: sub.isShared ? "split" : undefined
+  });
+
+  persist();
+  render();
+  showToast(`Η συνδρομή «${sub.title}» (${money(sub.avgAmount)}/μήνα) προστέθηκε στα Πάγια! 🔁`);
+}
+
+function renderDetectedSubscriptions() {
+  const container = document.getElementById("detectedSubscriptionsContainer");
+  const badgeEl = document.getElementById("detectedSubsBadge");
+  if (!container) return;
+
+  currentDetectedSubscriptions = detectRecurringSubscriptions();
+
+  if (!currentDetectedSubscriptions.length) {
+    if (badgeEl) badgeEl.textContent = "0 νέες συνδρομές";
+    container.innerHTML = `<div class="small" style="padding:8px 0;">Δεν εντοπίστηκαν νέες επαναλαμβανόμενες μηνιαίες χρεώσεις εκτός των δηλωμένων παγίων σου.</div>`;
+    return;
+  }
+
+  const totalMonthly = currentDetectedSubscriptions.reduce((s, x) => s + x.avgAmount, 0);
+  if (badgeEl) badgeEl.textContent = `${currentDetectedSubscriptions.length} εντοπίστηκαν (${money(totalMonthly)}/μήνα)`;
+
+  container.innerHTML = `
+    <div class="filter-summary" style="margin-bottom:10px;">
+      <span>Εντοπίστηκαν <strong>${currentDetectedSubscriptions.length}</strong> επαναλαμβανόμενες χρεώσεις</span>
+      <span>Εκτιμώμενο κόστος: <strong class="amber">${money(totalMonthly)} / μήνα</strong> (${money(totalMonthly * 12)} / έτος)</span>
+    </div>
+    <div class="goals-grid" style="margin-top:8px;">
+      ${currentDetectedSubscriptions.map((s, idx) => `
+        <div class="goal-card">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+              <strong style="font-size:14px;">${escapeHtml(s.title)}</strong>
+              <span class="badge badge-expense">${money(s.avgAmount)}/μήνα</span>
+            </div>
+            <div class="small" style="margin-top:4px;">${escapeHtml(s.category)} • ${s.monthsCount} μήνες • ~${s.day}η του μήνα</div>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="success small-btn" style="width:100%;" onclick="promoteSubscriptionToRecurring(${idx})">+ Προσθήκη στα Πάγια</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function addRecurringItem() {
@@ -5664,19 +5959,185 @@ function renderRecurringTable(ctx) {
       return `
         <tr>
           <td>${rec.day}η</td>
-          <td><strong>${rec.title}</strong>${sharedBadge}</td>
+          <td><strong>${escapeHtml(rec.title)}</strong>${sharedBadge}</td>
           <td><span class="badge badge-${rec.type}">${typeLabels[rec.type] || rec.type}</span></td>
-          <td>${rec.category}</td>
+          <td>${escapeHtml(rec.category)}</td>
           <td class="amount-cell" style="font-weight:700;">${money(rec.amount)}</td>
           <td>${applied ? `<span class="badge badge-income">✓ Καταχωρισμένο</span>` : `<span class="badge badge-withdrawal">⏳ Εκκρεμεί</span>`}</td>
           <td style="white-space:nowrap;">
-            ${!applied ? `<button type="button" class="success small-btn" onclick="applySingleRecurring('${rec.id}')" title="Καταχώριση">⚡</button>` : ""}
-            ${(rec.type === "expense" && split.hasPartner) ? `<button type="button" class="secondary small-btn" onclick="toggleRecurringShared('${rec.id}')" title="Κοινό / Ατομικό">👫</button>` : ""}
-            <button type="button" class="danger small-btn" onclick="deleteRecurringItem('${rec.id}')" title="Διαγραφή">×</button>
+            ${!applied ? `<button type="button" class="success small-btn" onclick="applySingleRecurring('${escapeHtml(rec.id)}')" title="Καταχώριση">⚡</button>` : ""}
+            ${(rec.type === "expense" && split.hasPartner) ? `<button type="button" class="secondary small-btn" onclick="toggleRecurringShared('${escapeHtml(rec.id)}')" title="Κοινό / Ατομικό">👫</button>` : ""}
+            <button type="button" class="danger small-btn" onclick="deleteRecurringItem('${escapeHtml(rec.id)}')" title="Διαγραφή">×</button>
           </td>
         </tr>
       `;
     }).join("");
+}
+
+/* --- ΦΑΣΗ 2: Επερχόμενες Ετήσιες / Εποχικές Υποχρεώσεις --- */
+function toggleAnnualBillCreator() {
+  const box = document.getElementById("annualBillCreatorBox");
+  if (!box) return;
+  box.classList.toggle("active");
+  if (box.classList.contains("active")) {
+    const dt = document.getElementById("abDueDateInput");
+    if (dt && !dt.value) {
+      dt.value = addDaysIso(today(), 30);
+    }
+  }
+}
+
+function addAnnualBill() {
+  const title = (document.getElementById("abTitleInput")?.value || "").trim();
+  const category = document.getElementById("abCategoryInput")?.value || "Λογαριασμοί";
+  const amount = Number(document.getElementById("abAmountInput")?.value);
+  const dueDate = document.getElementById("abDueDateInput")?.value;
+  const saved = Math.max(0, Number(document.getElementById("abSavedInput")?.value) || 0);
+
+  if (!title || !Number.isFinite(amount) || amount <= 0 || !dueDate) {
+    showModal("Συμπλήρωσε ονομασία, ποσό καταβολής (€) και ημερομηνία πληρωμής.");
+    return;
+  }
+
+  if (!Array.isArray(data.annualBills)) data.annualBills = [];
+  data.annualBills.push({
+    id: generateId("ab"),
+    title,
+    category,
+    amount,
+    dueDate,
+    saved,
+    paid: false
+  });
+
+  document.getElementById("abTitleInput").value = "";
+  document.getElementById("abAmountInput").value = "";
+  document.getElementById("abDueDateInput").value = "";
+  document.getElementById("abSavedInput").value = "0";
+  document.getElementById("annualBillCreatorBox")?.classList.remove("active");
+
+  persist();
+  render();
+  showToast(`Η υποχρέωση «${title}» (${money(amount)} στις ${formatShortGrDate(dueDate)}) αποθηκεύτηκε! 📅`);
+}
+
+function topUpAnnualBill(abId, delta) {
+  const item = (data.annualBills || []).find(a => a.id === abId);
+  if (!item) return;
+  item.saved = Number(((Number(item.saved) || 0) + delta).toFixed(2));
+  persist();
+  render();
+  showToast(`+${money(delta)} στην υποχρέωση «${item.title}»!`);
+}
+
+function markAnnualBillPaid(abId) {
+  const item = (data.annualBills || []).find(a => a.id === abId);
+  if (!item) return;
+
+  data.transactions.push({
+    id: generateId("tx"),
+    type: "expense",
+    amount: Number(item.amount) || 0,
+    date: today(),
+    category: item.category || "Λογαριασμοί",
+    description: item.title,
+    unexpected: false,
+    isShared: false
+  });
+  item.paid = true;
+  persist();
+  render();
+  showToast(`Καταχωρίστηκε η πληρωμή «${item.title}» (${money(item.amount)})! ✅`);
+}
+
+function renewAnnualBillNextYear(abId) {
+  const item = (data.annualBills || []).find(a => a.id === abId);
+  if (!item) return;
+  const [y, m, d] = item.dueDate.split("-").map(Number);
+  item.dueDate = clampedDateInMonth((y || 2026) + 1, m || 1, d || 1);
+  item.saved = 0;
+  item.paid = false;
+  persist();
+  render();
+  showToast(`Ανανεώθηκε για τις ${formatShortGrDate(item.dueDate)}! 🔄`);
+}
+
+function deleteAnnualBill(abId) {
+  showModal("Να διαγραφεί αυτή η ετήσια υποχρέωση;", true, (ok) => {
+    if (!ok) return;
+    data.annualBills = (data.annualBills || []).filter(a => a.id !== abId);
+    persist();
+    render();
+    showToast("Η υποχρέωση διαγράφηκε.");
+  }, "Διαγραφή Υποχρέωσης");
+}
+
+function renderAnnualBills() {
+  const container = document.getElementById("annualBillsListContainer");
+  if (!container) return;
+
+  const list = [...(data.annualBills || [])].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  if (!list.length) {
+    container.innerHTML = `<p class="small">Δεν έχεις καταχωρίσει ετήσιες ή εποχικές υποχρεώσεις. Πάτησε «+ Νέα Υποχρέωση».</p>`;
+    return;
+  }
+
+  const todayStr = today();
+
+  container.innerHTML = list.map(ab => {
+    const amount = Math.max(0.01, Number(ab.amount) || 0);
+    const saved = Math.max(0, Number(ab.saved) || 0);
+    const remaining = Math.max(0, amount - saved);
+    const pct = Math.min(100, (saved / amount) * 100);
+    const daysLeft = diffDaysIso(todayStr, ab.dueDate);
+    const monthsLeft = Math.max(1, Math.ceil(daysLeft / 30));
+    const monthlyNeeded = remaining / monthsLeft;
+
+    let urgencyBadge = `<span class="badge badge-income">🟢 Σε ${daysLeft} ημ.</span>`;
+    if (ab.paid) {
+      urgencyBadge = `<span class="badge badge-settled">✓ Πληρώθηκε</span>`;
+    } else if (daysLeft < 0) {
+      urgencyBadge = `<span class="badge badge-expense">🔴 Εκπρόθεσμο (${Math.abs(daysLeft)} ημ.)</span>`;
+    } else if (daysLeft <= 20) {
+      urgencyBadge = `<span class="badge badge-withdrawal">🟡 Σε ${daysLeft} ημ.</span>`;
+    }
+
+    return `
+      <div class="goal-card">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
+            <div>
+              <strong style="font-size:14px;">${escapeHtml(ab.title)}</strong>
+              <div class="small">Ημ/νία: <strong>${formatShortGrDate(ab.dueDate)}</strong> • ${escapeHtml(ab.category)}</div>
+            </div>
+            <button type="button" class="danger small-btn" onclick="deleteAnnualBill('${escapeHtml(ab.id)}')" style="padding:3px 8px;">×</button>
+          </div>
+          <div style="margin-top:6px;">${urgencyBadge}</div>
+          <div class="small" style="margin-top:8px;">
+            Στην άκρη: <strong class="privacy-sensitive">${money(saved)}</strong> / <strong class="privacy-sensitive">${money(amount)}</strong> (${pct.toFixed(0)}%)
+          </div>
+          <div class="progress" style="height:8px; margin:6px 0;">
+            <div style="width:${pct.toFixed(1)}%; background:${ab.paid || remaining === 0 ? "var(--green)" : "var(--accent)"};"></div>
+          </div>
+          <div class="small">
+            ${ab.paid
+              ? "Η καταβολή καταγράφηκε στα έξοδα."
+              : (remaining === 0
+                ? "🎉 Έχεις συγκεντρώσει όλο το ποσό!"
+                : `Χρειάζονται <strong>${money(monthlyNeeded)}/μήνα</strong> (${monthsLeft} μήν.)`)}
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+          ${!ab.paid ? `
+            <button type="button" class="secondary small-btn" style="flex:1;" onclick="topUpAnnualBill('${escapeHtml(ab.id)}', 25)">+€25</button>
+            <button type="button" class="success small-btn" style="flex:1;" onclick="markAnnualBillPaid('${escapeHtml(ab.id)}')">✅ Πληρώθηκε</button>
+          ` : `
+            <button type="button" class="secondary small-btn" style="width:100%;" onclick="renewAnnualBillNextYear('${escapeHtml(ab.id)}')">🔄 Μεταφορά +1 Έτος</button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function toggleGoalCreator() {
@@ -5779,8 +6240,8 @@ function renderGoals(anchorMonth) {
       <div class="goal-card">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-            <strong style="font-size:14px;">${g.title}</strong>
-            <button type="button" class="danger small-btn" onclick="deleteGoal('${g.id}')" style="padding:3px 8px;">×</button>
+            <strong style="font-size:14px;">${escapeHtml(g.title)}</strong>
+            <button type="button" class="danger small-btn" onclick="deleteGoal('${escapeHtml(g.id)}')" style="padding:3px 8px;">×</button>
           </div>
           <div class="small" style="margin-top:4px;">
             <span class="privacy-sensitive">${money(saved)}</span> / <span class="privacy-sensitive">${money(target)}</span> (${pct.toFixed(0)}%)
@@ -5789,12 +6250,12 @@ function renderGoals(anchorMonth) {
             <div style="width:${pct.toFixed(1)}%; background:${done ? 'var(--green)' : 'var(--amber)'};"></div>
           </div>
           <div class="small">
-            ${done ? "🎉 Ο στόχος επιτεύχθηκε!" : `Απαιτούνται ~${money(monthlyNeed)}/μήνα ${g.targetMonth ? `(έως ${g.targetMonth})` : ""}`}
+            ${done ? "🎉 Ο στόχος επιτεύχθηκε!" : `Απαιτούνται ~${money(monthlyNeed)}/μήνα ${g.targetMonth ? `(έως ${escapeHtml(g.targetMonth)})` : ""}`}
           </div>
         </div>
         <div style="display:flex; gap:6px; margin-top:10px;">
-          <button type="button" class="secondary small-btn" style="flex:1;" onclick="contributeGoal('${g.id}', 25)">+€25</button>
-          <button type="button" class="secondary small-btn" style="flex:1;" onclick="contributeGoal('${g.id}', 50)">+€50</button>
+          <button type="button" class="secondary small-btn" style="flex:1;" onclick="contributeGoal('${escapeHtml(g.id)}', 25)">+€25</button>
+          <button type="button" class="secondary small-btn" style="flex:1;" onclick="contributeGoal('${escapeHtml(g.id)}', 50)">+€50</button>
         </div>
       </div>
     `;
@@ -5839,7 +6300,7 @@ function render503020Rule(mt, incomeBase) {
 }
 
 /* ==========================================================================
-7. ΔΕΙΚΤΗΣ ΟΙΚΟΝΟΜΙΚΗΣ ΥΓΕΙΑΣ, ΧΑΡΤΟΦΥΛΑΚΙΟ & ΠΡΟΣΟΜΟΙΩΤΗΣ
+7. ΔΕΙΚΤΗΣ ΟΙΚΟΝΟΜΙΚΗΣ ΥΓΕΙΑΣ, MULTI-ASSET ΧΑΡΤΟΦΥΛΑΚΙΟ & ΠΡΟΣΟΜΟΙΩΤΗΣ
    ========================================================================== */
 function renderFinancialHealth(reserveTotal, mt, incomeBase) {
   const p = data.profile;
@@ -5923,23 +6384,121 @@ function renderFinancialHealth(reserveTotal, mt, incomeBase) {
   }
 }
 
-function toggleEtfBuyHelper() {
-  document.getElementById("etfBuyHelper")?.classList.toggle("active");
+/* --- Multi-Asset Portfolio Functions --- */
+function getPortfolioTotals() {
+  const assets = Array.isArray(data.portfolioAssets) ? data.portfolioAssets : [];
+  const cash = Math.max(0, Number(data.portfolioCash) || 0);
+  const assetsValue = assets.reduce((s, a) => s + (Number(a.value) || 0), 0);
+  const assetsCost = assets.reduce((s, a) => s + (Number(a.cost) || 0), 0);
+  return {
+    assets,
+    cash,
+    assetsValue,
+    assetsCost,
+    totalValue: assetsValue + cash,
+    profit: assetsValue - assetsCost
+  };
 }
 
-function executeEtfQuickBuy() {
-  const buyAmt = Number(document.getElementById("buyEtfAmount").value);
-  const buyUnits = Number(document.getElementById("buyEtfUnits").value);
-  const logTx = document.getElementById("buyEtfLogTx")?.checked;
+function toggleAddAssetBox() {
+  document.getElementById("addAssetBox")?.classList.toggle("active");
+}
 
-  if (!Number.isFinite(buyAmt) || buyAmt <= 0 || !Number.isFinite(buyUnits) || buyUnits <= 0) {
-    showModal("Εισήγαγε έγκυρο ποσό αγοράς και τεμάχια ETF.");
+function toggleEtfBuyHelper() {
+  const box = document.getElementById("etfBuyHelper");
+  if (!box) return;
+  box.classList.toggle("active");
+  if (box.classList.contains("active")) {
+    const sel = document.getElementById("buyAssetSelect");
+    const assets = Array.isArray(data.portfolioAssets) ? data.portfolioAssets : [];
+    if (sel) {
+      sel.innerHTML = assets.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.assetType || "ETF")})</option>`).join("");
+    }
+  }
+}
+
+function addPortfolioAsset() {
+  const name = (document.getElementById("newAssetName")?.value || "").trim();
+  const assetType = document.getElementById("newAssetType")?.value || "ETF";
+  const units = Math.max(0, Number(document.getElementById("newAssetUnits")?.value) || 0);
+  const value = Math.max(0, Number(document.getElementById("newAssetValue")?.value) || 0);
+  const cost = Math.max(0, Number(document.getElementById("newAssetCost")?.value) || 0);
+
+  if (!name) {
+    showModal("Εισήγαγε τον τίτλο ή το όνομα της επένδυσης.");
     return;
   }
 
-  data.portfolio.units = Number(((Number(data.portfolio.units) || 0) + buyUnits).toFixed(8));
-  data.portfolio.cost = Number(((Number(data.portfolio.cost) || 0) + buyAmt).toFixed(2));
-  data.portfolio.value = Number(((Number(data.portfolio.value) || 0) + buyAmt).toFixed(2));
+  if (!Array.isArray(data.portfolioAssets)) data.portfolioAssets = [];
+  data.portfolioAssets.push({
+    id: generateId("asset"),
+    name,
+    assetType,
+    units,
+    value,
+    cost
+  });
+
+  document.getElementById("newAssetName").value = "";
+  document.getElementById("newAssetUnits").value = "1";
+  document.getElementById("newAssetValue").value = "";
+  document.getElementById("newAssetCost").value = "";
+  document.getElementById("addAssetBox")?.classList.remove("active");
+
+  persist();
+  render();
+  showToast(`Η επένδυση «${name}» προστέθηκε στο χαρτοφυλάκιο! 📈`);
+}
+
+function updatePortfolioAssetField(assetId, field, rawVal) {
+  const asset = (data.portfolioAssets || []).find(a => a.id === assetId);
+  if (!asset) return;
+  const num = Number(rawVal);
+  if (!Number.isFinite(num) || num < 0) return;
+  asset[field] = num;
+  persist();
+  render();
+}
+
+function deletePortfolioAsset(assetId) {
+  showModal("Να αφαιρεθεί αυτό το περιουσιακό στοιχείο από το χαρτοφυλάκιο;", true, (ok) => {
+    if (!ok) return;
+    data.portfolioAssets = (data.portfolioAssets || []).filter(a => a.id !== assetId);
+    persist();
+    render();
+    showToast("Η θέση αφαιρέθηκε από το χαρτοφυλάκιο.");
+  }, "Αφαίρεση Θέσης");
+}
+
+function saveBrokerCash() {
+  const val = Number(document.getElementById("brokerCash")?.value);
+  if (!Number.isFinite(val) || val < 0) return;
+  data.portfolioCash = val;
+  persist();
+  render();
+  showToast("Τα μετρητά broker ενημερώθηκαν! ✓");
+}
+
+function executeEtfQuickBuy() {
+  const assetId = document.getElementById("buyAssetSelect")?.value;
+  const buyAmt = Number(document.getElementById("buyEtfAmount").value);
+  const buyUnits = Math.max(0, Number(document.getElementById("buyEtfUnits").value) || 0);
+  const logTx = document.getElementById("buyEtfLogTx")?.checked;
+
+  if (!Number.isFinite(buyAmt) || buyAmt <= 0) {
+    showModal("Εισήγαγε έγκυρο ποσό αγοράς (€).");
+    return;
+  }
+
+  let targetAsset = (data.portfolioAssets || []).find(a => a.id === assetId) || data.portfolioAssets?.[0];
+  if (!targetAsset) {
+    targetAsset = { id: generateId("asset"), name: "ETF", assetType: "ETF", units: 0, value: 0, cost: 0 };
+    data.portfolioAssets = [targetAsset];
+  }
+
+  targetAsset.units = Number(((Number(targetAsset.units) || 0) + buyUnits).toFixed(8));
+  targetAsset.cost = Number(((Number(targetAsset.cost) || 0) + buyAmt).toFixed(2));
+  targetAsset.value = Number(((Number(targetAsset.value) || 0) + buyAmt).toFixed(2));
 
   if (logTx) {
     const ctx = getActivePeriodContext();
@@ -5951,7 +6510,7 @@ function executeEtfQuickBuy() {
       amount: buyAmt,
       date: dateStr,
       category: "Επένδυση",
-      description: `Αγορά ${data.portfolio.name || "ETF"} (${buyUnits} τεμ.)`,
+      description: `Αγορά ${targetAsset.name}${buyUnits > 0 ? ` (${buyUnits} τεμ.)` : ""}`,
       unexpected: false,
       isShared: false
     });
@@ -5963,33 +6522,78 @@ function executeEtfQuickBuy() {
 
   persist();
   render();
-  showToast(`Προστέθηκαν ${buyUnits} τεμ. ${data.portfolio.name} (+${money(buyAmt)})! 📈`);
+  showToast(`Προστέθηκαν +${money(buyAmt)} στο ${targetAsset.name}! 📈`);
 }
 
-function savePortfolio() {
-  const name = document.getElementById("etfName").value.trim();
-  const units = Number(document.getElementById("etfUnits").value);
-  const value = Number(document.getElementById("etfValue").value);
-  const cost = Number(document.getElementById("etfCost").value);
-  const cash = Number(document.getElementById("brokerCash").value);
+function renderPortfolioAssets() {
+  const container = document.getElementById("portfolioAssetsList");
+  const pt = getPortfolioTotals();
 
-  if (!name || [units, value, cost, cash].some(v => !Number.isFinite(v) || v < 0)) {
-    showModal("Έλεγξε τα στοιχεία του χαρτοφυλακίου (πρέπει να είναι μη αρνητικοί αριθμοί).");
+  document.getElementById("portfolioValue").textContent = money(pt.totalValue);
+  const profitEl = document.getElementById("portfolioProfit");
+  const profitPct = pt.assetsCost > 0 ? ((pt.profit / pt.assetsCost) * 100).toFixed(2) : "0.00";
+  profitEl.textContent = `${pt.profit >= 0 ? "+" : ""}${money(pt.profit)} (${profitPct}%)`;
+  profitEl.className = "val " + (pt.profit >= 0 ? "green" : "red");
+
+  const cashInput = document.getElementById("brokerCash");
+  if (cashInput) cashInput.value = pt.cash;
+
+  if (!container) return;
+  if (!pt.assets.length) {
+    container.innerHTML = `<p class="small">Δεν έχεις προσθέσει ακόμα επενδυτικές θέσεις. Πάτησε «+ Νέα Θέση».</p>`;
     return;
   }
 
-  data.portfolio = { name, units, value, cost, cash };
-  persist();
-  render();
-  showToast("Το χαρτοφυλάκιο ενημερώθηκε! ✓");
+  container.innerHTML = pt.assets.map(a => {
+    const val = Number(a.value) || 0;
+    const cost = Number(a.cost) || 0;
+    const units = Number(a.units) || 0;
+    const diff = val - cost;
+    const diffPct = cost > 0 ? ((diff / cost) * 100).toFixed(2) : "0.00";
+    const weightPct = pt.totalValue > 0 ? ((val / pt.totalValue) * 100).toFixed(1) : "0.0";
+    const avgUnit = units > 0 ? (cost / units) : 0;
+    const curUnit = units > 0 ? (val / units) : 0;
+
+    return `
+      <div class="asset-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+          <div>
+            <strong style="font-size:14px;">${escapeHtml(a.name)}</strong>
+            <span class="badge badge-source">${escapeHtml(a.assetType || "ETF")}</span>
+            <span class="badge badge-saving">${weightPct}% βαρύτητα</span>
+          </div>
+          <button type="button" class="danger small-btn" onclick="deletePortfolioAsset('${escapeHtml(a.id)}')" style="padding:3px 8px;">×</button>
+        </div>
+
+        <div class="form-grid" style="gap:8px; margin-bottom:6px;">
+          <div>
+            <label style="margin-top:0; font-size:11px;">Τεμάχια</label>
+            <input type="number" min="0" step="0.00000001" value="${units}" style="padding:6px 8px; font-size:12px;" onchange="updatePortfolioAssetField('${escapeHtml(a.id)}', 'units', this.value)">
+          </div>
+          <div>
+            <label style="margin-top:0; font-size:11px;">Τρέχουσα Αξία (€)</label>
+            <input type="number" min="0" step="0.01" value="${val}" style="padding:6px 8px; font-size:12px;" onchange="updatePortfolioAssetField('${escapeHtml(a.id)}', 'value', this.value)">
+          </div>
+          <div>
+            <label style="margin-top:0; font-size:11px;">Κόστος Κτήσης (€)</label>
+            <input type="number" min="0" step="0.01" value="${cost}" style="padding:6px 8px; font-size:12px;" onchange="updatePortfolioAssetField('${escapeHtml(a.id)}', 'cost', this.value)">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px;">
+          <span class="small">Μέση τιμή: ${money(avgUnit)} → Τρέχουσα: ${money(curUnit)}</span>
+          <span class="${diff >= 0 ? "green" : "red"}" style="font-weight:700;">${diff >= 0 ? "+" : ""}${money(diff)} (${diffPct}%)</span>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function syncSimulatorWithPortfolio() {
-  const port = data.portfolio;
-  const totalPort = (Number(port.value) || 0) + (Number(port.cash) || 0);
+  const pt = getPortfolioTotals();
   const simInit = document.getElementById("simInitial");
   const simMon = document.getElementById("simMonthly");
-  if (simInit) simInit.value = Math.round(totalPort);
+  if (simInit) simInit.value = Math.round(pt.totalValue);
   if (simMon && data.profile.savingGoal > 0) simMon.value = Math.round(data.profile.savingGoal);
   renderWealthSimulator();
 }
@@ -6098,7 +6702,7 @@ function renderTopMerchants(periodTxs, ctx) {
     .slice(0, 6);
 
   if (!sorted.length) {
-    container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν καταχωρισμένα έξοδα στην περίοδο ${ctx.label}.</p>`;
+    container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν καταχωρισμένα έξοδα στην περίοδο ${escapeHtml(ctx.label)}.</p>`;
     return;
   }
 
@@ -6108,8 +6712,8 @@ function renderTopMerchants(periodTxs, ctx) {
       <div style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px;">
           <div>
-            <strong>${idx + 1}. ${m.label}</strong>
-            <span class="small" style="margin-left:6px;">(${m.count}x • ${m.category})</span>
+            <strong>${idx + 1}. ${escapeHtml(m.label)}</strong>
+            <span class="small" style="margin-left:6px;">(${m.count}x • ${escapeHtml(m.category)})</span>
           </div>
           <div class="privacy-sensitive red" style="font-weight:700; white-space:nowrap;">${money(m.total)}</div>
         </div>
@@ -6138,7 +6742,6 @@ function renderEReceiptsCounter(ctx) {
   const taxableBaseIncome = Math.max(loggedYearIncome, annualizedProfileIncome);
   const required30Pct = taxableBaseIncome * 0.30;
 
-  // Επιλέξιμες ηλεκτρονικές δαπάνες (εξαιρούνται Στέγαση/Ενοίκιο και Ανάληψη μετρητών βάσει φορολογίας Ε1)
   const eligibleElectronicSpend = yearTxs
     .filter(t => t.type === "expense" && t.category !== "Στέγαση" && t.category !== "Ανάληψη")
     .reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -6157,8 +6760,8 @@ function renderEReceiptsCounter(ctx) {
     </div>
     <p class="small" style="margin-bottom:8px;">
       ${covered
-        ? `🎉 <strong>Κάλυψες το 100%</strong> του απαιτούμενου ορίου ηλεκτρονικών αποδείξεων (${pct.toFixed(0)}%) για το ${yearStr}!`
-        : `Έχεις καλύψει το <strong>${pct.toFixed(1)}%</strong> του ορίου. Υπολείπονται <strong class="amber">${money(remaining)}</strong> σε ηλεκτρονικές πληρωμές έως 31/12/${yearStr}.`}
+        ? `🎉 <strong>Κάλυψες το 100%</strong> του απαιτούμενου ορίου ηλεκτρονικών αποδείξεων (${pct.toFixed(0)}%) για το ${escapeHtml(yearStr)}!`
+        : `Έχεις καλύψει το <strong>${pct.toFixed(1)}%</strong> του ορίου. Υπολείπονται <strong class="amber">${money(remaining)}</strong> σε ηλεκτρονικές πληρωμές έως 31/12/${escapeHtml(yearStr)}.`}
     </p>
     <div class="small" style="opacity:0.85;">
       Βάση ετήσιου εισοδήματος: <span class="privacy-sensitive">${money(taxableBaseIncome)}</span> • Εξαιρούνται αυτόματα «Στέγαση/Ενοίκιο» και «Ανάληψη» μετρητών.
@@ -6271,7 +6874,7 @@ function renderCharts(ctxOverride = null) {
 }
 
 /* ==========================================================================
-9. ΚΥΡΙΑ ΣΥΝΑΡΤΗΣΗ RENDER & ΠΙΝΑΚΑΣ ΙΣΤΟΡΙΚΟΥ
+9. ΚΥΡΙΑ ΣΥΝΑΡΤΗΣΗ RENDER, ΠΙΝΑΚΑΣ ΙΣΤΟΡΙΚΟΥ & ΔΙΑΧΕΙΡΙΣΗ ΚΑΝΟΝΩΝ ΕΜΠΟΡΩΝ
    ========================================================================== */
 function totals(transactions) {
   return transactions.reduce((a, t) => {
@@ -6326,7 +6929,7 @@ function syncPeriodSelectorUI(ctx) {
     const sel = document.getElementById("activeCycleSelect");
     if (sel) {
       sel.innerHTML = ctx.cycles.map((c, i) => `
-        <option value="${i}" ${i === ctx.cycleIndex ? "selected" : ""}>${c.label}${i === 0 ? " (Ενεργός)" : ""}</option>
+        <option value="${i}" ${i === ctx.cycleIndex ? "selected" : ""}>${escapeHtml(c.label)}${i === 0 ? " (Ενεργός)" : ""}</option>
       `).join("");
     }
   }
@@ -6353,6 +6956,111 @@ function syncPeriodSelectorUI(ctx) {
     if (recentT) recentT.textContent = "Πρόσφατες Κινήσεις Μήνα";
     if (barT) barT.textContent = "Εξέλιξη 6μήνου (Έσοδα vs Έξοδα vs Αποταμίευση)";
   }
+}
+
+/* --- ΦΑΣΗ 2: Διαχείριση Κανόνων Εμπόρων (Auto-Learn Rules Manager) --- */
+let merchantRulesListCache = [];
+
+function addManualMerchantRule() {
+  const kwRaw = (document.getElementById("newRuleKeywordInput")?.value || "").trim();
+  const cat = document.getElementById("newRuleCategorySelect")?.value || "Άλλο";
+  const isShared = Boolean(document.getElementById("newRuleSharedChk")?.checked);
+
+  const key = normalizeMerchantKey(kwRaw);
+  if (!key || key.length < 2) {
+    showModal("Εισήγαγε μια έγκυρη λέξη-κλειδί εμπόρου (τουλάχιστον 2 χαρακτήρες).");
+    return;
+  }
+
+  if (!data.merchantRules) data.merchantRules = {};
+  data.merchantRules[key] = { category: cat, isShared };
+
+  document.getElementById("newRuleKeywordInput").value = "";
+  document.getElementById("newRuleSharedChk").checked = false;
+
+  persist();
+  renderMerchantRulesManager();
+  showToast(`Αποθηκεύτηκε ο κανόνας «${key} → ${cat}»! 🧠`);
+}
+
+function updateMerchantRuleCategory(idx, newCat) {
+  const key = merchantRulesListCache[idx];
+  if (!key || !data.merchantRules?.[key]) return;
+  data.merchantRules[key].category = newCat;
+  persist();
+  showToast(`Ο κανόνας «${key}» ενημερώθηκε σε «${newCat}».`);
+}
+
+function toggleMerchantRuleShared(idx) {
+  const key = merchantRulesListCache[idx];
+  if (!key || !data.merchantRules?.[key]) return;
+  data.merchantRules[key].isShared = !data.merchantRules[key].isShared;
+  persist();
+  renderMerchantRulesManager();
+}
+
+function deleteMerchantRule(idx) {
+  const key = merchantRulesListCache[idx];
+  if (!key || !data.merchantRules?.[key]) return;
+  delete data.merchantRules[key];
+  persist();
+  renderMerchantRulesManager();
+  showToast(`Ο κανόνας «${key}» διαγράφηκε.`);
+}
+
+function renderMerchantRulesManager() {
+  const container = document.getElementById("merchantRulesListContainer");
+  const badgeEl = document.getElementById("merchantRulesCountBadge");
+  const catSel = document.getElementById("newRuleCategorySelect");
+  const sharedWrap = document.getElementById("newRuleSharedWrap");
+  if (!container) return;
+
+  const split = getCoupleSplit();
+  if (sharedWrap) sharedWrap.style.display = split.hasPartner ? "flex" : "none";
+
+  if (catSel && catSel.options.length === 0) {
+    catSel.innerHTML = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${c === "Τρόφιμα" ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+  }
+
+  const entries = Object.entries(data.merchantRules || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  merchantRulesListCache = entries.map(([k]) => k);
+
+  if (badgeEl) badgeEl.textContent = `${entries.length} κανόνες`;
+
+  if (!entries.length) {
+    container.innerHTML = `<p class="small">Δεν υπάρχουν ακόμα απομνημονευμένοι κανόνες. Όταν αλλάζεις κατηγορία στην εισαγωγή τράπεζας ή προσθέτεις έναν κανόνα παραπάνω, θα εμφανίζεται εδώ.</p>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="table-wrap" style="max-height:280px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Έμπορος / Λέξη-κλειδί</th>
+            <th>Κατηγορία</th>
+            ${split.hasPartner ? "<th>Κοινό Έξοδο</th>" : ""}
+            <th style="text-align:right;">Διαγραφή</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${entries.map(([key, rule], idx) => {
+            const opts = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${c === rule.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+            return `
+              <tr>
+                <td><strong>${escapeHtml(key)}</strong></td>
+                <td>
+                  <select style="padding:5px 8px; font-size:12px; max-width:210px;" onchange="updateMerchantRuleCategory(${idx}, this.value)">${opts}</select>
+                </td>
+                ${split.hasPartner ? `<td><button type="button" class="small-btn ${rule.isShared ? "success" : "secondary"}" onclick="toggleMerchantRuleShared(${idx})">${rule.isShared ? `👫 ${split.myPct}%` : "👤 100%"}</button></td>` : ""}
+                <td style="text-align:right;"><button type="button" class="danger small-btn" onclick="deleteMerchantRule(${idx})">×</button></td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function render() {
@@ -6402,9 +7110,8 @@ function render() {
 
   const goalsTotal = (data.goals || []).reduce((sum, g) => sum + (Number(g.saved) || 0), 0);
 
-  const port = data.portfolio;
-  const portTotal = (Number(port.value) || 0) + (Number(port.cash) || 0);
-  const portProfit = (Number(port.value) || 0) - (Number(port.cost) || 0);
+  const pt = getPortfolioTotals();
+  const portTotal = pt.totalValue;
 
   const actualBalance = mt.income - mt.expense - mt.saving + mt.withdrawal;
   const incomeBase = Math.max(Number(p.monthlyIncome) || 0, mt.income);
@@ -6444,17 +7151,17 @@ function render() {
   if (recentContainer) {
     const recentList = [...periodTxs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
     if (recentList.length === 0) {
-      recentContainer.innerHTML = `<p class="small" style="padding:14px 0;">Δεν υπάρχουν καταχωρισμένες συναλλαγές για την περίοδο ${ctx.label}.</p>`;
+      recentContainer.innerHTML = `<p class="small" style="padding:14px 0;">Δεν υπάρχουν καταχωρισμένες συναλλαγές για την περίοδο ${escapeHtml(ctx.label)}.</p>`;
     } else {
       recentContainer.innerHTML = recentList.map(t => {
         const sign = (t.type === "expense" || t.type === "withdrawal") ? "-" : "+";
         const col = t.type === "income" ? "green" : (t.type === "expense" ? "red" : "accent");
-        const srcBadge = t.source ? `<span class="badge badge-source">${t.source}</span>` : "";
+        const srcBadge = t.source ? `<span class="badge badge-source">${escapeHtml(t.source)}</span>` : "";
         return `
           <div class="recent-tx-item">
             <div>
-              <div style="font-weight:700; font-size:13px;">${t.description || t.category} ${t.isShared ? '<span class="badge badge-shared">👫 Κοινό</span>' : ''}${srcBadge}</div>
-              <div class="small">${t.date} • ${t.category}</div>
+              <div style="font-weight:700; font-size:13px;">${escapeHtml(t.description || t.category)} ${t.isShared ? '<span class="badge badge-shared">👫 Κοινό</span>' : ''}${srcBadge}</div>
+              <div class="small">${escapeHtml(t.date)} • ${escapeHtml(t.category)}</div>
             </div>
             <div class="privacy-sensitive ${col}" style="font-weight:800; font-size:14px; white-space:nowrap;">${sign}${money(t.amount)}</div>
           </div>
@@ -6477,17 +7184,6 @@ function render() {
   document.getElementById("monthlySavingProgress").style.width = `${monSavPct}%`;
   document.getElementById("monthlySavingDescription").textContent = `${money(mt.netSaving)} από στόχο περιόδου ${money(monSavGoal)}`;
   updateMoMBadge("savingMoMBadge", mt.netSaving, pmt.netSaving, false, isCycle);
-
-  document.getElementById("portfolioValue").textContent = money(portTotal);
-  const profitEl = document.getElementById("portfolioProfit");
-  const profitPct = port.cost > 0 ? ((portProfit / port.cost) * 100).toFixed(2) : "0.00";
-  profitEl.textContent = `${portProfit >= 0 ? "+" : ""}${money(portProfit)} (${profitPct}%)`;
-  profitEl.className = "val " + (portProfit >= 0 ? "green" : "red");
-
-  const avgUnitCost = port.units > 0 ? (port.cost / port.units) : 0;
-  const curUnitPrice = port.units > 0 ? (port.value / port.units) : 0;
-  document.getElementById("portfolioAvgVsCurrent").textContent = `${money(avgUnitCost)} → ${money(curUnitPrice)}`;
-  document.getElementById("portfolioUnitInfo").textContent = `${port.name}: ${Number(port.units).toFixed(4)} τεμ. • Μετρητά broker: ${money(port.cash)}`;
 
   const todayStr = today();
   const weekStart = new Date();
@@ -6514,21 +7210,19 @@ function render() {
   });
   previewProfileSplit();
 
-  document.getElementById("etfName").value = port.name;
-  document.getElementById("etfUnits").value = port.units;
-  document.getElementById("etfValue").value = port.value;
-  document.getElementById("etfCost").value = port.cost;
-  document.getElementById("brokerCash").value = port.cash;
-
   renderFirstUseGuide();
   renderCoupleSplitPanel(periodTxs);
   renderCategoryBudgets(periodTxs);
+  renderDetectedSubscriptions();
   renderRecurringTable(ctx);
+  renderAnnualBills();
   renderGoals(ctx.anchorMonth);
   render503020Rule(mt, incomeBase);
   renderFinancialHealth(reserve, mt, incomeBase);
+  renderPortfolioAssets();
   renderTopMerchants(periodTxs, ctx);
   renderEReceiptsCounter(ctx);
+  renderMerchantRulesManager();
   renderTransactionsTable();
 
   const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "overview";
@@ -6549,9 +7243,12 @@ function resetFilters() {
   renderTransactionsTable();
 }
 
-function setQuickSourceFilter(sourceKey) {
+let availableSourcesCache = [];
+
+function setQuickSourceFilterByIdx(idx) {
+  const sourceKey = availableSourcesCache[idx];
   const srcSel = document.getElementById("filterSource");
-  if (!srcSel) return;
+  if (!srcSel || !sourceKey) return;
   srcSel.value = (srcSel.value === sourceKey) ? "all" : sourceKey;
   renderTransactionsTable();
 }
@@ -6574,19 +7271,17 @@ function renderTransactionsTable() {
   const fCat = document.getElementById("filterCategory")?.value || "all";
   const onlyUnexpected = Boolean(document.getElementById("filterOnlyUnexpected")?.checked);
 
-  // Συγκέντρωση διαθέσιμων λογαριασμών / πηγών
   const knownSources = Array.from(new Set(
     (data.transactions || []).map(t => (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο")
   ));
   if (sourceSel) {
     const prevVal = sourceSel.value || "all";
     sourceSel.innerHTML = `<option value="all">Όλοι οι Λογαριασμοί</option>` +
-      knownSources.map(s => `<option value="${s}">${s === "Χειροκίνητο" ? "💵 Χειροκίνητο" : `🏦 ${s}`}</option>`).join("");
+      knownSources.map(s => `<option value="${escapeHtml(s)}">${s === "Χειροκίνητο" ? "💵 Χειροκίνητο" : `🏦 ${escapeHtml(s)}`}</option>`).join("");
     sourceSel.value = Array.from(sourceSel.options).some(o => o.value === prevVal) ? prevVal : "all";
   }
   const fSource = sourceSel?.value || "all";
 
-  // Υπολογισμός συνόλου ανά λογαριασμό στην επιλεγμένη περίοδο
   const periodBaseTxs = (data.transactions || []).filter(t => {
     if (scope === "selectedPeriod") {
       const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
@@ -6605,12 +7300,13 @@ function renderTransactionsTable() {
       bySource[sKey].count++;
     });
     const entries = Object.entries(bySource);
+    availableSourcesCache = entries.map(([k]) => k);
     if (entries.length > 1) {
-      sourceBreakdownEl.innerHTML = entries.map(([sName, st]) => {
+      sourceBreakdownEl.innerHTML = entries.map(([sName, st], idx) => {
         const isActive = fSource === sName;
         return `
-          <button type="button" class="chip-btn ${isActive ? "active" : ""}" onclick="setQuickSourceFilter('${sName.replaceAll("'", "\\'")}')" style="display:inline-flex; align-items:center; gap:6px;">
-            <span>${sName === "Χειροκίνητο" ? "💵" : "🏦"} <strong>${sName}</strong> (${st.count})</span>
+          <button type="button" class="chip-btn ${isActive ? "active" : ""}" onclick="setQuickSourceFilterByIdx(${idx})" style="display:inline-flex; align-items:center; gap:6px;">
+            <span>${sName === "Χειροκίνητο" ? "💵" : "🏦"} <strong>${escapeHtml(sName)}</strong> (${st.count})</span>
             <span class="${isActive ? "" : "red"}">-${money(st.exp)}</span>
           </button>
         `;
@@ -6667,7 +7363,7 @@ function renderTransactionsTable() {
       ? `<span class="badge badge-settled">✓ Εξοφλ.</span>`
       : "";
     const sourceBadge = t.source
-      ? `<span class="badge badge-source">${t.source}</span>`
+      ? `<span class="badge badge-source">${escapeHtml(t.source)}</span>`
       : "";
     const shiftedBadge = (isCycle && t.cycleOverrideDate)
       ? `<span class="badge badge-scheduled">⏭️ Μεταφερμένο</span>`
@@ -6679,35 +7375,36 @@ function renderTransactionsTable() {
       ? `<div class="small">Σύνολο απόδειξης: ${money(t.totalBillAmount)}</div>`
       : "";
 
+    const safeId = escapeHtml(t.id);
     const sharedActionBtn = (t.type === "expense" && (split.hasPartner || t.isShared))
-      ? `<button type="button" class="secondary small-btn" onclick="toggleTransactionShared('${t.id}')" title="Εναλλαγή Κοινού/Ατομικού Εξόδου">👫</button>`
+      ? `<button type="button" class="secondary small-btn" onclick="toggleTransactionShared('${safeId}')" title="Εναλλαγή Κοινού/Ατομικού Εξόδου">👫</button>`
       : "";
     const shiftCycleBtn = (isCycle && t.type === "expense")
-      ? `<button type="button" class="secondary small-btn" onclick="shiftTransactionToNextCycle('${t.id}')" title="Μεταφορά στον επόμενο κύκλο μισθοδοσίας">⏭️</button>`
+      ? `<button type="button" class="secondary small-btn" onclick="shiftTransactionToNextCycle('${safeId}')" title="Μεταφορά στον επόμενο κύκλο μισθοδοσίας">⏭️</button>`
       : "";
 
     if (window.innerWidth <= 640) {
       return `
         <tr>
           <td class="col-desc">
-            <span>${t.description || t.category}</span>
+            <span>${escapeHtml(t.description || t.category)}</span>
             ${unexpBadge}${sharedBadge}${settledBadge}${sourceBadge}${shiftedBadge}
             ${subBill}
           </td>
           <td class="col-amount amount-cell ${amountColor}" style="font-weight:800; white-space:nowrap;">${sign}${money(t.amount)}</td>
           <td class="col-meta">
-            <span>${t.date}</span>
+            <span>${escapeHtml(t.date)}</span>
             <span>•</span>
-            <span>${t.category}</span>
+            <span>${escapeHtml(t.category)}</span>
             <span class="badge badge-${t.type}">${typeLabels[t.type] || t.type}</span>
             ${schedBadge}
           </td>
           <td class="col-actions">
             ${sharedActionBtn}
             ${shiftCycleBtn}
-            <button type="button" class="secondary small-btn" onclick="editTransaction('${t.id}')" title="Επεξεργασία">✎</button>
-            <button type="button" class="secondary small-btn" onclick="duplicateTransaction('${t.id}')" title="Αντιγραφή στο Σήμερα">⧉</button>
-            <button type="button" class="danger small-btn" onclick="deleteTransaction('${t.id}')" title="Διαγραφή">×</button>
+            <button type="button" class="secondary small-btn" onclick="editTransaction('${safeId}')" title="Επεξεργασία">✎</button>
+            <button type="button" class="secondary small-btn" onclick="duplicateTransaction('${safeId}')" title="Αντιγραφή στο Σήμερα">⧉</button>
+            <button type="button" class="danger small-btn" onclick="deleteTransaction('${safeId}')" title="Διαγραφή">×</button>
           </td>
         </tr>
       `;
@@ -6715,11 +7412,11 @@ function renderTransactionsTable() {
 
     return `
       <tr>
-        <td style="white-space:nowrap;">${t.date}${schedBadge}${shiftedBadge}</td>
+        <td style="white-space:nowrap;">${escapeHtml(t.date)}${schedBadge}${shiftedBadge}</td>
         <td><span class="badge badge-${t.type}">${typeLabels[t.type] || t.type}</span></td>
-        <td>${t.category}</td>
+        <td>${escapeHtml(t.category)}</td>
         <td>
-          <span>${t.description || "-"}</span>
+          <span>${escapeHtml(t.description || "-")}</span>
           ${unexpBadge}${sharedBadge}${settledBadge}${sourceBadge}
           ${subBill}
         </td>
@@ -6727,9 +7424,9 @@ function renderTransactionsTable() {
         <td style="text-align:right; white-space:nowrap;">
           ${sharedActionBtn}
           ${shiftCycleBtn}
-          <button type="button" class="secondary small-btn" onclick="editTransaction('${t.id}')" title="Επεξεργασία">✎</button>
-          <button type="button" class="secondary small-btn" onclick="duplicateTransaction('${t.id}')" title="Αντιγραφή στο Σήμερα">⧉</button>
-          <button type="button" class="danger small-btn" onclick="deleteTransaction('${t.id}')" title="Διαγραφή">×</button>
+          <button type="button" class="secondary small-btn" onclick="editTransaction('${safeId}')" title="Επεξεργασία">✎</button>
+          <button type="button" class="secondary small-btn" onclick="duplicateTransaction('${safeId}')" title="Αντιγραφή στο Σήμερα">⧉</button>
+          <button type="button" class="danger small-btn" onclick="deleteTransaction('${safeId}')" title="Διαγραφή">×</button>
         </td>
       </tr>
     `;
@@ -6843,18 +7540,10 @@ function importSyncPayloadFromText() {
     if (!imported.profile || !Array.isArray(imported.transactions)) {
       throw new Error("Invalid");
     }
-    data = {
-      ...deepClone(defaults),
-      ...imported,
-      profile: { ...defaults.profile, ...imported.profile },
-      portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
-      budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
-      recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
-      goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
-      merchantRules: imported.merchantRules || {},
-      settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
-      transactions: imported.transactions
-    };
+    data = normalizeLoadedState(imported, true);
+    data.settings.lastBackupAt = new Date().toISOString();
+    data.settings.unsavedChangesCount = 0;
+    data.settings.onboardingCompleted = true;
     sessionHasUnsavedChanges = false;
     persist(false);
     closeDeviceSyncModal();
@@ -6957,18 +7646,10 @@ function importJSON() {
       }
       showModal("Η εισαγωγή θα αντικαταστήσει τα τρέχοντα δεδομένα. Θέλεις να συνεχίσεις;", true, (ok) => {
         if (!ok) return;
-        data = {
-          ...deepClone(defaults),
-          ...imported,
-          profile: { ...defaults.profile, ...imported.profile },
-          portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
-          budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
-          recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
-          goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
-          merchantRules: imported.merchantRules || {},
-          settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
-          transactions: imported.transactions
-        };
+        data = normalizeLoadedState(imported, true);
+        data.settings.lastBackupAt = new Date().toISOString();
+        data.settings.unsavedChangesCount = 0;
+        data.settings.onboardingCompleted = true;
         sessionHasUnsavedChanges = false;
         persist(false);
         render();
@@ -7043,6 +7724,7 @@ function loadDemoData() {
   showModal("Να φορτωθούν ενδεικτικά δεδομένα (Demo) για δοκιμή όλων των λειτουργιών;", true, (ok) => {
     if (!ok) return;
     const ym = getSelectedMonth();
+    const prevYm = getPreviousMonth(ym);
     const split = getCoupleSplit();
     const rentFull = 420;
     const rentMy = split.hasPartner ? Number(((rentFull * split.myPct) / 100).toFixed(2)) : rentFull;
@@ -7055,8 +7737,10 @@ function loadDemoData() {
       { id: generateId("tx"), type: "expense", amount: superMy, date: `${ym}-05`, category: "Τρόφιμα", description: "Σκλαβενίτης Σούπερ Μάρκετ", source: "Revolut", unexpected: false, isShared: split.hasPartner, totalBillAmount: superFull, userSharePct: split.myPct, paidBy: "partner", settled: false },
       { id: generateId("tx"), type: "expense", amount: 42, date: `${ym}-07`, category: "Μεταφορές", description: "Shell Καύσιμα", source: "Revolut", unexpected: false, isShared: false },
       { id: generateId("tx"), type: "expense", amount: 34, date: `${ym}-09`, category: "Διασκέδαση", description: "Wolt Delivery", source: "Revolut", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 50, date: `${ym}-10`, category: "Ανάληψη", description: "Ανάληψη ATM Πειραιώς", source: "Πειραιώς", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "saving", amount: 150, date: `${ym}-11`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false }
+      { id: generateId("tx"), type: "expense", amount: 13.99, date: `${ym}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "expense", amount: 13.99, date: `${prevYm}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "expense", amount: 50, date: `${ym}-11`, category: "Ανάληψη", description: "Ανάληψη ATM Πειραιώς", source: "Πειραιώς", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "saving", amount: 150, date: `${ym}-12`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false }
     ];
     persist();
     render();
@@ -7112,7 +7796,7 @@ function renderShareQrCode(url) {
     }
   }
 
-  container.innerHTML = `<div style="padding:16px; color:#0f172a; font-size:12px; font-weight:700; word-break:break-all;">${target}</div>`;
+  container.innerHTML = `<div style="padding:16px; color:#0f172a; font-size:12px; font-weight:700; word-break:break-all;">${escapeHtml(target)}</div>`;
 }
 
 function openShareModal() {
@@ -7307,9 +7991,23 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("scroll", syncMobileBottomBarPosition);
 }
 
+function nudgeLockedBankModal() {
+  const card = document.getElementById("bankImportModalCard");
+  if (card) {
+    card.classList.remove("modal-lock-shake");
+    void card.offsetWidth;
+    card.classList.add("modal-lock-shake");
+  }
+  showToast("Για να μη χαθούν οι αλλαγές σου, πάτησε «Κλείσιμο» ή «✅ Εισαγωγή Επιλεγμένων».");
+}
+
 window.addEventListener("click", (e) => {
   if (e.target && e.target.classList && e.target.classList.contains("modal-overlay")) {
     if (e.target.id === "customModal") return;
+    if (e.target.id === "bankImportModal") {
+      nudgeLockedBankModal();
+      return;
+    }
     e.target.style.display = "none";
   }
 });
@@ -7322,6 +8020,14 @@ window.addEventListener("beforeunload", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const bankModal = document.getElementById("bankImportModal");
+    if (bankModal && bankModal.style.display === "flex") {
+      e.preventDefault();
+      nudgeLockedBankModal();
+      return;
+    }
+  }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
     e.preventDefault();
     quickSaveToFile();
