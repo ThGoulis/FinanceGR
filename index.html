@@ -2012,8 +2012,8 @@ body.light-theme .first-use-panel {
   <!-- STORAGE PROTECTION NOTICE -->
   <div id="storageNoticeBanner" class="smart-banner">
     <div>
-      <strong>Απαιτείται σταθερό URL για αξιόπιστη αποθήκευση:</strong>
-      <span class="small" style="margin-left:4px;">Όταν ο HTML κώδικας επικολλάται απευθείας στο Google Sites (Embed code), μπορεί να εκτελείται σε sandboxed iframe με διαφορετικό origin μετά από refresh. Για να διατηρούνται τα δεδομένα, δημοσίευσε αυτό το αρχείο σε σταθερό HTTPS URL (π.χ. GitHub Pages) και πρόσθεσε στο Google Sites το URL μέσω Insert → Embed → URL. Η τοπική αποθήκευση παραμένει ανά συσκευή/browser· δεν συγχρονίζει αυτόματα υπολογιστή και κινητό.</span>
+      <strong>🔒 Περιορισμός Google Sites (Sandboxed Iframe):</strong>
+      <span class="small" style="margin-left:4px;">Το Google Sites μπλοκάρει τη μόνιμη μνήμη του browser στο refresh. Αποθήκευσε ένα αρχείο δεδομένων ή κατέβασε την αυτόνομη έκδοση για 100% αυτόματη αποθήκευση.</span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" class="success small-btn" onclick="quickSaveToFile()">💾 Αποθήκευση (Ctrl+S)</button>
@@ -2994,12 +2994,8 @@ function safeStorageGet(key) {
     : null;
 }
 
-let isIndexedDBAvailable = false;
-
-// IndexedDB λειτουργεί ως δεύτερο, ανεξάρτητο επίπεδο αποθήκευσης.
-// Δεν παρακάμπτει όμως το sandbox/origin του Google Sites: και αυτό είναι δεμένο με το origin.
 function mirrorToIndexedDB(key, value) {
-  if (typeof indexedDB === "undefined") return;
+  if (!isPersistentStorageAvailable || typeof indexedDB === "undefined") return;
   try {
     const req = indexedDB.open("FinanceGR_Storage", 1);
     req.onupgradeneeded = () => {
@@ -3007,75 +3003,52 @@ function mirrorToIndexedDB(key, value) {
         req.result.createObjectStore("kv");
       }
     };
-    req.onerror = () => { isIndexedDBAvailable = false; };
     req.onsuccess = () => {
-      const db = req.result;
       try {
-        const tx = db.transaction("kv", "readwrite");
+        const tx = req.result.transaction("kv", "readwrite");
         tx.objectStore("kv").put(value, key);
-        tx.oncomplete = () => { isIndexedDBAvailable = true; db.close(); };
-        tx.onerror = tx.onabort = () => { db.close(); };
       } catch {
-        db.close();
+        // Ignore IDB write errors
       }
     };
   } catch {
-    // Ignore IDB errors; localStorage/session fallbacks remain active.
+    // Ignore IDB errors
   }
 }
 
-// Επιστρέφει Promise ώστε η ανάκτηση από IndexedDB να ολοκληρώνεται πριν γίνει το πρώτο render.
 function restoreFromIndexedDBIfNeeded() {
-  return new Promise((resolve) => {
-    if (typeof indexedDB === "undefined") return resolve(false);
-
-    // Αν υπάρχει ήδη κατάσταση σε local/session/window.name, δεν την αντικαθιστούμε.
-    if (safeStorageGet(KEY) !== null) return resolve(false);
-
-    let req;
-    try {
-      req = indexedDB.open("FinanceGR_Storage", 1);
-    } catch {
-      return resolve(false);
-    }
-
+  if (!isPersistentStorageAvailable || typeof indexedDB === "undefined") return;
+  try {
+    if (window.localStorage.getItem(KEY) !== null) return;
+    const req = indexedDB.open("FinanceGR_Storage", 1);
     req.onupgradeneeded = () => {
       if (!req.result.objectStoreNames.contains("kv")) {
         req.result.createObjectStore("kv");
       }
     };
-    req.onerror = () => resolve(false);
     req.onsuccess = () => {
-      const db = req.result;
-      isIndexedDBAvailable = true;
       try {
-        const tx = db.transaction("kv", "readonly");
+        const tx = req.result.transaction("kv", "readonly");
         const getReq = tx.objectStore("kv").get(KEY);
         getReq.onsuccess = () => {
-          const stored = getReq.result;
-          if (typeof stored === "string" && stored.length > 10) {
-            // Γράφουμε και στα διαθέσιμα synchronous stores για άμεση ανάγνωση.
-            memoryStorageFallback[KEY] = stored;
-            const wnMap = readWindowNameMap();
-            wnMap[KEY] = stored;
-            writeWindowNameMap(wnMap);
-            try { window.sessionStorage.setItem(KEY, stored); } catch {}
-            try { window.localStorage.setItem(KEY, stored); isPersistentStorageAvailable = true; } catch {}
-            data = loadData();
-            db.close();
-            resolve(true);
-          } else {
-            db.close();
-            resolve(false);
+          if (typeof getReq.result === "string" && getReq.result.length > 10) {
+            try {
+              window.localStorage.setItem(KEY, getReq.result);
+              data = loadData();
+              render();
+              showToast("Τα δεδομένα σου ανακτήθηκαν αυτόματα! 🔄");
+            } catch {
+              // Ignore
+            }
           }
         };
-        getReq.onerror = () => { db.close(); resolve(false); };
       } catch {
-        db.close();
-        resolve(false);
+        // Ignore
       }
     };
-  });
+  } catch {
+    // Ignore
+  }
 }
 
 function safeStorageSet(key, value) {
@@ -3091,18 +3064,15 @@ function safeStorageSet(key, value) {
     // Ignore
   }
 
-  let localSaved = false;
   try {
     window.localStorage.setItem(key, value);
-    localSaved = window.localStorage.getItem(key) === value;
-    isPersistentStorageAvailable = localSaved;
+    isPersistentStorageAvailable = true;
+    mirrorToIndexedDB(key, value);
+    return true;
   } catch {
     isPersistentStorageAvailable = false;
+    return false;
   }
-
-  // Κρατάμε και δεύτερο αντίγραφο, ακόμη κι όταν το localStorage είναι μη διαθέσιμο.
-  mirrorToIndexedDB(key, value);
-  return localSaved;
 }
 
 function buildExportPayloadString() {
@@ -3203,9 +3173,9 @@ function downloadStandaloneAppHtml() {
     });
     const htmlContent = "<!DOCTYPE html>\n" + cloneDoc.outerHTML;
     downloadFile(htmlContent, "FinanceGR-App.html", "text/html;charset=utf-8");
-    showToast("Κατέβηκε το FinanceGR-App.html. Άνοιξέ το από σταθερό HTTPS hosting για αξιόπιστη αποθήκευση ανά browser/συσκευή. 📲");
+    showToast("Κατέβηκε το FinanceGR-App.html! Άνοιξέ το στον browser για 100% μόνιμη αποθήκευση. 📲");
   } catch {
-    showModal("Πάτησε «📥 Backup JSON» για να κρατήσεις αντίγραφο. Για αυτόματη διατήρηση μετά από refresh στο Google Sites, φιλοξένησε το HTML σε σταθερό HTTPS URL και ενσωμάτωσε το URL (όχι τον HTML κώδικα).");
+    showModal("Πάτησε «📥 Backup JSON» για να αποθηκεύσεις τα δεδομένα σου τοπικά.");
   }
 }
 
@@ -4502,6 +4472,20 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
 }
 
 function parseFlexibleDate(raw) {
+  if (!raw && raw !== 0) return null;
+
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+    return toIsoDate(raw);
+  }
+
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 20000 && raw < 90000) {
+    const utcDays = Math.floor(raw) - 25569;
+    const d = new Date(utcDays * 86400 * 1000);
+    if (!Number.isNaN(d.getTime())) {
+      return toIsoDate(d);
+    }
+  }
+
   const s = String(raw || "").trim();
   if (!s) return null;
 
@@ -4517,7 +4501,14 @@ function parseFlexibleDate(raw) {
     return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   }
 
-  // Excel serial date number
+  // DD/MM/YY (2-digit year)
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})(?:\s.*)?$/);
+  if (m) {
+    const fullYear = Number(m[3]) >= 70 ? `19${m[3]}` : `20${m[3]}`;
+    return `${fullYear}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  }
+
+  // Excel serial date as string
   if (/^\d{5}(\.\d+)?$/.test(s)) {
     const serial = Math.floor(Number(s));
     const utcDays = serial - 25569;
@@ -4573,18 +4564,44 @@ function detectDuplicateStatus(dateIso, amountAbs) {
   return { isDup: false, label: "" };
 }
 
+function normalizeHeaderCell(val) {
+  return String(val || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toUpperCase()
+    .trim();
+}
+
+function mapBankProvidedCategory(rawCat, isCredit) {
+  const c = normalizeHeaderCell(rawCat);
+  if (!c) return null;
+  if (isCredit) {
+    if (c.includes("ΜΙΣΘ") || c.includes("SALARY") || c.includes("PAYROLL")) return "Μισθός";
+    if (c.includes("ΕΠΙΣΤΡΟΦ") || c.includes("REFUND")) return "Επιστροφή Χρημάτων";
+    return null;
+  }
+  if (c.includes("ΣΟΥΠΕΡ") || c.includes("ΤΡΟΦΙΜ") || c.includes("GROCER")) return "Τρόφιμα";
+  if (c.includes("ΛΟΓΑΡΙΑΣΜ") || c.includes("ΔΕΚΟ") || c.includes("ΤΗΛΕΠΙΚ") || c.includes("ΕΝΕΡΓ") || c.includes("UTILIT")) return "Λογαριασμοί";
+  if (c.includes("ΚΑΥΣΙΜ") || c.includes("ΜΕΤΑΦΟΡ") || c.includes("ΑΥΤΟΚΙΝ") || c.includes("ΤΑΞΙΔ") || c.includes("TRANSPORT")) return "Μεταφορές";
+  if (c.includes("ΥΓΕΙΑ") || c.includes("ΦΑΡΜΑΚ") || c.includes("ΙΑΤΡ") || c.includes("HEALTH")) return "Υγεία";
+  if (c.includes("ΣΤΕΓΑΣ") || c.includes("ΕΝΟΙΚ") || c.includes("ΣΠΙΤ") || c.includes("HOUSING")) return "Στέγαση";
+  if (c.includes("ΕΣΤΙΑΣ") || c.includes("ΔΙΑΣΚΕΔ") || c.includes("ΨΥΧΑΓΩΓ") || c.includes("ΑΓΟΡ") || c.includes("SHOPPING") || c.includes("ENTERTAIN")) return "Διασκέδαση";
+  return null;
+}
+
 function parseBankGridRows(matrixRows, chosenSource) {
   if (!Array.isArray(matrixRows) || matrixRows.length < 2) return [];
 
-  // Εντοπισμός γραμμής επικεφαλίδων μέσα στις πρώτες 15 γραμμές
+  // Εντοπισμός γραμμής επικεφαλίδων μέσα στις πρώτες 40 γραμμές (π.χ. γραμμή 7 στην Πειραιώς)
   let headerIdx = 0;
   let bestScore = -1;
   const dateHeaderKeys = ["ΗΜΕΡΟΜΗΝΙΑ", "DATE", "STARTED DATE", "COMPLETED DATE", "VALEUR", "ΗΜ/ΝΙΑ"];
   const descHeaderKeys = ["ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ", "ΠΑΡΑΤΗΡΗΣΕΙΣ"];
   const amtHeaderKeys = ["ΠΟΣΟ", "AMOUNT", "ΧΡΕΩΣΗ", "ΠΙΣΤΩΣΗ", "DEBIT", "CREDIT", "PAID OUT", "PAID IN"];
 
-  for (let i = 0; i < Math.min(15, matrixRows.length); i++) {
-    const rowUp = matrixRows[i].map(c => String(c || "").toUpperCase().trim());
+  for (let i = 0; i < Math.min(40, matrixRows.length); i++) {
+    const rowUp = (matrixRows[i] || []).map(normalizeHeaderCell);
     let score = 0;
     if (rowUp.some(c => dateHeaderKeys.some(k => c.includes(k)))) score += 3;
     if (rowUp.some(c => descHeaderKeys.some(k => c.includes(k)))) score += 3;
@@ -4595,17 +4612,24 @@ function parseBankGridRows(matrixRows, chosenSource) {
     }
   }
 
-  const headers = matrixRows[headerIdx].map(c => String(c || "").toUpperCase().trim());
+  const headers = (matrixRows[headerIdx] || []).map(normalizeHeaderCell);
   const isRevolutFormat = headers.includes("STARTED DATE") || headers.includes("COMPLETED DATE") || (headers.includes("STATE") && headers.includes("FEE"));
+  const isPiraeusFormat = headers.includes("ΠΡΟΟΔΕΥΤΙΚΟ ΛΟΓΙΣΤΙΚΟ ΥΠΟΛΟΙΠΟ") || (headers.includes("ΗΜ/ΝΙΑ ΣΥΝΑΛΛΑΓΗΣ") && headers.includes("ΣΧΟΛΙΑ / ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ"));
+
   const effectiveSource = chosenSource === "auto"
-    ? (isRevolutFormat ? "Revolut" : "Τράπεζα")
+    ? (isRevolutFormat ? "Revolut" : (isPiraeusFormat ? "Πειραιώς" : "Τράπεζα"))
     : chosenSource;
 
-  const findCol = (keys) => headers.findIndex(h => keys.some(k => h === k || h.includes(k)));
+  const findCol = (keys, excludeKeys = []) => headers.findIndex(h =>
+    keys.some(k => h === k || h.includes(k)) &&
+    !excludeKeys.some(ex => h.includes(ex))
+  );
 
-  const colDate = findCol(["COMPLETED DATE", "STARTED DATE", "ΗΜΕΡΟΜΗΝΙΑ ΣΥΝΑΛΛΑΓΗΣ", "ΗΜΕΡΟΜΗΝΙΑ", "ΗΜ/ΝΙΑ", "DATE"]);
-  const colDesc = findCol(["ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ"]);
-  const colAmount = findCol(["ΠΟΣΟ ΣΥΝΑΛΛΑΓΗΣ", "ΠΟΣΟ", "AMOUNT"]);
+  const colDate = findCol(["COMPLETED DATE", "STARTED DATE", "ΗΜ/ΝΙΑ ΣΥΝΑΛΛΑΓΗΣ", "ΗΜΕΡΟΜΗΝΙΑ ΣΥΝΑΛΛΑΓΗΣ", "ΗΜΕΡΟΜΗΝΙΑ", "ΗΜ/ΝΙΑ", "DATE"]);
+  const colDesc = findCol(["ΠΕΡΙΓΡΑΦΗ ΣΥΝΑΛΛΑΓΗΣ", "ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ"]);
+  const colComments = findCol(["ΣΧΟΛΙΑ", "ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ", "ΠΑΡΑΤΗΡΗΣΕΙΣ", "REFERENCE"]);
+  const colBankCat = findCol(["ΚΑΤΗΓΟΡΙΑ", "CATEGORY"]);
+  const colAmount = findCol(["ΠΟΣΟ ΣΥΝΑΛΛΑΓΗΣ", "ΠΟΣΟ", "AMOUNT"], ["ΥΠΟΛΟΙΠΟ", "BALANCE"]);
   const colDebit = findCol(["ΧΡΕΩΣΗ", "DEBIT", "PAID OUT", "ΕΚΡΟΗ"]);
   const colCredit = findCol(["ΠΙΣΤΩΣΗ", "CREDIT", "PAID IN", "ΕΙΣΡΟΗ"]);
   const colDir = findCol(["Χ/Π", "ΧΡΕΩΣΗ/ΠΙΣΤΩΣΗ", "D/C", "TYPE", "ΤΥΠΟΣ"]);
@@ -4616,17 +4640,28 @@ function parseBankGridRows(matrixRows, chosenSource) {
 
   for (let r = headerIdx + 1; r < matrixRows.length; r++) {
     const row = matrixRows[r];
-    if (!row || row.every(cell => !String(cell || "").trim())) continue;
+    if (!row || row.every(cell => !String(cell ?? "").trim())) continue;
 
     const rawDate = colDate !== -1 ? row[colDate] : row[0];
     const dateIso = parseFlexibleDate(rawDate);
     if (!dateIso) continue;
 
-    const desc = String(colDesc !== -1 ? row[colDesc] : (row[1] || "")).trim();
+    let desc = String(colDesc !== -1 ? (row[colDesc] ?? "") : (row[1] ?? "")).trim();
+    const commentText = colComments !== -1 ? String(row[colComments] ?? "").trim() : "";
+    const bankCatText = colBankCat !== -1 ? String(row[colBankCat] ?? "").trim() : "";
+
+    if (!desc && commentText) desc = commentText;
     if (!desc) continue;
 
-    const revState = colState !== -1 ? String(row[colState] || "").trim() : "";
-    const revType = (isRevolutFormat && colDir !== -1) ? String(row[colDir] || "").trim() : "";
+    // Εμπλουτισμός αιτιολογίας αν τα Σχόλια περιέχουν χρήσιμη περιγραφή (π.χ. όνομα εμπόρου σε POS/IRIS)
+    const hasMeaningfulComment = commentText && !/^[\d\s/.-]+$/.test(commentText) && !desc.toUpperCase().includes(commentText.toUpperCase());
+    const classifyText = hasMeaningfulComment ? `${desc} ${commentText}` : desc;
+    if (hasMeaningfulComment && /^(ΑΓΟΡΑ POS|ΧΡΕΩΣΗ ΚΑΡΤΑΣ|ΠΛΗΡΩΜΗ|ΜΕΤΑΦΟΡΑ|IRIS)/i.test(desc)) {
+      desc = `${desc} — ${commentText}`;
+    }
+
+    const revState = colState !== -1 ? String(row[colState] ?? "").trim() : "";
+    const revType = (isRevolutFormat && colDir !== -1) ? String(row[colDir] ?? "").trim() : "";
     const feeVal = colFee !== -1 ? Math.abs(parseFlexibleNumber(row[colFee]) || 0) : 0;
 
     let amountAbs = 0;
@@ -4649,7 +4684,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
       const num = parseFlexibleNumber(rawAmtVal);
       if (!Number.isFinite(num) || num === 0) continue;
 
-      const dirToken = colDir !== -1 ? String(row[colDir] || "").toUpperCase().trim() : "";
+      const dirToken = colDir !== -1 ? normalizeHeaderCell(row[colDir]) : "";
       if (["Χ", "D", "DR", "DEBIT", "ΧΡΕΩΣΗ"].includes(dirToken)) {
         isCredit = false;
         amountAbs = Math.abs(num);
@@ -4666,7 +4701,18 @@ function parseBankGridRows(matrixRows, chosenSource) {
       amountAbs = Number((amountAbs + feeVal).toFixed(2));
     }
 
-    const cls = classifyBankMovement(desc, isCredit, revState, revType);
+    const cls = classifyBankMovement(classifyText, isCredit, revState, revType);
+
+    // Αν η κατηγορία έμεινε γενική, αξιοποιούμε την κατηγορία της ίδιας της τράπεζας (π.χ. Πειραιώς)
+    if (!cls.skipReason && (cls.category === "Άλλο" || cls.category === "Bonus / Έξτρα Έσοδο") && bankCatText) {
+      const mappedBankCat = mapBankProvidedCategory(bankCatText, isCredit);
+      if (mappedBankCat) {
+        cls.category = mappedBankCat;
+        if (mappedBankCat === "Μισθός") cls.type = "income";
+        cls.statusBadge = "🏦 Κατηγορία Τράπεζας";
+      }
+    }
+
     const dup = detectDuplicateStatus(dateIso, amountAbs);
 
     const shouldCheck = !cls.skipReason && !dup.isDup;
@@ -4748,21 +4794,46 @@ function closeBankImportModal() {
   if (modal) modal.style.display = "none";
 }
 
-function handleBankFileUpload(event) {
+function ensureXlsxLoaded() {
+  if (typeof XLSX !== "undefined") return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    script.onload = () => resolve(typeof XLSX !== "undefined");
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+async function handleBankFileUpload(event) {
   const file = event.target?.files?.[0];
   if (!file) return;
 
   const chosenSource = document.getElementById("bankAccountSource")?.value || "auto";
   const ext = file.name.split(".").pop().toLowerCase();
 
-  if ((ext === "xlsx" || ext === "xls") && typeof XLSX !== "undefined") {
+  if (ext === "xlsx" || ext === "xls") {
+    const loaded = await ensureXlsxLoaded();
+    if (!loaded) {
+      showModal("Δεν ήταν δυνατή η φόρτωση της βιβλιοθήκης ανάγνωσης Excel (.xlsx). Έλεγξε τη σύνδεση internet ή εξήγαγε το αρχείο σε μορφή .csv.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(e.target.result, { type: "array" });
-        const firstSheet = wb.Sheets[wb.SheetNames[0]];
-        const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
-        parsedBankRows = parseBankGridRows(matrix, chosenSource);
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        let foundRows = [];
+        for (const sheetName of wb.SheetNames) {
+          const sheet = wb.Sheets[sheetName];
+          const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
+          const parsed = parseBankGridRows(matrix, chosenSource);
+          if (parsed.length > 0) {
+            foundRows = parsed;
+            break;
+          }
+        }
+        parsedBankRows = foundRows;
         renderBankPreviewTable();
       } catch {
         showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel.");
@@ -4855,9 +4926,14 @@ function renderBankPreviewTable() {
     .filter(r => r.checked && r.type === "income")
     .reduce((s, r) => s + r.amount, 0);
 
+  const sortedDates = parsedBankRows.map(r => r.date).filter(Boolean).sort();
+  const rangeBadge = sortedDates.length
+    ? ` • 📅 ${formatShortGrDate(sortedDates[0])} – ${formatShortGrDate(sortedDates[sortedDates.length - 1])}`
+    : "";
+
   if (summaryEl) {
     summaryEl.innerHTML = `
-      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις</span>
+      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις${rangeBadge}</span>
       <span>Έσοδα: <strong class="green">+${money(totalSelectedIncome)}</strong> • Έξοδα: <strong class="red">-${money(totalSelectedExpenses)}</strong></span>
     `;
   }
@@ -6764,43 +6840,32 @@ document.addEventListener("keydown", (e) => {
 
 let appInitialized = false;
 
-async function initApp() {
+function initApp() {
   if (appInitialized) return;
   appInitialized = true;
 
   syncMobileBottomBarPosition();
 
   isPersistentStorageAvailable = checkPersistentStorage();
-  await restoreFromIndexedDBIfNeeded();
+  if (isPersistentStorageAvailable) {
+    restoreFromIndexedDBIfNeeded();
+  }
 
   const modePill = document.getElementById("storageModePill");
-  const googleSitesCodeEmbed = (() => {
-    try {
-      const host = window.location.hostname.toLowerCase();
-      return window.self !== window.top && (host === "googleusercontent.com" || host.endsWith(".googleusercontent.com"));
-    } catch {
-      return true;
-    }
-  })();
-
   if (modePill) {
-    if (googleSitesCodeEmbed) {
-      modePill.textContent = "⚠️ Google Sites Embed";
-      modePill.className = "badge badge-withdrawal";
-      modePill.title = "Για αξιόπιστη διατήρηση μετά από refresh, φιλοξένησε το HTML σε σταθερό HTTPS URL και ενσωμάτωσε το URL στο Google Sites.";
-    } else if (isPersistentStorageAvailable || isIndexedDBAvailable) {
-      modePill.textContent = isPersistentStorageAvailable ? "💾 Τοπική αποθήκευση" : "💾 IndexedDB";
+    if (isPersistentStorageAvailable) {
+      modePill.textContent = "💾 Αυτόματη Αποθήκευση";
       modePill.className = "badge badge-income";
-      modePill.title = "Τα δεδομένα αποθηκεύονται στον συγκεκριμένο browser και στη συγκεκριμένη συσκευή. Δεν συγχρονίζονται αυτόματα με άλλες συσκευές.";
+      modePill.title = "Τα δεδομένα αποθηκεύονται μόνιμα στον browser σου.";
     } else {
-      modePill.textContent = "⚠️ Περιορισμένη αποθήκευση";
+      modePill.textContent = "🔒 Google Sites Sandbox";
       modePill.className = "badge badge-withdrawal";
-      modePill.title = "Ο browser δεν επιτρέπει μόνιμη τοπική αποθήκευση. Χρειάζεται σταθερό hosting URL ή backup JSON.";
+      modePill.title = "Το Google Sites περιορίζει τη μόνιμη αποθήκευση στο refresh. Χρησιμοποίησε Backup JSON ή την αυτόνομη εφαρμογή.";
     }
   }
 
   const storageBanner = document.getElementById("storageNoticeBanner");
-  if (storageBanner && (!isPersistentStorageAvailable && !isIndexedDBAvailable || googleSitesCodeEmbed)) {
+  if (storageBanner && !isPersistentStorageAvailable) {
     storageBanner.classList.add("visible");
   }
 
