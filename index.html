@@ -50,7 +50,8 @@ body.light-theme {
 }
 
 body.light-theme input,
-body.light-theme select {
+body.light-theme select,
+body.light-theme textarea {
   background: #f8fafc;
   color: #0f172a;
 }
@@ -528,7 +529,7 @@ label {
   margin: 10px 0 5px;
 }
 
-input, select, button {
+input, select, button, textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
@@ -539,7 +540,7 @@ input, select, button {
   transition: all 0.2s ease;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
@@ -1050,6 +1051,12 @@ th {
   background: rgba(56, 189, 248, 0.14);
 }
 
+.chip-btn.active {
+  background: var(--accent);
+  color: #061320;
+  border-color: var(--accent);
+}
+
 .recent-tx-item {
   display: flex;
   align-items: center;
@@ -1337,12 +1344,10 @@ body.light-theme .first-use-panel {
   .panel { padding: 14px; border-radius: 14px; margin-bottom: 14px; }
   .net-worth-main .metric { font-size: 26px; }
 
-  /* Αποτροπή αυτόματου zoom στο iOS Safari κατά την πληκτρολόγηση */
-  input, select {
+  input, select, textarea {
     font-size: 16px !important;
   }
 
-  /* Compact 2-Row Mobile Header */
   header {
     gap: 10px;
     margin-bottom: 14px;
@@ -1385,7 +1390,6 @@ body.light-theme .first-use-panel {
     display: none !important;
   }
 
-  /* Native Mobile Bottom Navigation Bar (πάντα ορατό στο κάτω μέρος της οθόνης) */
   .mobile-bottom-nav {
     display: grid;
     grid-template-columns: 1fr 1fr auto 1fr 1fr;
@@ -1449,7 +1453,6 @@ body.light-theme .first-use-panel {
     box-shadow: 0 6px 18px rgba(56, 189, 248, 0.45);
   }
 
-  /* 2x2 Compact Grids για άμεση επισκόπηση */
   .kpi-grid,
   .net-worth-breakdown {
     grid-template-columns: repeat(2, 1fr);
@@ -1468,10 +1471,10 @@ body.light-theme .first-use-panel {
     font-size: 15px;
   }
 
-  /* Bottom-Sheet Modals */
   #transactionModal,
   #paydayModal,
   #bankImportModal,
+  #deviceSyncModal,
   #customModal {
     align-items: flex-end;
     padding: 0;
@@ -1479,6 +1482,7 @@ body.light-theme .first-use-panel {
   #transactionModal .modal-content,
   #paydayModal .modal-content,
   #bankImportModal .modal-content,
+  #deviceSyncModal .modal-content,
   #customModal .modal-content {
     max-width: 100%;
     width: 100%;
@@ -1497,7 +1501,6 @@ body.light-theme .first-use-panel {
     font-size: 11px;
   }
 
-  /* Mobile Cards για Ιστορικό Συναλλαγών */
   .table-wrap {
     max-height: none;
     overflow-x: visible;
@@ -1586,8 +1589,8 @@ body.light-theme .first-use-panel {
     <div id="customModalTitle" class="modal-title">Ενημέρωση</div>
     <p id="customModalMessage" style="font-size: 14px; margin: 0; color: var(--muted); white-space: pre-line;"></p>
     <div class="modal-buttons">
-      <button id="customModalCancel" class="secondary" style="display:none;">Ακύρωση</button>
-      <button id="customModalOk">ΟΚ</button>
+      <button type="button" id="customModalCancel" class="secondary" style="display:none;">Ακύρωση</button>
+      <button type="button" id="customModalOk">ΟΚ</button>
     </div>
   </div>
 </div>
@@ -1652,6 +1655,7 @@ body.light-theme .first-use-panel {
           <option>Υγεία</option>
           <option>Διασκέδαση</option>
           <option>Έκτακτο έξοδο</option>
+          <option>Ανάληψη</option>
           <option>Αποταμίευση</option>
           <option>Επένδυση</option>
           <option>Άλλο</option>
@@ -1776,6 +1780,7 @@ body.light-theme .first-use-panel {
               <option>Υγεία</option>
               <option>Στέγαση</option>
               <option>Έκτακτο έξοδο</option>
+              <option>Ανάληψη</option>
               <option>Αποταμίευση</option>
               <option>Επένδυση</option>
               <option>Άλλο</option>
@@ -2088,7 +2093,7 @@ body.light-theme .first-use-panel {
   <div id="storageNoticeBanner" class="smart-banner">
     <div>
       <strong>🔒 Περιορισμός Google Sites (Sandboxed Iframe):</strong>
-      <span class="small" style="margin-left:4px;">Το Google Sites μπλοκάρει τη μόνιμη μνήμη του browser στο refresh. Αποθήκευσε ένα αρχείο δεδομένων ή κατέβασε την αυτόνομη έκδοση για 100% αυτόματη αποθήκευση.</span>
+      <span class="small" style="margin-left:4px;">Το Google Sites μπλοκάρει τη μόνιμη μνήμη του browser στο refresh. Αποθήκευσε ένα αρχείο δεδομένων ή χρησιμοποίησε το σταθερό URL στο GitHub Pages για 100% αυτόματη αποθήκευση.</span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" class="success small-btn" onclick="quickSaveToFile()">💾 Αποθήκευση (Ctrl+S)</button>
@@ -2387,6 +2392,7 @@ body.light-theme .first-use-panel {
             <option>Υγεία</option>
             <option>Διασκέδαση</option>
             <option>Έκτακτο έξοδο</option>
+            <option>Ανάληψη</option>
             <option>Αποταμίευση</option>
             <option>Επένδυση</option>
             <option>Άλλο</option>
@@ -2497,6 +2503,7 @@ body.light-theme .first-use-panel {
             <option>Μεταφορές</option>
             <option>Υγεία</option>
             <option>Διασκέδαση</option>
+            <option>Ανάληψη</option>
             <option>Αποταμίευση</option>
             <option>Επένδυση</option>
             <option>Άλλο</option>
@@ -2727,7 +2734,7 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
-  <!-- ΠΡΟΣΟΜΟΙΩΤΗΣ ΑΝΑΤΟΚΙΣΜΟΥ & ΕΒΔΟΜΑΔΙΑΙΑ ΑΝΑΦΟΡΑ -->
+  <!-- ΠΡΟΣΟΜΟΙΩΤΗΣ ΑΝΑΤΟΚΙΣΜΟΥ -->
   <div class="panel" style="margin-top:20px;" data-section="analytics">
     <h2>
       <span>🚀 Προσομοιωτής Ανατοκισμού ETF (Rule of 4%)</span>
@@ -2945,6 +2952,7 @@ const EXPENSE_CATEGORIES = [
   "Υγεία",
   "Διασκέδαση",
   "Έκτακτο έξοδο",
+  "Ανάληψη",
   "Άλλο"
 ];
 
@@ -2959,13 +2967,14 @@ const ALL_CATEGORIES = [
   "Υγεία",
   "Διασκέδαση",
   "Έκτακτο έξοδο",
+  "Ανάληψη",
   "Αποταμίευση",
   "Επένδυση",
   "Άλλο"
 ];
 
 const NEEDS_CATEGORIES = ["Στέγαση", "Λογαριασμοί", "Τρόφιμα", "Μεταφορές", "Υγεία"];
-const WANTS_CATEGORIES = ["Διασκέδαση", "Έκτακτο έξοδο", "Άλλο"];
+const WANTS_CATEGORIES = ["Διασκέδαση", "Έκτακτο έξοδο", "Ανάληψη", "Άλλο"];
 
 const defaults = {
   profile: {
@@ -2996,6 +3005,7 @@ const defaults = {
     "Υγεία": 50,
     "Διασκέδαση": 100,
     "Έκτακτο έξοδο": 80,
+    "Ανάληψη": 60,
     "Άλλο": 70
   },
   recurring: [
@@ -3025,6 +3035,7 @@ const defaults = {
 
 const memoryStorageFallback = {};
 let isPersistentStorageAvailable = false;
+let isIndexedDBAvailable = false;
 let sessionHasUnsavedChanges = false;
 let linkedFileHandle = null;
 
@@ -3098,7 +3109,7 @@ function safeStorageGet(key) {
 }
 
 function mirrorToIndexedDB(key, value) {
-  if (!isPersistentStorageAvailable || typeof indexedDB === "undefined") return;
+  if (typeof indexedDB === "undefined") return;
   try {
     const req = indexedDB.open("FinanceGR_Storage", 1);
     req.onupgradeneeded = () => {
@@ -3106,52 +3117,71 @@ function mirrorToIndexedDB(key, value) {
         req.result.createObjectStore("kv");
       }
     };
+    req.onerror = () => { isIndexedDBAvailable = false; };
     req.onsuccess = () => {
+      const db = req.result;
       try {
-        const tx = req.result.transaction("kv", "readwrite");
+        const tx = db.transaction("kv", "readwrite");
         tx.objectStore("kv").put(value, key);
+        tx.oncomplete = () => { isIndexedDBAvailable = true; db.close(); };
+        tx.onerror = tx.onabort = () => { db.close(); };
       } catch {
-        // Ignore IDB write errors
-      }
-    };
-  } catch {
-    // Ignore IDB errors
-  }
-}
-
-function restoreFromIndexedDBIfNeeded() {
-  if (!isPersistentStorageAvailable || typeof indexedDB === "undefined") return;
-  try {
-    if (window.localStorage.getItem(KEY) !== null) return;
-    const req = indexedDB.open("FinanceGR_Storage", 1);
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains("kv")) {
-        req.result.createObjectStore("kv");
-      }
-    };
-    req.onsuccess = () => {
-      try {
-        const tx = req.result.transaction("kv", "readonly");
-        const getReq = tx.objectStore("kv").get(KEY);
-        getReq.onsuccess = () => {
-          if (typeof getReq.result === "string" && getReq.result.length > 10) {
-            try {
-              window.localStorage.setItem(KEY, getReq.result);
-              data = loadData();
-              render();
-              showToast("Τα δεδομένα σου ανακτήθηκαν αυτόματα! 🔄");
-            } catch {
-              // Ignore
-            }
-          }
-        };
-      } catch {
-        // Ignore
+        db.close();
       }
     };
   } catch {
     // Ignore
   }
+}
+
+function restoreFromIndexedDBIfNeeded() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") return resolve(false);
+    if (safeStorageGet(KEY) !== null) return resolve(false);
+
+    let req;
+    try {
+      req = indexedDB.open("FinanceGR_Storage", 1);
+    } catch {
+      return resolve(false);
+    }
+
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains("kv")) {
+        req.result.createObjectStore("kv");
+      }
+    };
+    req.onerror = () => resolve(false);
+    req.onsuccess = () => {
+      const db = req.result;
+      isIndexedDBAvailable = true;
+      try {
+        const tx = db.transaction("kv", "readonly");
+        const getReq = tx.objectStore("kv").get(KEY);
+        getReq.onsuccess = () => {
+          const stored = getReq.result;
+          if (typeof stored === "string" && stored.length > 10) {
+            memoryStorageFallback[KEY] = stored;
+            const wnMap = readWindowNameMap();
+            wnMap[KEY] = stored;
+            writeWindowNameMap(wnMap);
+            try { window.sessionStorage.setItem(KEY, stored); } catch {}
+            try { window.localStorage.setItem(KEY, stored); isPersistentStorageAvailable = true; } catch {}
+            data = loadData();
+            db.close();
+            resolve(true);
+          } else {
+            db.close();
+            resolve(false);
+          }
+        };
+        getReq.onerror = () => { db.close(); resolve(false); };
+      } catch {
+        db.close();
+        resolve(false);
+      }
+    };
+  });
 }
 
 function safeStorageSet(key, value) {
@@ -3167,15 +3197,17 @@ function safeStorageSet(key, value) {
     // Ignore
   }
 
+  let localSaved = false;
   try {
     window.localStorage.setItem(key, value);
-    isPersistentStorageAvailable = true;
-    mirrorToIndexedDB(key, value);
-    return true;
+    localSaved = window.localStorage.getItem(key) === value;
+    isPersistentStorageAvailable = localSaved;
   } catch {
     isPersistentStorageAvailable = false;
-    return false;
   }
+
+  mirrorToIndexedDB(key, value);
+  return localSaved;
 }
 
 function buildExportPayloadString() {
@@ -3257,6 +3289,7 @@ function handleQuickLoadFile(event) {
       };
       sessionHasUnsavedChanges = false;
       persist(false);
+      closeDeviceSyncModal();
       render();
       showToast("Τα δεδομένα φορτώθηκαν με επιτυχία! 📂");
     } catch {
@@ -3276,9 +3309,9 @@ function downloadStandaloneAppHtml() {
     });
     const htmlContent = "<!DOCTYPE html>\n" + cloneDoc.outerHTML;
     downloadFile(htmlContent, "FinanceGR-App.html", "text/html;charset=utf-8");
-    showToast("Κατέβηκε το FinanceGR-App.html! Άνοιξέ το στον browser για 100% μόνιμη αποθήκευση. 📲");
+    showToast("Κατέβηκε το FinanceGR-App.html! Άνοιξέ το τοπικά για 100% μόνιμη αποθήκευση. 📲");
   } catch {
-    showModal("Πάτησε «📥 Backup JSON» για να αποθηκεύσεις τα δεδομένα σου τοπικά.");
+    showModal("Πάτησε «📥 Εξαγωγή JSON» για να αποθηκεύσεις τα δεδομένα σου.");
   }
 }
 
@@ -4278,7 +4311,7 @@ function syncCategoryWithType() {
 
   if (typeVal === "income") catEl.value = "Μισθός";
   else if (typeVal === "saving") catEl.value = "Αποταμίευση";
-  else if (typeVal === "withdrawal") catEl.value = "Αποταμίευση";
+  else if (typeVal === "withdrawal") catEl.value = "Ανάληψη";
   else catEl.value = "Τρόφιμα";
 }
 
@@ -4410,12 +4443,6 @@ function editTransaction(id) {
   document.getElementById("description").value = tx.description || "";
   const srcEl = document.getElementById("txSource");
   if (srcEl) {
-    if (tx.source && !Array.from(srcEl.options).some(o => o.value === tx.source)) {
-      const opt = document.createElement("option");
-      opt.value = tx.source;
-      opt.textContent = tx.source;
-      srcEl.appendChild(opt);
-    }
     srcEl.value = tx.source || "";
   }
   document.getElementById("unexpected").checked = Boolean(tx.unexpected);
@@ -4490,6 +4517,8 @@ function quickLogSalary() {
 4. ΕΞΥΠΝΗ ΕΙΣΑΓΩΓΗ ΚΙΝΗΣΕΩΝ ΤΡΑΠΕΖΑΣ & REVOLUT (.CSV / .XLSX)
    ========================================================================== */
 let parsedBankRows = [];
+let bankPreviewFilter = "all";
+let bankPreviewSearch = "";
 let detectedBankSalaryDate = null;
 let detectedBankSalaryAmount = 0;
 
@@ -4500,6 +4529,7 @@ const BANK_MERCHANT_KEYWORDS = [
   { keywords: ["EFOOD", "E-FOOD", "WOLT", "BOX FOOD", "EVEREST", "ΓΡΗΓΟΡΗΣ", "GREGORYS", "STARBUCKS", "MIKEL", "COFFEE", "ΚΑΦΕ", "RESTAURANT", "ΕΣΤΙΑΤΟΡΙΟ", "TAVERNA", "ΤΑΒΕΡΝΑ", "PIZZA", "SOUVLAKI", "BAR", "CINEMA", "VILLAGE", "NETFLIX", "SPOTIFY", "PLAYSTATION", "STEAM", "PUBLIC", "PLAISIO", "ΠΛΑΙΣΙΟ", "ZARA", "H&M", "JUMBO", "IKEA"], category: "Διασκέδαση", type: "expense" },
   { keywords: ["ΦΑΡΜΑΚΕΙΟ", "PHARMACY", "ΙΑΤΡΕΙΟ", "ΙΑΤΡΟΣ", "ΒΙΟΙΑΤΡΙΚΗ", "BIOIATRIKI", "ΕΟΠΥΥ", "ΝΟΣΟΚΟΜΕΙΟ", "ΟΔΟΝΤΙΑΤΡΟΣ", "DENTAL"], category: "Υγεία", type: "expense" },
   { keywords: ["ΕΝΟΙΚΙΟ", "RENT", "ΚΟΙΝΟΧΡΗΣΤΑ"], category: "Στέγαση", type: "expense" },
+  { keywords: ["ΑΝΑΛΗΨΗ", "ATM", "CASH WITHDRAWAL", "WITHDRAWAL"], category: "Ανάληψη", type: "expense" },
   { keywords: ["ΜΙΣΘΟΔΟΣΙΑ", "PAYROLL", "SALARY", "ΜΙΣΘΟΣ", "ΑΠΟΔΟΧΕΣ"], category: "Μισθός", type: "income" },
   { keywords: ["VANGUARD", "VUAA", "FREEDOM24", "INTERACTIVE BROKERS", "DEGIRO", "TRADING 212", "ETF"], category: "Επένδυση", type: "saving" }
 ];
@@ -4518,8 +4548,21 @@ const INTERNAL_TRANSFER_KEYWORDS = [
   "OWN ACCOUNT"
 ];
 
+function stripGreekAccents(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeGreekHeader(cell) {
+  return stripGreekAccents(cell)
+    .replace(/\s+/g, " ")
+    .toUpperCase()
+    .trim();
+}
+
 function normalizeMerchantKey(desc) {
-  return String(desc || "")
+  return stripGreekAccents(desc)
     .toUpperCase()
     .replace(/\b(POS|ΑΓΟΡΑ|CARD|PAYMENT|CONTACTLESS|APPLE PAY|GOOGLE PAY|GR|ATHENS|THESSALONIKI|GREECE)\b/g, " ")
     .replace(/[0-9*#/_-]+/g, " ")
@@ -4528,8 +4571,22 @@ function normalizeMerchantKey(desc) {
     .slice(0, 40);
 }
 
-function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
-  const upper = String(desc || "").toUpperCase();
+function mapBankProvidedCategory(bankCatRaw) {
+  const c = normalizeGreekHeader(bankCatRaw);
+  if (!c) return null;
+  if (c.includes("ΜΙΣΘ") || c.includes("SALARY") || c.includes("INCOME")) return "Μισθός";
+  if (c.includes("ΣΟΥΠΕΡ") || c.includes("ΤΡΟΦ") || c.includes("GROCER")) return "Τρόφιμα";
+  if (c.includes("ΛΟΓΑΡΙΑΣΜ") || c.includes("ΔΕΚΟ") || c.includes("ΤΗΛΕΠΙΚ") || c.includes("UTILIT")) return "Λογαριασμοί";
+  if (c.includes("ΜΕΤΑΦΟΡ") || c.includes("ΚΑΥΣΙΜ") || c.includes("ΤΑΞΙΔ") || c.includes("TRANSPORT")) return "Μεταφορές";
+  if (c.includes("ΥΓΕΙΑ") || c.includes("ΦΑΡΜΑΚ") || c.includes("ΙΑΤΡ") || c.includes("HEALTH")) return "Υγεία";
+  if (c.includes("ΣΤΕΓΑΣ") || c.includes("ΕΝΟΙΚ") || c.includes("ΣΠΙΤ") || c.includes("HOUSING")) return "Στέγαση";
+  if (c.includes("ΑΝΑΛΗΨ") || c.includes("ATM") || c.includes("ΜΕΤΡΗΤ") || c.includes("WITHDRAW")) return "Ανάληψη";
+  if (c.includes("ΕΣΤΙΑΣ") || c.includes("ΔΙΑΣΚΕΔ") || c.includes("ΨΥΧΑΓΩΓ") || c.includes("ΑΓΟΡ") || c.includes("SHOPPING") || c.includes("ENTERTAIN")) return "Διασκέδαση";
+  return null;
+}
+
+function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankCatHint = "") {
+  const upper = stripGreekAccents(desc).toUpperCase();
   const stateUp = String(revState || "").toUpperCase();
   const typeUp = String(revType || "").toUpperCase();
 
@@ -4544,7 +4601,7 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
   }
 
   // 3. Εσωτερικές φορτίσεις (Revolut Top-up / μεταφορά μεταξύ δικών μου λογαριασμών)
-  if (typeUp === "TOPUP" || INTERNAL_TRANSFER_KEYWORDS.some(k => upper.includes(k))) {
+  if (typeUp === "TOPUP" || INTERNAL_TRANSFER_KEYWORDS.some(k => upper.includes(stripGreekAccents(k)))) {
     return { skipReason: "topup", statusBadge: "🔄 Εσωτ. Μεταφορά", type: isCredit ? "income" : "expense", category: "Άλλο", isShared: false };
   }
 
@@ -4566,7 +4623,7 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
 
   // 5. Λεξικό ελληνικών & διεθνών εμπόρων
   for (const rule of BANK_MERCHANT_KEYWORDS) {
-    if (rule.keywords.some(kw => upper.includes(kw))) {
+    if (rule.keywords.some(kw => upper.includes(stripGreekAccents(kw)))) {
       if (isCredit && rule.type === "expense") continue;
       return {
         skipReason: null,
@@ -4578,8 +4635,23 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
     }
   }
 
-  // 6. Επισήμανση ασαφών κινήσεων IRIS / ATM
-  const needsCheck = upper.includes("IRIS") || upper.includes("ATM") || upper.includes("ΑΝΑΛΗΨΗ") || upper.includes("ΜΕΤΑΦΟΡΑ");
+  // 6. Κατηγορία που δίνει η ίδια η τράπεζα (π.χ. Πειραιώς στήλη Κατηγορία)
+  const mappedBankCat = mapBankProvidedCategory(bankCatHint);
+  if (mappedBankCat) {
+    const inferredType = isCredit
+      ? "income"
+      : (["Αποταμίευση", "Επένδυση"].includes(mappedBankCat) ? "saving" : "expense");
+    return {
+      skipReason: null,
+      statusBadge: "🏦 Κατηγορία Τράπεζας",
+      type: inferredType,
+      category: mappedBankCat,
+      isShared: false
+    };
+  }
+
+  // 7. Επισήμανση ασαφών κινήσεων IRIS / ΜΕΤΑΦΟΡΑ
+  const needsCheck = upper.includes("IRIS") || upper.includes("ΜΕΤΑΦΟΡΑ");
   return {
     skipReason: null,
     statusBadge: needsCheck ? "❓ Θέλει έλεγχο" : "✨ Αυτόματο",
@@ -4590,20 +4662,9 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "") {
 }
 
 function parseFlexibleDate(raw) {
-  if (!raw && raw !== 0) return null;
-
   if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
     return toIsoDate(raw);
   }
-
-  if (typeof raw === "number" && Number.isFinite(raw) && raw > 20000 && raw < 90000) {
-    const utcDays = Math.floor(raw) - 25569;
-    const d = new Date(utcDays * 86400 * 1000);
-    if (!Number.isNaN(d.getTime())) {
-      return toIsoDate(d);
-    }
-  }
-
   const s = String(raw || "").trim();
   if (!s) return null;
 
@@ -4619,14 +4680,14 @@ function parseFlexibleDate(raw) {
     return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   }
 
-  // DD/MM/YY (2-digit year)
+  // DD/MM/YY (2-ψήφιο έτος)
   m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})(?:\s.*)?$/);
   if (m) {
     const fullYear = Number(m[3]) >= 70 ? `19${m[3]}` : `20${m[3]}`;
     return `${fullYear}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   }
 
-  // Excel serial date as string
+  // Excel serial date number (π.χ. 46345 ή 46345.45)
   if (/^\d{5}(\.\d+)?$/.test(s)) {
     const serial = Math.floor(Number(s));
     const utcDays = serial - 25569;
@@ -4660,28 +4721,21 @@ function parseFlexibleNumber(raw) {
   return Number.isFinite(num) ? num : NaN;
 }
 
-function areMerchantsSimilar(descA, descB) {
-  const rawA = String(descA || "").trim();
-  const rawB = String(descB || "").trim();
-  if (!rawA || !rawB) return true;
+function areDescriptionsSimilar(descA, descB) {
+  const kA = normalizeMerchantKey(descA);
+  const kB = normalizeMerchantKey(descB);
+  if (!kA || !kB) return false;
+  if (kA === kB) return true;
+  if (kA.length >= 5 && kB.includes(kA)) return true;
+  if (kB.length >= 5 && kA.includes(kB)) return true;
 
-  const keyA = normalizeMerchantKey(rawA);
-  const keyB = normalizeMerchantKey(rawB);
-  if (keyA && keyB) {
-    if (keyA === keyB || keyA.includes(keyB) || keyB.includes(keyA)) return true;
-  }
-
-  const stopWords = new Set(["EUR", "POS", "IRIS", "TRANSFER", "PAYMENT", "CARD", "ΠΛΗΡΩΜΗ", "ΑΓΟΡΑ", "ΜΕΤΑΦΟΡΑ", "ΚΑΡΤΑ", "ΑΠΟ", "ΠΡΟΣ"]);
-  const tokensA = (keyA || rawA.toUpperCase()).split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
-  const tokensB = new Set((keyB || rawB.toUpperCase()).split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w)));
-
-  if (!tokensA.length || !tokensB.size) {
-    return rawA.toUpperCase() === rawB.toUpperCase();
-  }
-  return tokensA.some(tok => tokensB.has(tok));
+  const wordsA = kA.split(" ").filter(w => w.length >= 3);
+  const wordsB = kB.split(" ").filter(w => w.length >= 3);
+  if (!wordsA.length || !wordsB.length) return false;
+  return wordsA.some(w => wordsB.includes(w));
 }
 
-function detectDuplicateStatus(dateIso, amountAbs, desc = "") {
+function detectDuplicateStatus(dateIso, amountAbs, description = "") {
   let nearMatchDate = null;
   for (const t of data.transactions || []) {
     const tAmt1 = Number(t.amount) || 0;
@@ -4689,13 +4743,14 @@ function detectDuplicateStatus(dateIso, amountAbs, desc = "") {
     const sameAmount = Math.abs(tAmt1 - amountAbs) < 0.02 || Math.abs(tAmt2 - amountAbs) < 0.02;
     if (!sameAmount) continue;
 
-    const dayDiff = Math.abs(diffDaysIso(t.date, dateIso));
-    const similarMerchant = areMerchantsSimilar(desc, t.description || t.category);
+    const sameMerchant = areDescriptionsSimilar(t.description || t.category, description);
+    if (!sameMerchant) continue;
 
-    if (dayDiff === 0 && similarMerchant) {
+    const dayDiff = Math.abs(diffDaysIso(t.date, dateIso));
+    if (dayDiff === 0) {
       return { isDup: true, label: "⚠️ Υπάρχει ήδη" };
     }
-    if (dayDiff > 0 && dayDiff <= 3 && similarMerchant) {
+    if (dayDiff <= 3) {
       nearMatchDate = t.date;
     }
   }
@@ -4705,44 +4760,19 @@ function detectDuplicateStatus(dateIso, amountAbs, desc = "") {
   return { isDup: false, label: "" };
 }
 
-function normalizeHeaderCell(val) {
-  return String(val || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .toUpperCase()
-    .trim();
-}
-
-function mapBankProvidedCategory(rawCat, isCredit) {
-  const c = normalizeHeaderCell(rawCat);
-  if (!c) return null;
-  if (isCredit) {
-    if (c.includes("ΜΙΣΘ") || c.includes("SALARY") || c.includes("PAYROLL")) return "Μισθός";
-    if (c.includes("ΕΠΙΣΤΡΟΦ") || c.includes("REFUND")) return "Επιστροφή Χρημάτων";
-    return null;
-  }
-  if (c.includes("ΣΟΥΠΕΡ") || c.includes("ΤΡΟΦΙΜ") || c.includes("GROCER")) return "Τρόφιμα";
-  if (c.includes("ΛΟΓΑΡΙΑΣΜ") || c.includes("ΔΕΚΟ") || c.includes("ΤΗΛΕΠΙΚ") || c.includes("ΕΝΕΡΓ") || c.includes("UTILIT")) return "Λογαριασμοί";
-  if (c.includes("ΚΑΥΣΙΜ") || c.includes("ΜΕΤΑΦΟΡ") || c.includes("ΑΥΤΟΚΙΝ") || c.includes("ΤΑΞΙΔ") || c.includes("TRANSPORT")) return "Μεταφορές";
-  if (c.includes("ΥΓΕΙΑ") || c.includes("ΦΑΡΜΑΚ") || c.includes("ΙΑΤΡ") || c.includes("HEALTH")) return "Υγεία";
-  if (c.includes("ΣΤΕΓΑΣ") || c.includes("ΕΝΟΙΚ") || c.includes("ΣΠΙΤ") || c.includes("HOUSING")) return "Στέγαση";
-  if (c.includes("ΕΣΤΙΑΣ") || c.includes("ΔΙΑΣΚΕΔ") || c.includes("ΨΥΧΑΓΩΓ") || c.includes("ΑΓΟΡ") || c.includes("SHOPPING") || c.includes("ENTERTAIN")) return "Διασκέδαση";
-  return null;
-}
-
 function parseBankGridRows(matrixRows, chosenSource) {
   if (!Array.isArray(matrixRows) || matrixRows.length < 2) return [];
 
-  // Εντοπισμός γραμμής επικεφαλίδων μέσα στις πρώτες 40 γραμμές (π.χ. γραμμή 7 στην Πειραιώς)
+  // Σάρωση έως 45 γραμμών στην κορυφή (Πειραιώς: γραμμή 7)
   let headerIdx = 0;
   let bestScore = -1;
-  const dateHeaderKeys = ["ΗΜΕΡΟΜΗΝΙΑ", "DATE", "STARTED DATE", "COMPLETED DATE", "VALEUR", "ΗΜ/ΝΙΑ"];
-  const descHeaderKeys = ["ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ", "ΠΑΡΑΤΗΡΗΣΕΙΣ"];
+  const dateHeaderKeys = ["ΗΜΕΡΟΜΗΝΙΑ", "DATE", "STARTED DATE", "COMPLETED DATE", "VALEUR", "ΗΜ/ΝΙΑ", "ΗΜΝΙΑ"];
+  const descHeaderKeys = ["ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ", "ΠΑΡΑΤΗΡΗΣΕΙΣ", "ΣΧΟΛΙΑ"];
   const amtHeaderKeys = ["ΠΟΣΟ", "AMOUNT", "ΧΡΕΩΣΗ", "ΠΙΣΤΩΣΗ", "DEBIT", "CREDIT", "PAID OUT", "PAID IN"];
 
-  for (let i = 0; i < Math.min(40, matrixRows.length); i++) {
-    const rowUp = (matrixRows[i] || []).map(normalizeHeaderCell);
+  for (let i = 0; i < Math.min(45, matrixRows.length); i++) {
+    const rowArr = Array.isArray(matrixRows[i]) ? matrixRows[i] : [];
+    const rowUp = rowArr.map(c => normalizeGreekHeader(c));
     let score = 0;
     if (rowUp.some(c => dateHeaderKeys.some(k => c.includes(k)))) score += 3;
     if (rowUp.some(c => descHeaderKeys.some(k => c.includes(k)))) score += 3;
@@ -4753,24 +4783,21 @@ function parseBankGridRows(matrixRows, chosenSource) {
     }
   }
 
-  const headers = (matrixRows[headerIdx] || []).map(normalizeHeaderCell);
+  const headers = (Array.isArray(matrixRows[headerIdx]) ? matrixRows[headerIdx] : []).map(c => normalizeGreekHeader(c));
   const isRevolutFormat = headers.includes("STARTED DATE") || headers.includes("COMPLETED DATE") || (headers.includes("STATE") && headers.includes("FEE"));
-  const isPiraeusFormat = headers.includes("ΠΡΟΟΔΕΥΤΙΚΟ ΛΟΓΙΣΤΙΚΟ ΥΠΟΛΟΙΠΟ") || (headers.includes("ΗΜ/ΝΙΑ ΣΥΝΑΛΛΑΓΗΣ") && headers.includes("ΣΧΟΛΙΑ / ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ"));
+  const isPiraeusFormat = headers.some(h => h.includes("ΠΡΟΟΔΕΥΤΙΚΟ ΛΟΓΙΣΤΙΚΟ ΥΠΟΛΟΙΠΟ")) || headers.some(h => h.includes("ΣΧΟΛΙΑ / ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ"));
 
   const effectiveSource = chosenSource === "auto"
     ? (isRevolutFormat ? "Revolut" : (isPiraeusFormat ? "Πειραιώς" : "Τράπεζα"))
     : chosenSource;
 
-  const findCol = (keys, excludeKeys = []) => headers.findIndex(h =>
-    keys.some(k => h === k || h.includes(k)) &&
-    !excludeKeys.some(ex => h.includes(ex))
-  );
+  const findCol = (keys) => headers.findIndex(h => keys.some(k => h === k || h.includes(k)));
 
   const colDate = findCol(["COMPLETED DATE", "STARTED DATE", "ΗΜ/ΝΙΑ ΣΥΝΑΛΛΑΓΗΣ", "ΗΜΕΡΟΜΗΝΙΑ ΣΥΝΑΛΛΑΓΗΣ", "ΗΜΕΡΟΜΗΝΙΑ", "ΗΜ/ΝΙΑ", "DATE"]);
   const colDesc = findCol(["ΠΕΡΙΓΡΑΦΗ ΣΥΝΑΛΛΑΓΗΣ", "ΑΙΤΙΟΛΟΓΙΑ", "ΠΕΡΙΓΡΑΦΗ", "DESCRIPTION", "DETAILS", "ΚΙΝΗΣΗ"]);
-  const colComments = findCol(["ΣΧΟΛΙΑ", "ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ", "ΠΑΡΑΤΗΡΗΣΕΙΣ", "REFERENCE"]);
+  const colComments = findCol(["ΣΧΟΛΙΑ / ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ", "ΣΧΟΛΙΑ", "ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ", "ΠΑΡΑΤΗΡΗΣΕΙΣ"]);
   const colBankCat = findCol(["ΚΑΤΗΓΟΡΙΑ", "CATEGORY"]);
-  const colAmount = findCol(["ΠΟΣΟ ΣΥΝΑΛΛΑΓΗΣ", "ΠΟΣΟ", "AMOUNT"], ["ΥΠΟΛΟΙΠΟ", "BALANCE"]);
+  const colAmount = findCol(["ΠΟΣΟ ΣΥΝΑΛΛΑΓΗΣ", "ΠΟΣΟ", "AMOUNT"]);
   const colDebit = findCol(["ΧΡΕΩΣΗ", "DEBIT", "PAID OUT", "ΕΚΡΟΗ"]);
   const colCredit = findCol(["ΠΙΣΤΩΣΗ", "CREDIT", "PAID IN", "ΕΙΣΡΟΗ"]);
   const colDir = findCol(["Χ/Π", "ΧΡΕΩΣΗ/ΠΙΣΤΩΣΗ", "D/C", "TYPE", "ΤΥΠΟΣ"]);
@@ -4781,21 +4808,27 @@ function parseBankGridRows(matrixRows, chosenSource) {
 
   for (let r = headerIdx + 1; r < matrixRows.length; r++) {
     const row = matrixRows[r];
-    if (!row || row.every(cell => !String(cell ?? "").trim())) continue;
+    if (!Array.isArray(row) || row.every(cell => !String(cell ?? "").trim())) continue;
 
     const rawDate = colDate !== -1 ? row[colDate] : row[0];
     const dateIso = parseFlexibleDate(rawDate);
     if (!dateIso) continue;
 
-    const rawDesc = String(colDesc !== -1 ? (row[colDesc] ?? "") : (row[1] ?? "")).trim();
-    const commentText = colComments !== -1 ? String(row[colComments] ?? "").trim() : "";
-    const bankCatText = colBankCat !== -1 ? String(row[colBankCat] ?? "").trim() : "";
+    const mainDesc = String(colDesc !== -1 ? (row[colDesc] ?? "") : (row[1] ?? "")).trim();
+    const extraComment = (colComments !== -1 && colComments !== colDesc) ? String(row[colComments] ?? "").trim() : "";
+    const bankCatHint = colBankCat !== -1 ? String(row[colBankCat] ?? "").trim() : "";
 
-    // Προτεραιότητα στο «Σχόλια / Κωδικός Αναφοράς» ως κύρια περιγραφή συναλλαγής (αντί για γενικά «ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ» κ.λπ.)
-    const desc = commentText || rawDesc;
+    // Προτεραιότητα στο Σχόλιο / Κωδικό Αναφοράς ως κύρια περιγραφή συναλλαγής
+    let desc = mainDesc;
+    let movementTypeNote = "";
+    if (extraComment) {
+      desc = extraComment;
+      if (mainDesc && mainDesc !== extraComment) {
+        movementTypeNote = mainDesc;
+      }
+    }
+    if (!desc && bankCatHint) desc = bankCatHint;
     if (!desc) continue;
-
-    const classifyText = [rawDesc, commentText].filter(Boolean).join(" ");
 
     const revState = colState !== -1 ? String(row[colState] ?? "").trim() : "";
     const revType = (isRevolutFormat && colDir !== -1) ? String(row[colDir] ?? "").trim() : "";
@@ -4821,7 +4854,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
       const num = parseFlexibleNumber(rawAmtVal);
       if (!Number.isFinite(num) || num === 0) continue;
 
-      const dirToken = colDir !== -1 ? normalizeHeaderCell(row[colDir]) : "";
+      const dirToken = colDir !== -1 ? normalizeGreekHeader(row[colDir]) : "";
       if (["Χ", "D", "DR", "DEBIT", "ΧΡΕΩΣΗ"].includes(dirToken)) {
         isCredit = false;
         amountAbs = Math.abs(num);
@@ -4838,17 +4871,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
       amountAbs = Number((amountAbs + feeVal).toFixed(2));
     }
 
-    const cls = classifyBankMovement(classifyText, isCredit, revState, revType);
-
-    // Αν η κατηγορία έμεινε γενική, αξιοποιούμε την κατηγορία της ίδιας της τράπεζας (π.χ. Πειραιώς)
-    if (!cls.skipReason && (cls.category === "Άλλο" || cls.category === "Bonus / Έξτρα Έσοδο") && bankCatText) {
-      const mappedBankCat = mapBankProvidedCategory(bankCatText, isCredit);
-      if (mappedBankCat) {
-        cls.category = mappedBankCat;
-        if (mappedBankCat === "Μισθός") cls.type = "income";
-        cls.statusBadge = "🏦 Κατηγορία Τράπεζας";
-      }
-    }
+    const cls = classifyBankMovement(desc, isCredit, revState, revType, bankCatHint);
     const dup = detectDuplicateStatus(dateIso, amountAbs, desc);
 
     const shouldCheck = !cls.skipReason && !dup.isDup;
@@ -4858,15 +4881,16 @@ function parseBankGridRows(matrixRows, chosenSource) {
       checked: shouldCheck,
       date: dateIso,
       description: desc,
-      bankTxTypeLabel: (commentText && rawDesc && commentText !== rawDesc) ? rawDesc : "",
+      movementTypeNote,
       source: effectiveSource,
       type: cls.type,
       category: cls.category,
       amount: Number(amountAbs.toFixed(2)),
       isShared: cls.isShared,
       statusText,
-      skipReason: cls.skipReason || (dup.isDup ? "duplicate" : null),
-      isWarning: Boolean(cls.skipReason || dup.isDup || cls.statusBadge.includes("❓"))
+      isWarning: Boolean(cls.skipReason || dup.isDup || cls.statusBadge.includes("❓")),
+      isReviewNeeded: cls.statusBadge.includes("❓"),
+      isSkippedOrDup: Boolean(cls.skipReason || dup.isDup)
     });
   }
 
@@ -4878,8 +4902,7 @@ function splitCsvLinesToMatrix(text) {
   const lines = clean.split(/\r?\n/).filter(l => l.trim());
   if (!lines.length) return [];
 
-  // Εντοπισμός διαχωριστικού (;, , ή tab)
-  const sample = lines.slice(0, 12).join("\n");
+  const sample = lines.slice(0, 15).join("\n");
   const semiCount = (sample.match(/;/g) || []).length;
   const commaCount = (sample.match(/,/g) || []).length;
   const tabCount = (sample.match(/\t/g) || []).length;
@@ -4910,19 +4933,30 @@ function splitCsvLinesToMatrix(text) {
   });
 }
 
+function ensureXlsxLoaded() {
+  return new Promise((resolve, reject) => {
+    if (typeof XLSX !== "undefined") return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    script.onload = () => resolve(typeof XLSX !== "undefined");
+    script.onerror = () => reject(new Error("XLSX load failed"));
+    document.head.appendChild(script);
+  });
+}
+
 function openBankImportModal() {
   parsedBankRows = [];
-  detectedBankSalaryDate = null;
-  detectedBankSalaryAmount = 0;
   bankPreviewFilter = "all";
   bankPreviewSearch = "";
+  detectedBankSalaryDate = null;
+  detectedBankSalaryAmount = 0;
 
   const fileInp = document.getElementById("bankStatementFile");
   if (fileInp) fileInp.value = "";
   const searchInp = document.getElementById("bankPreviewSearchInput");
   if (searchInp) searchInp.value = "";
-  const bulkCatSel = document.getElementById("bankBulkCategorySelect");
-  if (bulkCatSel) bulkCatSel.value = "";
+  const bulkCat = document.getElementById("bankBulkCategorySelect");
+  if (bulkCat) bulkCat.value = "";
   const previewBox = document.getElementById("bankPreviewContainer");
   if (previewBox) previewBox.style.display = "none";
 
@@ -4939,18 +4973,7 @@ function closeBankImportModal() {
   if (modal) modal.style.display = "none";
 }
 
-function ensureXlsxLoaded() {
-  if (typeof XLSX !== "undefined") return Promise.resolve(true);
-  return new Promise((resolve) => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
-    script.onload = () => resolve(typeof XLSX !== "undefined");
-    script.onerror = () => resolve(false);
-    document.head.appendChild(script);
-  });
-}
-
-async function handleBankFileUpload(event) {
+function handleBankFileUpload(event) {
   const file = event.target?.files?.[0];
   if (!file) return;
 
@@ -4958,36 +4981,31 @@ async function handleBankFileUpload(event) {
   const ext = file.name.split(".").pop().toLowerCase();
 
   if (ext === "xlsx" || ext === "xls") {
-    const hasXlsx = await ensureXlsxLoaded();
-    if (!hasXlsx) {
-      showModal("Η βιβλιοθήκη ανάγνωσης Excel δεν μπόρεσε να φορτωθεί. Αποθήκευσε το αρχείο ως CSV (UTF-8) και δοκίμασε ξανά.");
-      return;
-    }
-
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        await ensureXlsxLoaded();
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
-        let bestRows = [];
+        let allParsed = [];
         for (const sheetName of wb.SheetNames) {
           const sheet = wb.Sheets[sheetName];
           const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
-          const candidateRows = parseBankGridRows(matrix, chosenSource);
-          if (candidateRows.length > bestRows.length) {
-            bestRows = candidateRows;
+          const sheetRows = parseBankGridRows(matrix, chosenSource);
+          if (sheetRows.length > 0) {
+            allParsed = allParsed.concat(sheetRows);
           }
         }
-        parsedBankRows = bestRows;
+        parsedBankRows = allParsed;
         renderBankPreviewTable();
-      } catch {
-        showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel.");
+      } catch (err) {
+        console.error("Excel read error:", err);
+        showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel (.xlsx). Αν χρησιμοποιείς firewall/adblocker που μπλοκάρει εξωτερικά scripts, αποθήκευσε το αρχείο από το Excel ως CSV (UTF-8 ή Ελληνικά) και ανέβασέ το.");
       }
     };
     reader.readAsArrayBuffer(file);
     return;
   }
 
-  // Ανάγνωση CSV με αυτόματο έλεγχο UTF-8 vs Windows-1253 (Ελληνικές τράπεζες)
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
@@ -5009,50 +5027,53 @@ async function handleBankFileUpload(event) {
 function loadSampleBankPreview() {
   const ym = getSelectedMonth();
   const sampleMatrix = [
-    ["Κατηγορία", "Περιγραφή Συναλλαγής", "Ημ/νία Συναλλαγής", "Σχόλια / Κωδικός Αναφοράς", "Ποσό", "Νόμισμα", "Προοδευτικό Λογιστικό Υπόλοιπο", "Νόμισμα"],
-    ["Έσοδα", "ΜΙΣΘΟΔΟΣΙΑ", `${ym}-01`, "ΜΙΣΘΟΔΟΣΙΑ ΕΤΑΙΡΕΙΑΣ ΑΕ", "1250.00", "EUR", "1850.00", "EUR"],
-    ["Σούπερ Μάρκετ", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-03`, "POS SKLAVENITIS ATHENS", "-68.40", "EUR", "1781.60", "EUR"],
-    ["Μεταφορές", "ΜΕΤΑΦΟΡΑ ΚΕΦΑΛΑΙΩΝ", `${ym}-04`, "TOPUP REVOLUT *4821", "-150.00", "EUR", "1631.60", "EUR"],
-    ["Λογαριασμοί", "ΠΛΗΡΩΜΗ ΔΕΚΟ", `${ym}-05`, "ΠΛΗΡΩΜΗ ΔΕΗ ΕΝΕΡΓΕΙΑΚΗ", "-82.50", "EUR", "1549.10", "EUR"],
-    ["Εστίαση", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-06`, "WOLT ATHENS DELIVERY", "-18.90", "EUR", "1530.20", "EUR"],
-    ["Καύσιμα", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-08`, "SHELL HELLAS ΚΑΥΣΙΜΑ", "-45.00", "EUR", "1485.20", "EUR"]
+    ["Started Date", "Completed Date", "Description", "Amount", "Fee", "Currency", "State", "Type"],
+    [`${ym}-01 09:10:00`, `${ym}-01 09:10:00`, "ΜΙΣΘΟΔΟΣΙΑ ΕΤΑΙΡΕΙΑΣ ΑΕ", "1250.00", "0.00", "EUR", "COMPLETED", "TRANSFER"],
+    [`${ym}-03 18:22:11`, `${ym}-03 18:22:11`, "POS SKLAVENITIS ATHENS", "-68.40", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"],
+    [`${ym}-04 12:05:00`, `${ym}-04 12:05:00`, "TOPUP REVOLUT *4821", "-150.00", "0.00", "EUR", "COMPLETED", "TOPUP"],
+    [`${ym}-05 14:30:00`, `${ym}-05 14:30:00`, "ΠΛΗΡΩΜΗ ΔΕΗ ΕΝΕΡΓΕΙΑΚΗ", "-82.50", "0.00", "EUR", "COMPLETED", "TRANSFER"],
+    [`${ym}-06 20:15:00`, `${ym}-06 20:15:00`, "Wolt Athens Delivery", "-18.90", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"],
+    [`${ym}-07 11:00:00`, `${ym}-07 11:00:00`, "Amazon EU S.a.r.l.", "-49.99", "0.00", "EUR", "REVERTED", "CARD_PAYMENT"],
+    [`${ym}-08 16:40:00`, `${ym}-08 16:40:00`, "SHELL HELLAS ΚΑΥΣΙΜΑ", "-45.00", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"],
+    [`${ym}-09 10:15:00`, `${ym}-09 10:15:00`, "ΑΝΑΛΗΨΗ ΑΤΜ ΠΕΙΡΑΙΩΣ", "-50.00", "0.00", "EUR", "COMPLETED", "ATM"]
   ];
-  parsedBankRows = parseBankGridRows(sampleMatrix, "Πειραιώς");
+  parsedBankRows = parseBankGridRows(sampleMatrix, "Revolut");
   renderBankPreviewTable();
 }
 
-let bankPreviewFilter = "all";
-let bankPreviewSearch = "";
-
-function setBankPreviewFilter(filterVal) {
-  bankPreviewFilter = filterVal || "all";
-  renderBankPreviewTable();
+function getFilteredBankPreviewItems() {
+  const q = bankPreviewSearch.trim().toLowerCase();
+  return parsedBankRows
+    .map((row, idx) => ({ row, idx }))
+    .filter(({ row }) => {
+      if (bankPreviewFilter === "selected" && !row.checked) return false;
+      if (bankPreviewFilter === "review" && !row.isReviewNeeded) return false;
+      if (bankPreviewFilter === "skipped" && !row.isSkippedOrDup) return false;
+      if (q) {
+        const hay = `${row.description} ${row.movementTypeNote || ""} ${row.category} ${row.date} ${row.source}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
 }
 
-function setBankPreviewSearch(query) {
-  bankPreviewSearch = String(query || "").trim().toLowerCase();
-  renderBankPreviewTable();
-}
-
-function getFilteredBankRowIndices() {
-  const indices = [];
-  parsedBankRows.forEach((row, idx) => {
-    if (bankPreviewFilter === "selected" && !row.checked) return;
-    if (bankPreviewFilter === "review" && !row.statusText.includes("❓")) return;
-    if (bankPreviewFilter === "skipped" && !row.skipReason) return;
-    if (bankPreviewSearch) {
-      const hay = `${row.description} ${row.category} ${row.date} ${row.statusText}`.toLowerCase();
-      if (!hay.includes(bankPreviewSearch)) return;
-    }
-    indices.push(idx);
+function setBankPreviewFilter(filterKey) {
+  bankPreviewFilter = filterKey;
+  document.querySelectorAll("#bankPreviewFilterPills .chip-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.bfilter === filterKey);
   });
-  return indices;
+  renderBankPreviewTable();
+}
+
+function setBankPreviewSearch(val) {
+  bankPreviewSearch = String(val || "");
+  renderBankPreviewTable();
 }
 
 function bulkSelectFilteredBankRows(checked) {
-  const visibleIndices = getFilteredBankRowIndices();
-  visibleIndices.forEach(idx => {
-    if (parsedBankRows[idx]) parsedBankRows[idx].checked = Boolean(checked);
+  const visible = getFilteredBankPreviewItems();
+  visible.forEach(({ row }) => {
+    row.checked = Boolean(checked);
   });
   renderBankPreviewTable();
 }
@@ -5063,37 +5084,35 @@ function applyBulkBankCategory() {
     showToast("Επίλεξε πρώτα μια κατηγορία για μαζική εφαρμογή.");
     return;
   }
-  const visibleSet = new Set(getFilteredBankRowIndices());
-  let updated = 0;
+  const visibleSelected = getFilteredBankPreviewItems().filter(({ row }) => row.checked);
+  if (!visibleSelected.length) {
+    showToast("Δεν υπάρχουν επιλεγμένες γραμμές στην τρέχουσα προβολή.");
+    return;
+  }
 
-  parsedBankRows.forEach((row, idx) => {
-    if (!visibleSet.has(idx) || !row.checked) return;
+  visibleSelected.forEach(({ row }) => {
     row.category = newCat;
-    if (newCat === "Μισθός" || newCat === "Bonus / Έξτρα Έσοδο" || newCat === "Επιστροφή Χρημάτων") {
+    if (["Μισθός", "Bonus / Έξτρα Έσοδο", "Επιστροφή Χρημάτων"].includes(newCat)) {
       row.type = "income";
-    } else if (newCat === "Αποταμίευση" || newCat === "Επένδυση") {
+    } else if (["Αποταμίευση", "Επένδυση"].includes(newCat)) {
       row.type = "saving";
     } else {
       row.type = "expense";
     }
-    row.statusText = "🧠 Μαζικός κανόνας";
+    row.statusText = "🧠 Μαζική κατηγορία";
     row.isWarning = false;
+    row.isReviewNeeded = false;
 
     const key = normalizeMerchantKey(row.description);
     if (key) {
       if (!data.merchantRules) data.merchantRules = {};
       data.merchantRules[key] = { category: newCat, isShared: Boolean(row.isShared) };
     }
-    updated++;
   });
 
-  if (updated > 0) {
-    persist(false);
-    renderBankPreviewTable();
-    showToast(`Ενημερώθηκε η κατηγορία σε ${updated} επιλεγμένες κινήσεις! 🧠`);
-  } else {
-    showToast("Δεν υπάρχουν τσεκαρισμένες κινήσεις στα τρέχοντα φίλτρα.");
-  }
+  persist(false);
+  renderBankPreviewTable();
+  showToast(`Ενημερώθηκε η κατηγορία «${newCat}» σε ${visibleSelected.length} κινήσεις!`);
 }
 
 function renderBankPreviewTable() {
@@ -5114,26 +5133,6 @@ function renderBankPreviewTable() {
   const sharedHeader = document.getElementById("bankSharedColHeader");
   if (sharedHeader) sharedHeader.style.display = split.hasPartner ? "" : "none";
 
-  // Ενημέρωση μετρητών στα κουμπιά φίλτρων προεπισκόπησης
-  const counts = {
-    all: parsedBankRows.length,
-    selected: parsedBankRows.filter(r => r.checked).length,
-    review: parsedBankRows.filter(r => r.statusText.includes("❓")).length,
-    skipped: parsedBankRows.filter(r => Boolean(r.skipReason)).length
-  };
-  const pillLabels = {
-    all: `Όλες (${counts.all})`,
-    selected: `✅ Επιλεγμένες (${counts.selected})`,
-    review: `❓ Θέλουν έλεγχο (${counts.review})`,
-    skipped: `⚠️ Εξαιρέσεις / Διπλές (${counts.skipped})`
-  };
-  document.querySelectorAll("#bankPreviewFilterPills [data-bfilter]").forEach(btn => {
-    const key = btn.dataset.bfilter;
-    btn.classList.toggle("active", key === bankPreviewFilter);
-    if (pillLabels[key]) btn.textContent = pillLabels[key];
-  });
-
-  // Εντοπισμός μισθοδοσίας στο αρχείο
   const salaryRow = parsedBankRows.find(r => r.checked && r.type === "income" && r.category === "Μισθός");
   detectedBankSalaryDate = salaryRow ? salaryRow.date : null;
   detectedBankSalaryAmount = salaryRow ? salaryRow.amount : 0;
@@ -5155,7 +5154,12 @@ function renderBankPreviewTable() {
     }
   }
 
-  const selectedCount = counts.selected;
+  const datesSorted = parsedBankRows.map(r => r.date).filter(Boolean).sort();
+  const rangeStr = datesSorted.length > 0
+    ? `${formatShortGrDate(datesSorted[0])} – ${formatShortGrDate(datesSorted[datesSorted.length - 1])}`
+    : "";
+
+  const selectedCount = parsedBankRows.filter(r => r.checked).length;
   const totalSelectedExpenses = parsedBankRows
     .filter(r => r.checked && r.type === "expense")
     .reduce((s, r) => s + (r.isShared ? (r.amount * split.myPct) / 100 : r.amount), 0);
@@ -5163,31 +5167,28 @@ function renderBankPreviewTable() {
     .filter(r => r.checked && r.type === "income")
     .reduce((s, r) => s + r.amount, 0);
 
-  const sortedDates = parsedBankRows.map(r => r.date).filter(Boolean).sort();
-  const rangeBadge = sortedDates.length
-    ? ` • 📅 ${formatShortGrDate(sortedDates[0])} – ${formatShortGrDate(sortedDates[sortedDates.length - 1])}`
-    : "";
-
   if (summaryEl) {
     summaryEl.innerHTML = `
-      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις${rangeBadge}</span>
+      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις ${rangeStr ? `• Εύρος: <strong>${rangeStr}</strong>` : ""}</span>
       <span>Έσοδα: <strong class="green">+${money(totalSelectedIncome)}</strong> • Έξοδα: <strong class="red">-${money(totalSelectedExpenses)}</strong></span>
     `;
   }
 
-  const visibleIndices = getFilteredBankRowIndices();
-  if (!visibleIndices.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="small" style="text-align:center; padding:18px;">Δεν υπάρχουν κινήσεις σε αυτό το φίλτρο προεπισκόπησης.</td></tr>`;
+  const visibleItems = getFilteredBankPreviewItems();
+  if (!visibleItems.length) {
+    tbody.innerHTML = `<tr><td colspan="${split.hasPartner ? 7 : 6}" class="small" style="text-align:center; padding:16px;">Δεν υπάρχουν κινήσεις με αυτό το φίλτρο αναζήτησης.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = visibleIndices.map(idx => {
-    const row = parsedBankRows[idx];
+  tbody.innerHTML = visibleItems.map(({ row, idx }) => {
     const sign = row.type === "income" ? "+" : "-";
     const col = row.type === "income" ? "green" : (row.type === "saving" ? "accent" : "red");
     const catOptions = ALL_CATEGORIES.map(c => `<option value="${c}" ${c === row.category ? "selected" : ""}>${c}</option>`).join("");
     const sharedCell = split.hasPartner
       ? `<td>${row.type === "expense" ? `<button type="button" class="small-btn ${row.isShared ? "success" : "secondary"}" onclick="toggleBankRowShared(${idx})" title="Επιμερισμός Κοινού Εξόδου (${split.myPct}%)">${row.isShared ? `👫 ${split.myPct}%` : "👤 100%"}</button>` : "—"}</td>`
+      : "";
+    const typeSub = row.movementTypeNote
+      ? `<span class="small" style="margin-left:6px; opacity:0.85;">• ${row.movementTypeNote}</span>`
       : "";
 
     return `
@@ -5196,10 +5197,7 @@ function renderBankPreviewTable() {
         <td style="white-space:nowrap;">${row.date}</td>
         <td>
           <div style="font-weight:600;">${row.description}</div>
-          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
-            <span class="badge badge-source" style="margin-left:0;">${row.source}</span>
-            ${row.bankTxTypeLabel ? `<span class="small">${row.bankTxTypeLabel}</span>` : ""}
-          </div>
+          <div><span class="badge badge-source" style="margin-left:0;">${row.source}</span>${typeSub}</div>
         </td>
         <td>
           <select style="padding:5px 8px; font-size:12px;" onchange="updateBankRowCategory(${idx}, this.value)">${catOptions}</select>
@@ -5227,15 +5225,16 @@ function updateBankRowCategory(idx, newCat) {
   const row = parsedBankRows[idx];
   if (!row) return;
   row.category = newCat;
-  if (newCat === "Μισθός" || newCat === "Bonus / Έξτρα Έσοδο" || newCat === "Επιστροφή Χρημάτων") {
+  if (["Μισθός", "Bonus / Έξτρα Έσοδο", "Επιστροφή Χρημάτων"].includes(newCat)) {
     row.type = "income";
-  } else if (newCat === "Αποταμίευση" || newCat === "Επένδυση") {
+  } else if (["Αποταμίευση", "Επένδυση"].includes(newCat)) {
     row.type = "saving";
   } else {
     row.type = "expense";
   }
   row.statusText = "🧠 Αποθηκεύτηκε κανόνας";
   row.isWarning = false;
+  row.isReviewNeeded = false;
 
   const key = normalizeMerchantKey(row.description);
   if (key) {
@@ -6069,8 +6068,104 @@ function renderWealthSimulator() {
 }
 
 /* ==========================================================================
-8. ΓΡΑΦΗΜΑΤΑ (CHART.JS) & ΕΒΔΟΜΑΔΙΑΙΑ ΑΝΑΦΟΡΑ
+8. ΓΡΑΦΗΜΑΤΑ, TOP MERCHANTS & ΕΛΛΗΝΙΚΟΣ ΜΕΤΡΗΤΗΣ e-ΑΠΟΔΕΙΞΕΩΝ (30% Ε1)
    ========================================================================== */
+function renderTopMerchants(periodTxs, ctx) {
+  const container = document.getElementById("topMerchantsContainer");
+  const subEl = document.getElementById("topMerchantsSubtitle");
+  if (!container) return;
+
+  if (subEl) subEl.textContent = ctx.label;
+
+  const merchantMap = {};
+  let totalPeriodExpenses = 0;
+
+  periodTxs.forEach(t => {
+    if (t.type !== "expense") return;
+    const amt = Number(t.amount) || 0;
+    totalPeriodExpenses += amt;
+    const rawLabel = (t.description && t.description.trim()) ? t.description.trim() : t.category;
+    const key = normalizeMerchantKey(rawLabel) || rawLabel.toUpperCase();
+    if (!merchantMap[key]) {
+      merchantMap[key] = { label: rawLabel, category: t.category, total: 0, count: 0 };
+    }
+    merchantMap[key].total += amt;
+    merchantMap[key].count += 1;
+  });
+
+  const sorted = Object.values(merchantMap)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+
+  if (!sorted.length) {
+    container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν καταχωρισμένα έξοδα στην περίοδο ${ctx.label}.</p>`;
+    return;
+  }
+
+  container.innerHTML = sorted.map((m, idx) => {
+    const sharePct = totalPeriodExpenses > 0 ? (m.total / totalPeriodExpenses) * 100 : 0;
+    return `
+      <div style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px;">
+          <div>
+            <strong>${idx + 1}. ${m.label}</strong>
+            <span class="small" style="margin-left:6px;">(${m.count}x • ${m.category})</span>
+          </div>
+          <div class="privacy-sensitive red" style="font-weight:700; white-space:nowrap;">${money(m.total)}</div>
+        </div>
+        <div class="progress" style="height:6px; margin-top:5px;">
+          <div style="width:${Math.min(100, sharePct).toFixed(1)}%; background:var(--accent);"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderEReceiptsCounter(ctx) {
+  const container = document.getElementById("eReceiptsPanelContent");
+  const badgeEl = document.getElementById("eReceiptsYearBadge");
+  if (!container) return;
+
+  const yearStr = (ctx.anchorMonth || currentYearMonth()).slice(0, 4);
+  if (badgeEl) badgeEl.textContent = `Έτος ${yearStr}`;
+
+  const yearTxs = (data.transactions || []).filter(t => t.date && t.date.startsWith(yearStr));
+  const loggedYearIncome = yearTxs
+    .filter(t => t.type === "income")
+    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const annualizedProfileIncome = (Number(data.profile?.monthlyIncome) || 0) * 12;
+  const taxableBaseIncome = Math.max(loggedYearIncome, annualizedProfileIncome);
+  const required30Pct = taxableBaseIncome * 0.30;
+
+  // Επιλέξιμες ηλεκτρονικές δαπάνες (εξαιρούνται Στέγαση/Ενοίκιο και Ανάληψη μετρητών βάσει φορολογίας Ε1)
+  const eligibleElectronicSpend = yearTxs
+    .filter(t => t.type === "expense" && t.category !== "Στέγαση" && t.category !== "Ανάληψη")
+    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const pct = required30Pct > 0 ? Math.min(100, (eligibleElectronicSpend / required30Pct) * 100) : 0;
+  const remaining = Math.max(0, required30Pct - eligibleElectronicSpend);
+  const covered = remaining <= 0 && required30Pct > 0;
+
+  container.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;">
+      <div class="metric ${covered ? "green" : "accent"}" style="margin-top:0;">${money(eligibleElectronicSpend)}</div>
+      <div class="small">Στόχος 30%: <strong class="privacy-sensitive">${money(required30Pct)}</strong></div>
+    </div>
+    <div class="progress" style="height:10px; margin:10px 0;">
+      <div style="width:${pct.toFixed(1)}%; background:${covered ? "var(--green)" : "var(--accent)"};"></div>
+    </div>
+    <p class="small" style="margin-bottom:8px;">
+      ${covered
+        ? `🎉 <strong>Κάλυψες το 100%</strong> του απαιτούμενου ορίου ηλεκτρονικών αποδείξεων (${pct.toFixed(0)}%) για το ${yearStr}!`
+        : `Έχεις καλύψει το <strong>${pct.toFixed(1)}%</strong> του ορίου. Υπολείπονται <strong class="amber">${money(remaining)}</strong> σε ηλεκτρονικές πληρωμές έως 31/12/${yearStr}.`}
+    </p>
+    <div class="small" style="opacity:0.85;">
+      Βάση ετήσιου εισοδήματος: <span class="privacy-sensitive">${money(taxableBaseIncome)}</span> • Εξαιρούνται αυτόματα «Στέγαση/Ενοίκιο» και «Ανάληψη» μετρητών.
+    </div>
+  `;
+}
+
 function renderCharts(ctxOverride = null) {
   if (typeof Chart === "undefined") return;
   const ctx = ctxOverride || getActivePeriodContext();
@@ -6104,7 +6199,7 @@ function renderCharts(ctxOverride = null) {
           labels: pieLabels,
           datasets: [{
             data: pieValues,
-            backgroundColor: ["#38bdf8", "#10b981", "#f59e0b", "#ef4444", "#a855f7", "#ec4899", "#14b8a6", "#6366f1"],
+            backgroundColor: ["#38bdf8", "#10b981", "#f59e0b", "#ef4444", "#a855f7", "#ec4899", "#14b8a6", "#6366f1", "#f97316"],
             borderWidth: 0
           }]
         },
@@ -6296,7 +6391,6 @@ function render() {
     banner.classList.toggle("visible", !hasSalary && (Number(p.monthlyIncome) || 0) > 0);
   }
 
-  // Αποθεματικό Ασφαλείας (εξαιρώντας μεταφορές σε επενδύσεις/κουμπαράδες ώστε να μη διπλομετρώνται)
   const reserve = Math.max(0, (Number(p.initialSavings) || 0) + data.transactions.reduce((sum, t) => {
     const isInvestmentTx = t.category === "Επένδυση";
     const isGoalPiggyTx = typeof t.description === "string" && t.description.startsWith("Κουμπαράς:");
@@ -6433,8 +6527,8 @@ function render() {
   renderGoals(ctx.anchorMonth);
   render503020Rule(mt, incomeBase);
   renderFinancialHealth(reserve, mt, incomeBase);
-  renderTopMerchants(periodTxs);
-  renderEReceiptsTracker(ctx);
+  renderTopMerchants(periodTxs, ctx);
+  renderEReceiptsCounter(ctx);
   renderTransactionsTable();
 
   const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "overview";
@@ -6455,208 +6549,86 @@ function resetFilters() {
   renderTransactionsTable();
 }
 
-function setSourceFilterQuick(srcVal) {
+function setQuickSourceFilter(sourceKey) {
   const srcSel = document.getElementById("filterSource");
   if (!srcSel) return;
-  srcSel.value = (srcSel.value === srcVal) ? "all" : srcVal;
+  srcSel.value = (srcSel.value === sourceKey) ? "all" : sourceKey;
   renderTransactionsTable();
-}
-
-function populateSourceFilterAndSummary(ctx) {
-  const srcSel = document.getElementById("filterSource");
-  const breakdownEl = document.getElementById("accountSourcesBreakdown");
-  const allTxs = data.transactions || [];
-
-  const uniqueSources = new Set();
-  allTxs.forEach(t => {
-    uniqueSources.add(t.source ? String(t.source).trim() : "__manual__");
-  });
-
-  if (srcSel) {
-    const prevVal = srcSel.value || "all";
-    const opts = [`<option value="all">Όλοι οι Λογαριασμοί</option>`];
-    Array.from(uniqueSources).forEach(s => {
-      if (s === "__manual__") {
-        opts.push(`<option value="__manual__">💵 Χειροκίνητο / Μετρητά</option>`);
-      } else {
-        opts.push(`<option value="${s}">${s === "Revolut" ? "💳" : "🏦"} ${s}</option>`);
-      }
-    });
-    srcSel.innerHTML = opts.join("");
-    srcSel.value = Array.from(srcSel.options).some(o => o.value === prevVal) ? prevVal : "all";
-  }
-
-  if (breakdownEl) {
-    const scope = document.getElementById("filterScope")?.value || "selectedPeriod";
-    const isCycle = ctx.mode === "cycle";
-    const scopeTxs = scope === "selectedPeriod"
-      ? filterTransactionsForRange(ctx.start, ctx.end, isCycle)
-      : allTxs;
-
-    const bySource = {};
-    scopeTxs.forEach(t => {
-      const key = t.source ? String(t.source).trim() : "__manual__";
-      if (!bySource[key]) bySource[key] = { income: 0, expense: 0, count: 0 };
-      const amt = Number(t.amount) || 0;
-      if (t.type === "income") bySource[key].income += amt;
-      if (t.type === "expense") bySource[key].expense += amt;
-      bySource[key].count++;
-    });
-
-    const keys = Object.keys(bySource);
-    if (keys.length <= 1 && keys[0] === "__manual__") {
-      breakdownEl.innerHTML = "";
-      return;
-    }
-
-    const activeSrc = srcSel?.value || "all";
-    breakdownEl.innerHTML = keys.map(k => {
-      const info = bySource[k];
-      const label = k === "__manual__" ? "💵 Χειροκίνητο" : `${k === "Revolut" ? "💳" : "🏦"} ${k}`;
-      const isSelected = activeSrc === k;
-      return `
-        <button type="button" class="chip-btn ${isSelected ? "active" : ""}" style="${isSelected ? "border-color:var(--accent); background:rgba(56,189,248,0.18);" : ""}" onclick="setSourceFilterQuick('${k}')">
-          <span>${label}</span>
-          <span class="small" style="margin-left:4px;">(${info.count})</span>
-          <strong class="red" style="margin-left:4px;">-${money(info.expense)}</strong>
-        </button>
-      `;
-    }).join("");
-  }
-}
-
-function renderTopMerchants(periodTransactions) {
-  const container = document.getElementById("topMerchantsContainer");
-  const subEl = document.getElementById("topMerchantsSubtitle");
-  if (!container) return;
-
-  const expenses = (periodTransactions || []).filter(t => t.type === "expense");
-  const totalExp = expenses.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-  if (!expenses.length || totalExp <= 0) {
-    if (subEl) subEl.textContent = "Κατάταξη δαπανών";
-    container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν έξοδα στην επιλεγμένη περίοδο για ανάλυση εμπόρων.</p>`;
-    return;
-  }
-
-  const map = {};
-  expenses.forEach(t => {
-    const rawLabel = (t.description || t.category || "Άλλο").trim();
-    const normKey = normalizeMerchantKey(rawLabel) || rawLabel.toUpperCase();
-    if (!map[normKey]) {
-      map[normKey] = {
-        displayName: rawLabel.length > 28 ? rawLabel.slice(0, 28) + "…" : rawLabel,
-        category: t.category || "Άλλο",
-        total: 0,
-        count: 0
-      };
-    }
-    map[normKey].total += Number(t.amount) || 0;
-    map[normKey].count += 1;
-  });
-
-  const ranked = Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
-  if (subEl) subEl.textContent = `Top ${ranked.length} από ${Object.keys(map).length} εμπόρους`;
-
-  container.innerHTML = ranked.map((m, i) => {
-    const pct = Math.min(100, (m.total / totalExp) * 100);
-    return `
-      <div style="margin-bottom:11px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px;">
-          <div style="min-width:0;">
-            <strong style="color:var(--accent);">#${i + 1}</strong>
-            <strong style="margin-left:4px;">${m.displayName}</strong>
-            <span class="small" style="margin-left:4px;">(${m.count}x • ${m.category})</span>
-          </div>
-          <div class="privacy-sensitive" style="font-weight:700; white-space:nowrap;">${money(m.total)} <span class="small">(${pct.toFixed(0)}%)</span></div>
-        </div>
-        <div class="progress" style="height:6px; margin-top:5px;">
-          <div style="width:${pct.toFixed(1)}%; background:${i === 0 ? "var(--red)" : "var(--accent)"};"></div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function renderEReceiptsTracker(ctx) {
-  const container = document.getElementById("eReceiptsPanelContent");
-  const badgeEl = document.getElementById("eReceiptsYearBadge");
-  if (!container) return;
-
-  const yearStr = (ctx.anchorMonth || currentYearMonth()).slice(0, 4);
-  if (badgeEl) badgeEl.textContent = `Έτος ${yearStr}`;
-
-  const yearTxs = (data.transactions || []).filter(t => String(t.date || "").startsWith(yearStr));
-  const actualYearIncome = yearTxs
-    .filter(t => t.type === "income")
-    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-  const annualizedProfileIncome = (Number(data.profile?.monthlyIncome) || 0) * 12;
-  const taxableBaseIncome = Math.max(annualizedProfileIncome, actualYearIncome);
-  const required30Pct = Math.min(20000, taxableBaseIncome * 0.30);
-
-  // Επιλέξιμες ηλεκτρονικές δαπάνες (εξαιρείται η Στέγαση/Ενοίκιο βάσει φορολογίας Ε1)
-  const eligibleElectronicSpend = yearTxs
-    .filter(t => t.type === "expense" && t.category !== "Στέγαση")
-    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-  const pct = required30Pct > 0 ? Math.min(100, (eligibleElectronicSpend / required30Pct) * 100) : 0;
-  const remaining = Math.max(0, required30Pct - eligibleElectronicSpend);
-  const covered = remaining <= 0 && required30Pct > 0;
-
-  container.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;">
-      <div class="metric ${covered ? "green" : "accent"}" style="margin-top:0;">${money(eligibleElectronicSpend)}</div>
-      <div class="small">Στόχος 30%: <strong class="privacy-sensitive">${money(required30Pct)}</strong></div>
-    </div>
-    <div class="progress" style="height:10px; margin:10px 0;">
-      <div style="width:${pct.toFixed(1)}%; background:${covered ? "var(--green)" : "var(--accent)"};"></div>
-    </div>
-    <p class="small" style="margin-bottom:8px;">
-      ${covered
-        ? `🎉 <strong>Κάλυψες το 100%</strong> του απαιτούμενου ορίου ηλεκτρονικών αποδείξεων (${pct.toFixed(0)}%) για το ${yearStr}!`
-        : `Έχεις καλύψει το <strong>${pct.toFixed(1)}%</strong> του ορίου. Υπολείπονται <strong class="amber">${money(remaining)}</strong> σε ηλεκτρονικές πληρωμές έως 31/12/${yearStr}.`}
-    </p>
-    <div class="small" style="opacity:0.85;">
-      Βάση ετήσιου εισοδήματος: <span class="privacy-sensitive">${money(taxableBaseIncome)}</span> • Εξαιρείται αυτόματα η κατηγορία «Στέγαση/Ενοίκιο».
-    </div>
-  `;
 }
 
 function renderTransactionsTable() {
   const tbody = document.getElementById("transactionsTable");
   const tfoot = document.getElementById("transactionsTableFooter");
   const summaryBar = document.getElementById("filterSummaryBar");
+  const sourceSel = document.getElementById("filterSource");
+  const sourceBreakdownEl = document.getElementById("accountSourcesBreakdown");
   if (!tbody) return;
 
   const ctx = getActivePeriodContext();
-  populateSourceFilterAndSummary(ctx);
-
   const isCycle = ctx.mode === "cycle";
   const split = getCoupleSplit();
   const todayStr = today();
   const search = (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
   const scope = document.getElementById("filterScope")?.value || "selectedPeriod";
-  const fSource = document.getElementById("filterSource")?.value || "all";
   const fType = document.getElementById("filterType")?.value || "all";
   const fCat = document.getElementById("filterCategory")?.value || "all";
   const onlyUnexpected = Boolean(document.getElementById("filterOnlyUnexpected")?.checked);
 
-  const filtered = data.transactions
+  // Συγκέντρωση διαθέσιμων λογαριασμών / πηγών
+  const knownSources = Array.from(new Set(
+    (data.transactions || []).map(t => (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο")
+  ));
+  if (sourceSel) {
+    const prevVal = sourceSel.value || "all";
+    sourceSel.innerHTML = `<option value="all">Όλοι οι Λογαριασμοί</option>` +
+      knownSources.map(s => `<option value="${s}">${s === "Χειροκίνητο" ? "💵 Χειροκίνητο" : `🏦 ${s}`}</option>`).join("");
+    sourceSel.value = Array.from(sourceSel.options).some(o => o.value === prevVal) ? prevVal : "all";
+  }
+  const fSource = sourceSel?.value || "all";
+
+  // Υπολογισμός συνόλου ανά λογαριασμό στην επιλεγμένη περίοδο
+  const periodBaseTxs = (data.transactions || []).filter(t => {
+    if (scope === "selectedPeriod") {
+      const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
+      if (effDate < ctx.start || effDate > ctx.end) return false;
+    }
+    return true;
+  });
+
+  if (sourceBreakdownEl) {
+    const bySource = {};
+    periodBaseTxs.forEach(t => {
+      const sKey = (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο";
+      if (!bySource[sKey]) bySource[sKey] = { inc: 0, exp: 0, count: 0 };
+      if (t.type === "income") bySource[sKey].inc += Number(t.amount) || 0;
+      if (t.type === "expense") bySource[sKey].exp += Number(t.amount) || 0;
+      bySource[sKey].count++;
+    });
+    const entries = Object.entries(bySource);
+    if (entries.length > 1) {
+      sourceBreakdownEl.innerHTML = entries.map(([sName, st]) => {
+        const isActive = fSource === sName;
+        return `
+          <button type="button" class="chip-btn ${isActive ? "active" : ""}" onclick="setQuickSourceFilter('${sName.replaceAll("'", "\\'")}')" style="display:inline-flex; align-items:center; gap:6px;">
+            <span>${sName === "Χειροκίνητο" ? "💵" : "🏦"} <strong>${sName}</strong> (${st.count})</span>
+            <span class="${isActive ? "" : "red"}">-${money(st.exp)}</span>
+          </button>
+        `;
+      }).join("");
+    } else {
+      sourceBreakdownEl.innerHTML = "";
+    }
+  }
+
+  const filtered = periodBaseTxs
     .filter(t => {
-      if (scope === "selectedPeriod") {
-        const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
-        if (effDate < ctx.start || effDate > ctx.end) return false;
-      }
-      if (fSource !== "all") {
-        const txSrc = t.source ? String(t.source).trim() : "__manual__";
-        if (txSrc !== fSource) return false;
-      }
+      const txSrc = (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο";
+      if (fSource !== "all" && txSrc !== fSource) return false;
       if (fType !== "all" && t.type !== fType) return false;
       if (fCat !== "all" && t.category !== fCat) return false;
       if (onlyUnexpected && !t.unexpected) return false;
       if (search) {
-        const hay = `${t.description || ""} ${t.category || ""} ${t.date || ""} ${t.source || ""}`.toLowerCase();
+        const hay = `${t.description || ""} ${t.category || ""} ${t.date || ""} ${txSrc}`.toLowerCase();
         if (!hay.includes(search)) return false;
       }
       return true;
@@ -6776,7 +6748,7 @@ function renderTransactionsTable() {
 }
 
 /* ==========================================================================
-10. ΡΥΘΜΙΣΕΙΣ, ΕΞΑΓΩΓΗ / ΕΙΣΑΓΩΓΗ JSON & CSV, DEMO & THEME
+10. ΡΥΘΜΙΣΕΙΣ, ΣΥΓΧΡΟΝΙΣΜΟΣ ΣΥΣΚΕΥΩΝ, ΕΞΑΓΩΓΗ / ΕΙΣΑΓΩΓΗ JSON & CSV
    ========================================================================== */
 function saveProfile() {
   const numericFields = ["typicalPayday", "monthlyIncome", "essentialExpenses", "savingGoal", "reserveGoal", "initialSavings", "partnerIncome", "customUserSharePct"];
@@ -6800,6 +6772,97 @@ function saveProfile() {
   persist();
   render();
   showToast("Το προφίλ και οι ρυθμίσεις αποθηκεύτηκαν! ✓");
+}
+
+function openDeviceSyncModal() {
+  const pasteArea = document.getElementById("deviceSyncPasteArea");
+  if (pasteArea) pasteArea.value = "";
+  const modal = document.getElementById("deviceSyncModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeDeviceSyncModal() {
+  const modal = document.getElementById("deviceSyncModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function shareBackupFileNative() {
+  const jsonStr = buildExportPayloadString();
+  const safeUser = sanitizeFilenamePart(data.profile?.userName);
+  const userSegment = safeUser ? `${safeUser}-` : "";
+  const filename = `FinanceGR-Sync-${userSegment}${formatFriendlyDate()}.json`;
+
+  try {
+    const file = new File([jsonStr], filename, { type: "application/json" });
+    if (typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: "FinanceGR Sync Backup",
+        text: "Αντίγραφο συγχρονισμού FinanceGR",
+        files: [file]
+      });
+      return;
+    }
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+  }
+
+  exportJSON();
+}
+
+function copySyncPayloadToClipboard() {
+  const jsonStr = buildExportPayloadString();
+  const temp = document.createElement("textarea");
+  temp.value = jsonStr;
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  document.body.appendChild(temp);
+  temp.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(temp);
+
+  if (ok) {
+    showToast("Ο κωδικός δεδομένων αντιγράφηκε! Στείλ' τον στην άλλη συσκευή. 📋");
+  } else {
+    showModal("Δεν ήταν δυνατή η αυτόματη αντιγραφή. Χρησιμοποίησε την «Αποστολή Αρχείου Backup».");
+  }
+}
+
+function importSyncPayloadFromText() {
+  const raw = (document.getElementById("deviceSyncPasteArea")?.value || "").trim();
+  if (!raw) {
+    showModal("Επικόλλησε πρώτα το κείμενο JSON που έστειλες από την άλλη συσκευή.");
+    return;
+  }
+  try {
+    const imported = JSON.parse(raw);
+    if (!imported.profile || !Array.isArray(imported.transactions)) {
+      throw new Error("Invalid");
+    }
+    data = {
+      ...deepClone(defaults),
+      ...imported,
+      profile: { ...defaults.profile, ...imported.profile },
+      portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
+      budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
+      recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
+      goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
+      merchantRules: imported.merchantRules || {},
+      settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
+      transactions: imported.transactions
+    };
+    sessionHasUnsavedChanges = false;
+    persist(false);
+    closeDeviceSyncModal();
+    render();
+    showToast("Ο συγχρονισμός δεδομένων ολοκληρώθηκε! 📲");
+  } catch {
+    showModal("Το κείμενο που επικολλήθηκε δεν είναι έγκυρο JSON backup.");
+  }
 }
 
 function formatFriendlyDate() {
@@ -6987,12 +7050,13 @@ function loadDemoData() {
     const superMy = split.hasPartner ? Number(((superFull * split.myPct) / 100).toFixed(2)) : superFull;
 
     data.transactions = [
-      { id: generateId("tx"), type: "income", amount: data.profile.monthlyIncome || 1200, date: `${ym}-01`, category: "Μισθός", description: "Μηνιαία Μισθοδοσία", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: rentMy, date: `${ym}-02`, category: "Στέγαση", description: "Ενοίκιο Σπιτιού", unexpected: false, isShared: split.hasPartner, totalBillAmount: rentFull, userSharePct: split.myPct, paidBy: "me", settled: false },
-      { id: generateId("tx"), type: "expense", amount: superMy, date: `${ym}-05`, category: "Τρόφιμα", description: "Σούπερ Μάρκετ Εβδομάδας", unexpected: false, isShared: split.hasPartner, totalBillAmount: superFull, userSharePct: split.myPct, paidBy: "partner", settled: false },
-      { id: generateId("tx"), type: "expense", amount: 42, date: `${ym}-07`, category: "Μεταφορές", description: "Καύσιμα", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 34, date: `${ym}-09`, category: "Διασκέδαση", description: "Έξοδος & Φαγητό", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "saving", amount: 150, date: `${ym}-10`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false }
+      { id: generateId("tx"), type: "income", amount: data.profile.monthlyIncome || 1200, date: `${ym}-01`, category: "Μισθός", description: "Μηνιαία Μισθοδοσία", source: "Πειραιώς", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "expense", amount: rentMy, date: `${ym}-02`, category: "Στέγαση", description: "Ενοίκιο Σπιτιού", source: "Πειραιώς", unexpected: false, isShared: split.hasPartner, totalBillAmount: rentFull, userSharePct: split.myPct, paidBy: "me", settled: false },
+      { id: generateId("tx"), type: "expense", amount: superMy, date: `${ym}-05`, category: "Τρόφιμα", description: "Σκλαβενίτης Σούπερ Μάρκετ", source: "Revolut", unexpected: false, isShared: split.hasPartner, totalBillAmount: superFull, userSharePct: split.myPct, paidBy: "partner", settled: false },
+      { id: generateId("tx"), type: "expense", amount: 42, date: `${ym}-07`, category: "Μεταφορές", description: "Shell Καύσιμα", source: "Revolut", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "expense", amount: 34, date: `${ym}-09`, category: "Διασκέδαση", description: "Wolt Delivery", source: "Revolut", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "expense", amount: 50, date: `${ym}-10`, category: "Ανάληψη", description: "Ανάληψη ATM Πειραιώς", source: "Πειραιώς", unexpected: false, isShared: false },
+      { id: generateId("tx"), type: "saving", amount: 150, date: `${ym}-11`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false }
     ];
     persist();
     render();
@@ -7221,109 +7285,6 @@ function scheduleOneTimeShareNudge() {
 }
 
 /* ==========================================================================
-   11B. ΣΥΓΧΡΟΝΙΣΜΟΣ LAPTOP <-> ΚΙΝΗΤΟ (DEVICE SYNC)
-   ========================================================================== */
-function openDeviceSyncModal() {
-  const pasteArea = document.getElementById("deviceSyncPasteArea");
-  if (pasteArea) pasteArea.value = "";
-  const modal = document.getElementById("deviceSyncModal");
-  if (modal) modal.style.display = "flex";
-}
-
-function closeDeviceSyncModal() {
-  const modal = document.getElementById("deviceSyncModal");
-  if (modal) modal.style.display = "none";
-}
-
-async function shareBackupFileNative() {
-  const jsonStr = buildExportPayloadString();
-  const safeUser = sanitizeFilenamePart(data.profile?.userName);
-  const userSegment = safeUser ? `${safeUser}-` : "";
-  const filename = `FinanceGR-Sync-${userSegment}${formatFriendlyDate()}.json`;
-
-  if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
-    try {
-      const file = new File([jsonStr], filename, { type: "application/json" });
-      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: "FinanceGR Backup Sync",
-          text: "Αντίγραφο δεδομένων FinanceGR",
-          files: [file]
-        });
-        data.settings.lastBackupAt = new Date().toISOString();
-        data.settings.unsavedChangesCount = 0;
-        sessionHasUnsavedChanges = false;
-        persist(false);
-        return;
-      }
-    } catch (err) {
-      if (err && err.name === "AbortError") return;
-    }
-  }
-
-  exportJSON();
-}
-
-function copySyncPayloadToClipboard() {
-  const jsonStr = buildExportPayloadString();
-  let copied = false;
-
-  const temp = document.createElement("textarea");
-  temp.value = jsonStr;
-  temp.style.position = "fixed";
-  temp.style.opacity = "0";
-  document.body.appendChild(temp);
-  temp.select();
-  temp.setSelectionRange(0, jsonStr.length);
-  try {
-    copied = document.execCommand("copy");
-  } catch {
-    copied = false;
-  }
-  document.body.removeChild(temp);
-
-  if (copied) {
-    showToast("Τα δεδομένα αντιγράφηκαν! Επικόλλησέ τα στην άλλη συσκευή. 📋");
-  } else {
-    showModal("Δεν ήταν δυνατή η αυτόματη αντιγραφή. Πάτησε «📤 Αποστολή Αρχείου Backup».");
-  }
-}
-
-function importSyncPayloadFromText() {
-  const raw = (document.getElementById("deviceSyncPasteArea")?.value || "").trim();
-  if (!raw) {
-    showModal("Επικόλλησε πρώτα το κείμενο JSON που αντέγραψες από την άλλη συσκευή.");
-    return;
-  }
-
-  try {
-    const imported = JSON.parse(raw);
-    if (!imported.profile || !Array.isArray(imported.transactions)) {
-      throw new Error("Invalid");
-    }
-    data = {
-      ...deepClone(defaults),
-      ...imported,
-      profile: { ...defaults.profile, ...imported.profile },
-      portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
-      budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
-      recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
-      goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
-      merchantRules: imported.merchantRules || {},
-      settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
-      transactions: imported.transactions
-    };
-    sessionHasUnsavedChanges = false;
-    persist(false);
-    closeDeviceSyncModal();
-    render();
-    showToast("Ο συγχρονισμός ολοκληρώθηκε με επιτυχία! 📲");
-  } catch {
-    showModal("Το κείμενο που επικόλλησες δεν είναι έγκυρο backup JSON του FinanceGR.");
-  }
-}
-
-/* ==========================================================================
 12. ΑΡΧΙΚΟΠΟΙΗΣΗ ΕΦΑΡΜΟΓΗΣ (DOMContentLoaded + WINDOW ONLOAD)
    ========================================================================== */
 window.addEventListener("beforeinstallprompt", (e) => {
@@ -7369,32 +7330,43 @@ document.addEventListener("keydown", (e) => {
 
 let appInitialized = false;
 
-function initApp() {
+async function initApp() {
   if (appInitialized) return;
   appInitialized = true;
 
   syncMobileBottomBarPosition();
 
   isPersistentStorageAvailable = checkPersistentStorage();
-  if (isPersistentStorageAvailable) {
-    restoreFromIndexedDBIfNeeded();
-  }
+  await restoreFromIndexedDBIfNeeded();
 
   const modePill = document.getElementById("storageModePill");
+  const googleSitesCodeEmbed = (() => {
+    try {
+      const host = window.location.hostname.toLowerCase();
+      return window.self !== window.top && (host === "googleusercontent.com" || host.endsWith(".googleusercontent.com"));
+    } catch {
+      return true;
+    }
+  })();
+
   if (modePill) {
-    if (isPersistentStorageAvailable) {
-      modePill.textContent = "💾 Αυτόματη Αποθήκευση";
-      modePill.className = "badge badge-income";
-      modePill.title = "Τα δεδομένα αποθηκεύονται μόνιμα στον browser σου.";
-    } else {
-      modePill.textContent = "🔒 Google Sites Sandbox";
+    if (googleSitesCodeEmbed) {
+      modePill.textContent = "⚠️ Google Sites Embed";
       modePill.className = "badge badge-withdrawal";
-      modePill.title = "Το Google Sites περιορίζει τη μόνιμη αποθήκευση στο refresh. Χρησιμοποίησε Backup JSON ή την αυτόνομη εφαρμογή.";
+      modePill.title = "Το Google Sites περιορίζει τη μόνιμη μνήμη στο refresh. Αποθήκευσε Backup JSON ή κατέβασε την αυτόνομη εφαρμογή.";
+    } else if (isPersistentStorageAvailable || isIndexedDBAvailable) {
+      modePill.textContent = isPersistentStorageAvailable ? "💾 Τοπική αποθήκευση" : "💾 IndexedDB";
+      modePill.className = "badge badge-income";
+      modePill.title = "Τα δεδομένα αποθηκεύονται αυτόματα στον browser σου.";
+    } else {
+      modePill.textContent = "⚠️ Περιορισμένη αποθήκευση";
+      modePill.className = "badge badge-withdrawal";
+      modePill.title = "Ο browser δεν επιτρέπει μόνιμη τοπική αποθήκευση.";
     }
   }
 
   const storageBanner = document.getElementById("storageNoticeBanner");
-  if (storageBanner && !isPersistentStorageAvailable) {
+  if (storageBanner && ((!isPersistentStorageAvailable && !isIndexedDBAvailable) || googleSitesCodeEmbed)) {
     storageBanner.classList.add("visible");
   }
 
