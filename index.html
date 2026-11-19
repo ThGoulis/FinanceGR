@@ -1666,6 +1666,16 @@ body.light-theme .first-use-panel {
     <label for="description">Περιγραφή (προαιρετικό)</label>
     <input id="description" placeholder="π.χ. Σούπερ Μάρκετ, ΔΕΗ, Μισθός...">
 
+    <label for="txSource">Λογαριασμός / Πηγή</label>
+    <select id="txSource">
+      <option value="">💵 Χειροκίνητο / Μετρητά</option>
+      <option value="Πειραιώς">🏦 Τράπεζα Πειραιώς</option>
+      <option value="Revolut">💳 Revolut</option>
+      <option value="Εθνική">🏦 Εθνική Τράπεζα</option>
+      <option value="Alpha Bank">🏦 Alpha Bank</option>
+      <option value="Eurobank">🏦 Eurobank</option>
+    </select>
+
     <label class="checkbox-row" id="sharedExpenseToggleRow">
       <input id="isSharedExpense" type="checkbox" onchange="toggleSharedExpenseBox()">
       <span>👫 <strong>Κοινό έξοδο σπιτιού</strong> (Αναλογικός επιμερισμός με σύντροφο)</span>
@@ -1740,7 +1750,42 @@ body.light-theme .first-use-panel {
       <div id="bankSalaryDetectBanner" class="salary-detect-banner" style="display:none;"></div>
       <div id="bankPreviewSummary" class="filter-summary" style="margin-bottom:10px;"></div>
 
-      <div class="table-wrap" style="max-height: 340px;">
+      <!-- Μπάρα Φίλτρων & Μαζικής Επεξεργασίας Προεπισκόπησης -->
+      <div class="filter-bar" style="padding:10px; margin-bottom:10px;">
+        <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div style="display:flex; flex-wrap:wrap; gap:5px;" id="bankPreviewFilterPills">
+            <button type="button" class="chip-btn active" data-bfilter="all" onclick="setBankPreviewFilter('all')">Όλες</button>
+            <button type="button" class="chip-btn" data-bfilter="selected" onclick="setBankPreviewFilter('selected')">✅ Επιλεγμένες</button>
+            <button type="button" class="chip-btn" data-bfilter="review" onclick="setBankPreviewFilter('review')">❓ Θέλουν έλεγχο</button>
+            <button type="button" class="chip-btn" data-bfilter="skipped" onclick="setBankPreviewFilter('skipped')">⚠️ Εξαιρέσεις / Διπλές</button>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="secondary small-btn" onclick="bulkSelectFilteredBankRows(true)">☑️ Επιλογή ορατών</button>
+            <button type="button" class="secondary small-btn" onclick="bulkSelectFilteredBankRows(false)">☐ Αποεπιλογή ορατών</button>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <input id="bankPreviewSearchInput" type="text" placeholder="🔍 Αναζήτηση στην προεπισκόπηση..." oninput="setBankPreviewSearch(this.value)" style="flex:1 1 200px; padding:7px 10px; font-size:12px;">
+          <div style="display:flex; gap:6px; align-items:center; flex:1 1 240px;">
+            <select id="bankBulkCategorySelect" style="padding:7px 8px; font-size:12px;">
+              <option value="">-- Μαζική αλλαγή κατηγορίας --</option>
+              <option>Τρόφιμα</option>
+              <option>Λογαριασμοί</option>
+              <option>Μεταφορές</option>
+              <option>Διασκέδαση</option>
+              <option>Υγεία</option>
+              <option>Στέγαση</option>
+              <option>Έκτακτο έξοδο</option>
+              <option>Αποταμίευση</option>
+              <option>Επένδυση</option>
+              <option>Άλλο</option>
+            </select>
+            <button type="button" class="small-btn" onclick="applyBulkBankCategory()" style="white-space:nowrap;">Εφαρμογή</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="max-height: 320px;">
         <table>
           <thead>
             <tr>
@@ -1917,6 +1962,36 @@ body.light-theme .first-use-panel {
       <button type="button" class="social-btn" onclick="shareToSocial('x')">𝕏 X / Twitter</button>
       <button type="button" class="social-btn" onclick="shareToSocial('telegram')">✈️ Telegram</button>
       <button type="button" class="social-btn" onclick="shareToSocial('email')">✉️ Email</button>
+    </div>
+  </div>
+</div>
+
+<!-- Device Sync Modal (Laptop <-> Mobile Quick Transfer) -->
+<div id="deviceSyncModal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-content" style="max-width: 520px; text-align: left;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div class="modal-title" style="margin:0;">📲 Συγχρονισμός Laptop ↔ Κινητό</div>
+      <button type="button" class="secondary small-btn" onclick="closeDeviceSyncModal()">✕</button>
+    </div>
+    <p class="small">Μετέφερε εύκολα τα δεδομένα σου μεταξύ υπολογιστή και κινητού χωρίς λογαριασμό ή server.</p>
+
+    <div class="mini-card" style="margin-bottom:12px;">
+      <div style="font-weight:700; font-size:13px; margin-bottom:4px;">1. Αποστολή από αυτή τη συσκευή</div>
+      <p class="small" style="margin-bottom:8px;">Στείλε το backup στον εαυτό σου (WhatsApp, Viber, AirDrop, Email) ή αντέγραψε τον κωδικό δεδομένων.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="success small-btn" onclick="shareBackupFileNative()">📤 Αποστολή Αρχείου Backup</button>
+        <button type="button" class="secondary small-btn" onclick="copySyncPayloadToClipboard()">📋 Αντιγραφή Κωδικού Δεδομένων</button>
+      </div>
+    </div>
+
+    <div class="mini-card">
+      <div style="font-weight:700; font-size:13px; margin-bottom:4px;">2. Παραλαβή σε αυτή τη συσκευή</div>
+      <p class="small" style="margin-bottom:6px;">Επικόλλησε εδώ τον κωδικό δεδομένων που έστειλες από την άλλη συσκευή ή επίλεξε αρχείο JSON:</p>
+      <textarea id="deviceSyncPasteArea" rows="4" placeholder='Επικόλλησε εδώ το περιεχόμενο JSON...' style="width:100%; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); padding:8px 10px; font-size:12px; font-family:monospace; resize:vertical;"></textarea>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; justify-content:space-between;">
+        <button type="button" class="secondary small-btn" onclick="triggerQuickLoadFile()">📂 Επιλογή Αρχείου JSON</button>
+        <button type="button" class="small-btn" onclick="importSyncPayloadFromText()">✅ Εισαγωγή από Κείμενο</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2283,6 +2358,12 @@ body.light-theme .first-use-panel {
           </select>
         </div>
         <div>
+          <label for="filterSource">Λογαριασμός / Πηγή</label>
+          <select id="filterSource" onchange="renderTransactionsTable()">
+            <option value="all">Όλοι οι Λογαριασμοί</option>
+          </select>
+        </div>
+        <div>
           <label for="filterType">Τύπος</label>
           <select id="filterType" onchange="renderTransactionsTable()">
             <option value="all">Όλοι οι Τύποι</option>
@@ -2317,6 +2398,8 @@ body.light-theme .first-use-panel {
         <span>Μόνο έκτακτα / απρόβλεπτα έξοδα</span>
       </label>
     </div>
+
+    <div id="accountSourcesBreakdown" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
 
     <div class="filter-summary" id="filterSummaryBar"></div>
 
@@ -2694,6 +2777,25 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
+  <!-- TOP MERCHANTS & ΕΛΛΗΝΙΚΟΣ ΜΕΤΡΗΤΗΣ e-ΑΠΟΔΕΙΞΕΩΝ (30% Ε1) -->
+  <div class="grid-2" style="margin-top:20px;" data-section="analytics">
+    <div class="panel" style="margin-bottom:0;">
+      <h2>
+        <span>🏪 Top Έμποροι Περιόδου</span>
+        <span class="small" id="topMerchantsSubtitle">Κατάταξη δαπανών</span>
+      </h2>
+      <div id="topMerchantsContainer"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:0;">
+      <h2>
+        <span>🧾 Μετρητής e-Αποδείξεων (30% Ε1)</span>
+        <span class="badge badge-saving" id="eReceiptsYearBadge">Έτος</span>
+      </h2>
+      <div id="eReceiptsPanelContent"></div>
+    </div>
+  </div>
+
   <div class="panel" data-section="analytics">
     <h2>Εβδομαδιαία Αναφορά (Τελευταίες 7 Ημέρες)</h2>
     <div class="grid">
@@ -2795,6 +2897,7 @@ body.light-theme .first-use-panel {
       <button type="button" class="secondary" onclick="openBankImportModal()">🏦 Εισαγωγή Τράπεζας / Revolut</button>
       <button type="button" class="secondary" onclick="printMonthlyReport()">🖨️ Εκτύπωση / PDF</button>
       <button type="button" class="secondary" onclick="reopenFirstUseGuide()">📖 Οδηγός &amp; Αρχική Ρύθμιση</button>
+      <button type="button" class="secondary" onclick="openDeviceSyncModal()">📲 Συγχρονισμός Laptop ↔ Κινητό</button>
       <button type="button" class="secondary" onclick="openShareModal()">📤 Μοιράσου το (QR &amp; Social)</button>
       <button type="button" class="secondary" onclick="loadDemoData()">🧪 Φόρτωση Demo</button>
       <button type="button" class="secondary" onclick="installPWA()">📲 Εγκατάσταση App</button>
@@ -4127,6 +4230,8 @@ function resetTransactionForm() {
   document.getElementById("submitTransactionBtn").textContent = "+ Αποθήκευση Συναλλαγής";
   document.getElementById("amount").value = "";
   document.getElementById("description").value = "";
+  const srcEl = document.getElementById("txSource");
+  if (srcEl) srcEl.value = "";
   document.getElementById("unexpected").checked = false;
   document.getElementById("isSharedExpense").checked = false;
   document.getElementById("sharedAmountMode").value = "total";
@@ -4198,6 +4303,7 @@ function addTransaction() {
   const date = document.getElementById("date").value;
   const category = document.getElementById("category").value;
   const description = document.getElementById("description").value.trim();
+  const source = (document.getElementById("txSource")?.value || "").trim();
   const unexpected = document.getElementById("unexpected").checked;
   const isShared = (type === "expense") && document.getElementById("isSharedExpense").checked;
 
@@ -4249,6 +4355,7 @@ function addTransaction() {
         date,
         category,
         description,
+        source: source || undefined,
         unexpected,
         ...sharedProps,
         settled: isShared ? (sharedProps.paidBy === "split" ? true : Boolean(prevSettled)) : false
@@ -4268,6 +4375,7 @@ function addTransaction() {
     date,
     category,
     description,
+    source: source || undefined,
     unexpected,
     ...sharedProps
   });
@@ -4300,6 +4408,16 @@ function editTransaction(id) {
   }
   document.getElementById("date").value = tx.date;
   document.getElementById("description").value = tx.description || "";
+  const srcEl = document.getElementById("txSource");
+  if (srcEl) {
+    if (tx.source && !Array.from(srcEl.options).some(o => o.value === tx.source)) {
+      const opt = document.createElement("option");
+      opt.value = tx.source;
+      opt.textContent = tx.source;
+      srcEl.appendChild(opt);
+    }
+    srcEl.value = tx.source || "";
+  }
   document.getElementById("unexpected").checked = Boolean(tx.unexpected);
 
   if (tx.type === "expense" && tx.isShared) {
@@ -4542,7 +4660,28 @@ function parseFlexibleNumber(raw) {
   return Number.isFinite(num) ? num : NaN;
 }
 
-function detectDuplicateStatus(dateIso, amountAbs) {
+function areMerchantsSimilar(descA, descB) {
+  const rawA = String(descA || "").trim();
+  const rawB = String(descB || "").trim();
+  if (!rawA || !rawB) return true;
+
+  const keyA = normalizeMerchantKey(rawA);
+  const keyB = normalizeMerchantKey(rawB);
+  if (keyA && keyB) {
+    if (keyA === keyB || keyA.includes(keyB) || keyB.includes(keyA)) return true;
+  }
+
+  const stopWords = new Set(["EUR", "POS", "IRIS", "TRANSFER", "PAYMENT", "CARD", "ΠΛΗΡΩΜΗ", "ΑΓΟΡΑ", "ΜΕΤΑΦΟΡΑ", "ΚΑΡΤΑ", "ΑΠΟ", "ΠΡΟΣ"]);
+  const tokensA = (keyA || rawA.toUpperCase()).split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+  const tokensB = new Set((keyB || rawB.toUpperCase()).split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w)));
+
+  if (!tokensA.length || !tokensB.size) {
+    return rawA.toUpperCase() === rawB.toUpperCase();
+  }
+  return tokensA.some(tok => tokensB.has(tok));
+}
+
+function detectDuplicateStatus(dateIso, amountAbs, desc = "") {
   let nearMatchDate = null;
   for (const t of data.transactions || []) {
     const tAmt1 = Number(t.amount) || 0;
@@ -4551,10 +4690,12 @@ function detectDuplicateStatus(dateIso, amountAbs) {
     if (!sameAmount) continue;
 
     const dayDiff = Math.abs(diffDaysIso(t.date, dateIso));
-    if (dayDiff === 0) {
+    const similarMerchant = areMerchantsSimilar(desc, t.description || t.category);
+
+    if (dayDiff === 0 && similarMerchant) {
       return { isDup: true, label: "⚠️ Υπάρχει ήδη" };
     }
-    if (dayDiff <= 3) {
+    if (dayDiff > 0 && dayDiff <= 3 && similarMerchant) {
       nearMatchDate = t.date;
     }
   }
@@ -4708,8 +4849,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
         cls.statusBadge = "🏦 Κατηγορία Τράπεζας";
       }
     }
-
-    const dup = detectDuplicateStatus(dateIso, amountAbs);
+    const dup = detectDuplicateStatus(dateIso, amountAbs, desc);
 
     const shouldCheck = !cls.skipReason && !dup.isDup;
     const statusText = dup.isDup ? dup.label : cls.statusBadge;
@@ -4725,6 +4865,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
       amount: Number(amountAbs.toFixed(2)),
       isShared: cls.isShared,
       statusText,
+      skipReason: cls.skipReason || (dup.isDup ? "duplicate" : null),
       isWarning: Boolean(cls.skipReason || dup.isDup || cls.statusBadge.includes("❓"))
     });
   }
@@ -4773,8 +4914,15 @@ function openBankImportModal() {
   parsedBankRows = [];
   detectedBankSalaryDate = null;
   detectedBankSalaryAmount = 0;
+  bankPreviewFilter = "all";
+  bankPreviewSearch = "";
+
   const fileInp = document.getElementById("bankStatementFile");
   if (fileInp) fileInp.value = "";
+  const searchInp = document.getElementById("bankPreviewSearchInput");
+  if (searchInp) searchInp.value = "";
+  const bulkCatSel = document.getElementById("bankBulkCategorySelect");
+  if (bulkCatSel) bulkCatSel.value = "";
   const previewBox = document.getElementById("bankPreviewContainer");
   if (previewBox) previewBox.style.display = "none";
 
@@ -4810,9 +4958,9 @@ async function handleBankFileUpload(event) {
   const ext = file.name.split(".").pop().toLowerCase();
 
   if (ext === "xlsx" || ext === "xls") {
-    const loaded = await ensureXlsxLoaded();
-    if (!loaded) {
-      showModal("Δεν ήταν δυνατή η φόρτωση της βιβλιοθήκης ανάγνωσης Excel (.xlsx). Έλεγξε τη σύνδεση internet ή εξήγαγε το αρχείο σε μορφή .csv.");
+    const hasXlsx = await ensureXlsxLoaded();
+    if (!hasXlsx) {
+      showModal("Η βιβλιοθήκη ανάγνωσης Excel δεν μπόρεσε να φορτωθεί. Αποθήκευσε το αρχείο ως CSV (UTF-8) και δοκίμασε ξανά.");
       return;
     }
 
@@ -4820,17 +4968,16 @@ async function handleBankFileUpload(event) {
     reader.onload = (e) => {
       try {
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
-        let foundRows = [];
+        let bestRows = [];
         for (const sheetName of wb.SheetNames) {
           const sheet = wb.Sheets[sheetName];
           const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
-          const parsed = parseBankGridRows(matrix, chosenSource);
-          if (parsed.length > 0) {
-            foundRows = parsed;
-            break;
+          const candidateRows = parseBankGridRows(matrix, chosenSource);
+          if (candidateRows.length > bestRows.length) {
+            bestRows = candidateRows;
           }
         }
-        parsedBankRows = foundRows;
+        parsedBankRows = bestRows;
         renderBankPreviewTable();
       } catch {
         showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel.");
@@ -4862,17 +5009,91 @@ async function handleBankFileUpload(event) {
 function loadSampleBankPreview() {
   const ym = getSelectedMonth();
   const sampleMatrix = [
-    ["Started Date", "Completed Date", "Description", "Amount", "Fee", "Currency", "State", "Type"],
-    [`${ym}-01 09:10:00`, `${ym}-01 09:10:00`, "ΜΙΣΘΟΔΟΣΙΑ ΕΤΑΙΡΕΙΑΣ ΑΕ", "1250.00", "0.00", "EUR", "COMPLETED", "TRANSFER"],
-    [`${ym}-03 18:22:11`, `${ym}-03 18:22:11`, "POS SKLAVENITIS ATHENS", "-68.40", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"],
-    [`${ym}-04 12:05:00`, `${ym}-04 12:05:00`, "TOPUP REVOLUT *4821", "-150.00", "0.00", "EUR", "COMPLETED", "TOPUP"],
-    [`${ym}-05 14:30:00`, `${ym}-05 14:30:00`, "ΠΛΗΡΩΜΗ ΔΕΗ ΕΝΕΡΓΕΙΑΚΗ", "-82.50", "0.00", "EUR", "COMPLETED", "TRANSFER"],
-    [`${ym}-06 20:15:00`, `${ym}-06 20:15:00`, "Wolt Athens Delivery", "-18.90", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"],
-    [`${ym}-07 11:00:00`, `${ym}-07 11:00:00`, "Amazon EU S.a.r.l.", "-49.99", "0.00", "EUR", "REVERTED", "CARD_PAYMENT"],
-    [`${ym}-08 16:40:00`, `${ym}-08 16:40:00`, "SHELL HELLAS ΚΑΥΣΙΜΑ", "-45.00", "0.00", "EUR", "COMPLETED", "CARD_PAYMENT"]
+    ["Κατηγορία", "Περιγραφή Συναλλαγής", "Ημ/νία Συναλλαγής", "Σχόλια / Κωδικός Αναφοράς", "Ποσό", "Νόμισμα", "Προοδευτικό Λογιστικό Υπόλοιπο", "Νόμισμα"],
+    ["Έσοδα", "ΜΙΣΘΟΔΟΣΙΑ", `${ym}-01`, "ΜΙΣΘΟΔΟΣΙΑ ΕΤΑΙΡΕΙΑΣ ΑΕ", "1250.00", "EUR", "1850.00", "EUR"],
+    ["Σούπερ Μάρκετ", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-03`, "POS SKLAVENITIS ATHENS", "-68.40", "EUR", "1781.60", "EUR"],
+    ["Μεταφορές", "ΜΕΤΑΦΟΡΑ ΚΕΦΑΛΑΙΩΝ", `${ym}-04`, "TOPUP REVOLUT *4821", "-150.00", "EUR", "1631.60", "EUR"],
+    ["Λογαριασμοί", "ΠΛΗΡΩΜΗ ΔΕΚΟ", `${ym}-05`, "ΠΛΗΡΩΜΗ ΔΕΗ ΕΝΕΡΓΕΙΑΚΗ", "-82.50", "EUR", "1549.10", "EUR"],
+    ["Εστίαση", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-06`, "WOLT ATHENS DELIVERY", "-18.90", "EUR", "1530.20", "EUR"],
+    ["Καύσιμα", "ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ", `${ym}-08`, "SHELL HELLAS ΚΑΥΣΙΜΑ", "-45.00", "EUR", "1485.20", "EUR"]
   ];
-  parsedBankRows = parseBankGridRows(sampleMatrix, "Revolut");
+  parsedBankRows = parseBankGridRows(sampleMatrix, "Πειραιώς");
   renderBankPreviewTable();
+}
+
+let bankPreviewFilter = "all";
+let bankPreviewSearch = "";
+
+function setBankPreviewFilter(filterVal) {
+  bankPreviewFilter = filterVal || "all";
+  renderBankPreviewTable();
+}
+
+function setBankPreviewSearch(query) {
+  bankPreviewSearch = String(query || "").trim().toLowerCase();
+  renderBankPreviewTable();
+}
+
+function getFilteredBankRowIndices() {
+  const indices = [];
+  parsedBankRows.forEach((row, idx) => {
+    if (bankPreviewFilter === "selected" && !row.checked) return;
+    if (bankPreviewFilter === "review" && !row.statusText.includes("❓")) return;
+    if (bankPreviewFilter === "skipped" && !row.skipReason) return;
+    if (bankPreviewSearch) {
+      const hay = `${row.description} ${row.category} ${row.date} ${row.statusText}`.toLowerCase();
+      if (!hay.includes(bankPreviewSearch)) return;
+    }
+    indices.push(idx);
+  });
+  return indices;
+}
+
+function bulkSelectFilteredBankRows(checked) {
+  const visibleIndices = getFilteredBankRowIndices();
+  visibleIndices.forEach(idx => {
+    if (parsedBankRows[idx]) parsedBankRows[idx].checked = Boolean(checked);
+  });
+  renderBankPreviewTable();
+}
+
+function applyBulkBankCategory() {
+  const newCat = document.getElementById("bankBulkCategorySelect")?.value;
+  if (!newCat) {
+    showToast("Επίλεξε πρώτα μια κατηγορία για μαζική εφαρμογή.");
+    return;
+  }
+  const visibleSet = new Set(getFilteredBankRowIndices());
+  let updated = 0;
+
+  parsedBankRows.forEach((row, idx) => {
+    if (!visibleSet.has(idx) || !row.checked) return;
+    row.category = newCat;
+    if (newCat === "Μισθός" || newCat === "Bonus / Έξτρα Έσοδο" || newCat === "Επιστροφή Χρημάτων") {
+      row.type = "income";
+    } else if (newCat === "Αποταμίευση" || newCat === "Επένδυση") {
+      row.type = "saving";
+    } else {
+      row.type = "expense";
+    }
+    row.statusText = "🧠 Μαζικός κανόνας";
+    row.isWarning = false;
+
+    const key = normalizeMerchantKey(row.description);
+    if (key) {
+      if (!data.merchantRules) data.merchantRules = {};
+      data.merchantRules[key] = { category: newCat, isShared: Boolean(row.isShared) };
+    }
+    updated++;
+  });
+
+  if (updated > 0) {
+    persist(false);
+    renderBankPreviewTable();
+    showToast(`Ενημερώθηκε η κατηγορία σε ${updated} επιλεγμένες κινήσεις! 🧠`);
+  } else {
+    showToast("Δεν υπάρχουν τσεκαρισμένες κινήσεις στα τρέχοντα φίλτρα.");
+  }
 }
 
 function renderBankPreviewTable() {
@@ -4892,6 +5113,25 @@ function renderBankPreviewTable() {
   const split = getCoupleSplit();
   const sharedHeader = document.getElementById("bankSharedColHeader");
   if (sharedHeader) sharedHeader.style.display = split.hasPartner ? "" : "none";
+
+  // Ενημέρωση μετρητών στα κουμπιά φίλτρων προεπισκόπησης
+  const counts = {
+    all: parsedBankRows.length,
+    selected: parsedBankRows.filter(r => r.checked).length,
+    review: parsedBankRows.filter(r => r.statusText.includes("❓")).length,
+    skipped: parsedBankRows.filter(r => Boolean(r.skipReason)).length
+  };
+  const pillLabels = {
+    all: `Όλες (${counts.all})`,
+    selected: `✅ Επιλεγμένες (${counts.selected})`,
+    review: `❓ Θέλουν έλεγχο (${counts.review})`,
+    skipped: `⚠️ Εξαιρέσεις / Διπλές (${counts.skipped})`
+  };
+  document.querySelectorAll("#bankPreviewFilterPills [data-bfilter]").forEach(btn => {
+    const key = btn.dataset.bfilter;
+    btn.classList.toggle("active", key === bankPreviewFilter);
+    if (pillLabels[key]) btn.textContent = pillLabels[key];
+  });
 
   // Εντοπισμός μισθοδοσίας στο αρχείο
   const salaryRow = parsedBankRows.find(r => r.checked && r.type === "income" && r.category === "Μισθός");
@@ -4915,7 +5155,7 @@ function renderBankPreviewTable() {
     }
   }
 
-  const selectedCount = parsedBankRows.filter(r => r.checked).length;
+  const selectedCount = counts.selected;
   const totalSelectedExpenses = parsedBankRows
     .filter(r => r.checked && r.type === "expense")
     .reduce((s, r) => s + (r.isShared ? (r.amount * split.myPct) / 100 : r.amount), 0);
@@ -4935,7 +5175,14 @@ function renderBankPreviewTable() {
     `;
   }
 
-  tbody.innerHTML = parsedBankRows.map((row, idx) => {
+  const visibleIndices = getFilteredBankRowIndices();
+  if (!visibleIndices.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="small" style="text-align:center; padding:18px;">Δεν υπάρχουν κινήσεις σε αυτό το φίλτρο προεπισκόπησης.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visibleIndices.map(idx => {
+    const row = parsedBankRows[idx];
     const sign = row.type === "income" ? "+" : "-";
     const col = row.type === "income" ? "green" : (row.type === "saving" ? "accent" : "red");
     const catOptions = ALL_CATEGORIES.map(c => `<option value="${c}" ${c === row.category ? "selected" : ""}>${c}</option>`).join("");
@@ -6186,6 +6433,8 @@ function render() {
   renderGoals(ctx.anchorMonth);
   render503020Rule(mt, incomeBase);
   renderFinancialHealth(reserve, mt, incomeBase);
+  renderTopMerchants(periodTxs);
+  renderEReceiptsTracker(ctx);
   renderTransactionsTable();
 
   const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "overview";
@@ -6198,10 +6447,180 @@ function render() {
 function resetFilters() {
   document.getElementById("filterSearch").value = "";
   document.getElementById("filterScope").value = "selectedPeriod";
+  const srcSel = document.getElementById("filterSource");
+  if (srcSel) srcSel.value = "all";
   document.getElementById("filterType").value = "all";
   document.getElementById("filterCategory").value = "all";
   document.getElementById("filterOnlyUnexpected").checked = false;
   renderTransactionsTable();
+}
+
+function setSourceFilterQuick(srcVal) {
+  const srcSel = document.getElementById("filterSource");
+  if (!srcSel) return;
+  srcSel.value = (srcSel.value === srcVal) ? "all" : srcVal;
+  renderTransactionsTable();
+}
+
+function populateSourceFilterAndSummary(ctx) {
+  const srcSel = document.getElementById("filterSource");
+  const breakdownEl = document.getElementById("accountSourcesBreakdown");
+  const allTxs = data.transactions || [];
+
+  const uniqueSources = new Set();
+  allTxs.forEach(t => {
+    uniqueSources.add(t.source ? String(t.source).trim() : "__manual__");
+  });
+
+  if (srcSel) {
+    const prevVal = srcSel.value || "all";
+    const opts = [`<option value="all">Όλοι οι Λογαριασμοί</option>`];
+    Array.from(uniqueSources).forEach(s => {
+      if (s === "__manual__") {
+        opts.push(`<option value="__manual__">💵 Χειροκίνητο / Μετρητά</option>`);
+      } else {
+        opts.push(`<option value="${s}">${s === "Revolut" ? "💳" : "🏦"} ${s}</option>`);
+      }
+    });
+    srcSel.innerHTML = opts.join("");
+    srcSel.value = Array.from(srcSel.options).some(o => o.value === prevVal) ? prevVal : "all";
+  }
+
+  if (breakdownEl) {
+    const scope = document.getElementById("filterScope")?.value || "selectedPeriod";
+    const isCycle = ctx.mode === "cycle";
+    const scopeTxs = scope === "selectedPeriod"
+      ? filterTransactionsForRange(ctx.start, ctx.end, isCycle)
+      : allTxs;
+
+    const bySource = {};
+    scopeTxs.forEach(t => {
+      const key = t.source ? String(t.source).trim() : "__manual__";
+      if (!bySource[key]) bySource[key] = { income: 0, expense: 0, count: 0 };
+      const amt = Number(t.amount) || 0;
+      if (t.type === "income") bySource[key].income += amt;
+      if (t.type === "expense") bySource[key].expense += amt;
+      bySource[key].count++;
+    });
+
+    const keys = Object.keys(bySource);
+    if (keys.length <= 1 && keys[0] === "__manual__") {
+      breakdownEl.innerHTML = "";
+      return;
+    }
+
+    const activeSrc = srcSel?.value || "all";
+    breakdownEl.innerHTML = keys.map(k => {
+      const info = bySource[k];
+      const label = k === "__manual__" ? "💵 Χειροκίνητο" : `${k === "Revolut" ? "💳" : "🏦"} ${k}`;
+      const isSelected = activeSrc === k;
+      return `
+        <button type="button" class="chip-btn ${isSelected ? "active" : ""}" style="${isSelected ? "border-color:var(--accent); background:rgba(56,189,248,0.18);" : ""}" onclick="setSourceFilterQuick('${k}')">
+          <span>${label}</span>
+          <span class="small" style="margin-left:4px;">(${info.count})</span>
+          <strong class="red" style="margin-left:4px;">-${money(info.expense)}</strong>
+        </button>
+      `;
+    }).join("");
+  }
+}
+
+function renderTopMerchants(periodTransactions) {
+  const container = document.getElementById("topMerchantsContainer");
+  const subEl = document.getElementById("topMerchantsSubtitle");
+  if (!container) return;
+
+  const expenses = (periodTransactions || []).filter(t => t.type === "expense");
+  const totalExp = expenses.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  if (!expenses.length || totalExp <= 0) {
+    if (subEl) subEl.textContent = "Κατάταξη δαπανών";
+    container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν έξοδα στην επιλεγμένη περίοδο για ανάλυση εμπόρων.</p>`;
+    return;
+  }
+
+  const map = {};
+  expenses.forEach(t => {
+    const rawLabel = (t.description || t.category || "Άλλο").trim();
+    const normKey = normalizeMerchantKey(rawLabel) || rawLabel.toUpperCase();
+    if (!map[normKey]) {
+      map[normKey] = {
+        displayName: rawLabel.length > 28 ? rawLabel.slice(0, 28) + "…" : rawLabel,
+        category: t.category || "Άλλο",
+        total: 0,
+        count: 0
+      };
+    }
+    map[normKey].total += Number(t.amount) || 0;
+    map[normKey].count += 1;
+  });
+
+  const ranked = Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
+  if (subEl) subEl.textContent = `Top ${ranked.length} από ${Object.keys(map).length} εμπόρους`;
+
+  container.innerHTML = ranked.map((m, i) => {
+    const pct = Math.min(100, (m.total / totalExp) * 100);
+    return `
+      <div style="margin-bottom:11px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px;">
+          <div style="min-width:0;">
+            <strong style="color:var(--accent);">#${i + 1}</strong>
+            <strong style="margin-left:4px;">${m.displayName}</strong>
+            <span class="small" style="margin-left:4px;">(${m.count}x • ${m.category})</span>
+          </div>
+          <div class="privacy-sensitive" style="font-weight:700; white-space:nowrap;">${money(m.total)} <span class="small">(${pct.toFixed(0)}%)</span></div>
+        </div>
+        <div class="progress" style="height:6px; margin-top:5px;">
+          <div style="width:${pct.toFixed(1)}%; background:${i === 0 ? "var(--red)" : "var(--accent)"};"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderEReceiptsTracker(ctx) {
+  const container = document.getElementById("eReceiptsPanelContent");
+  const badgeEl = document.getElementById("eReceiptsYearBadge");
+  if (!container) return;
+
+  const yearStr = (ctx.anchorMonth || currentYearMonth()).slice(0, 4);
+  if (badgeEl) badgeEl.textContent = `Έτος ${yearStr}`;
+
+  const yearTxs = (data.transactions || []).filter(t => String(t.date || "").startsWith(yearStr));
+  const actualYearIncome = yearTxs
+    .filter(t => t.type === "income")
+    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const annualizedProfileIncome = (Number(data.profile?.monthlyIncome) || 0) * 12;
+  const taxableBaseIncome = Math.max(annualizedProfileIncome, actualYearIncome);
+  const required30Pct = Math.min(20000, taxableBaseIncome * 0.30);
+
+  // Επιλέξιμες ηλεκτρονικές δαπάνες (εξαιρείται η Στέγαση/Ενοίκιο βάσει φορολογίας Ε1)
+  const eligibleElectronicSpend = yearTxs
+    .filter(t => t.type === "expense" && t.category !== "Στέγαση")
+    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const pct = required30Pct > 0 ? Math.min(100, (eligibleElectronicSpend / required30Pct) * 100) : 0;
+  const remaining = Math.max(0, required30Pct - eligibleElectronicSpend);
+  const covered = remaining <= 0 && required30Pct > 0;
+
+  container.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;">
+      <div class="metric ${covered ? "green" : "accent"}" style="margin-top:0;">${money(eligibleElectronicSpend)}</div>
+      <div class="small">Στόχος 30%: <strong class="privacy-sensitive">${money(required30Pct)}</strong></div>
+    </div>
+    <div class="progress" style="height:10px; margin:10px 0;">
+      <div style="width:${pct.toFixed(1)}%; background:${covered ? "var(--green)" : "var(--accent)"};"></div>
+    </div>
+    <p class="small" style="margin-bottom:8px;">
+      ${covered
+        ? `🎉 <strong>Κάλυψες το 100%</strong> του απαιτούμενου ορίου ηλεκτρονικών αποδείξεων (${pct.toFixed(0)}%) για το ${yearStr}!`
+        : `Έχεις καλύψει το <strong>${pct.toFixed(1)}%</strong> του ορίου. Υπολείπονται <strong class="amber">${money(remaining)}</strong> σε ηλεκτρονικές πληρωμές έως 31/12/${yearStr}.`}
+    </p>
+    <div class="small" style="opacity:0.85;">
+      Βάση ετήσιου εισοδήματος: <span class="privacy-sensitive">${money(taxableBaseIncome)}</span> • Εξαιρείται αυτόματα η κατηγορία «Στέγαση/Ενοίκιο».
+    </div>
+  `;
 }
 
 function renderTransactionsTable() {
@@ -6211,11 +6630,14 @@ function renderTransactionsTable() {
   if (!tbody) return;
 
   const ctx = getActivePeriodContext();
+  populateSourceFilterAndSummary(ctx);
+
   const isCycle = ctx.mode === "cycle";
   const split = getCoupleSplit();
   const todayStr = today();
   const search = (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
   const scope = document.getElementById("filterScope")?.value || "selectedPeriod";
+  const fSource = document.getElementById("filterSource")?.value || "all";
   const fType = document.getElementById("filterType")?.value || "all";
   const fCat = document.getElementById("filterCategory")?.value || "all";
   const onlyUnexpected = Boolean(document.getElementById("filterOnlyUnexpected")?.checked);
@@ -6225,6 +6647,10 @@ function renderTransactionsTable() {
       if (scope === "selectedPeriod") {
         const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
         if (effDate < ctx.start || effDate > ctx.end) return false;
+      }
+      if (fSource !== "all") {
+        const txSrc = t.source ? String(t.source).trim() : "__manual__";
+        if (txSrc !== fSource) return false;
       }
       if (fType !== "all" && t.type !== fType) return false;
       if (fCat !== "all" && t.category !== fCat) return false;
@@ -6792,6 +7218,109 @@ function scheduleOneTimeShareNudge() {
       }, 14000);
     }
   }, 45000);
+}
+
+/* ==========================================================================
+   11B. ΣΥΓΧΡΟΝΙΣΜΟΣ LAPTOP <-> ΚΙΝΗΤΟ (DEVICE SYNC)
+   ========================================================================== */
+function openDeviceSyncModal() {
+  const pasteArea = document.getElementById("deviceSyncPasteArea");
+  if (pasteArea) pasteArea.value = "";
+  const modal = document.getElementById("deviceSyncModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeDeviceSyncModal() {
+  const modal = document.getElementById("deviceSyncModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function shareBackupFileNative() {
+  const jsonStr = buildExportPayloadString();
+  const safeUser = sanitizeFilenamePart(data.profile?.userName);
+  const userSegment = safeUser ? `${safeUser}-` : "";
+  const filename = `FinanceGR-Sync-${userSegment}${formatFriendlyDate()}.json`;
+
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
+    try {
+      const file = new File([jsonStr], filename, { type: "application/json" });
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: "FinanceGR Backup Sync",
+          text: "Αντίγραφο δεδομένων FinanceGR",
+          files: [file]
+        });
+        data.settings.lastBackupAt = new Date().toISOString();
+        data.settings.unsavedChangesCount = 0;
+        sessionHasUnsavedChanges = false;
+        persist(false);
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+    }
+  }
+
+  exportJSON();
+}
+
+function copySyncPayloadToClipboard() {
+  const jsonStr = buildExportPayloadString();
+  let copied = false;
+
+  const temp = document.createElement("textarea");
+  temp.value = jsonStr;
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  document.body.appendChild(temp);
+  temp.select();
+  temp.setSelectionRange(0, jsonStr.length);
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+  document.body.removeChild(temp);
+
+  if (copied) {
+    showToast("Τα δεδομένα αντιγράφηκαν! Επικόλλησέ τα στην άλλη συσκευή. 📋");
+  } else {
+    showModal("Δεν ήταν δυνατή η αυτόματη αντιγραφή. Πάτησε «📤 Αποστολή Αρχείου Backup».");
+  }
+}
+
+function importSyncPayloadFromText() {
+  const raw = (document.getElementById("deviceSyncPasteArea")?.value || "").trim();
+  if (!raw) {
+    showModal("Επικόλλησε πρώτα το κείμενο JSON που αντέγραψες από την άλλη συσκευή.");
+    return;
+  }
+
+  try {
+    const imported = JSON.parse(raw);
+    if (!imported.profile || !Array.isArray(imported.transactions)) {
+      throw new Error("Invalid");
+    }
+    data = {
+      ...deepClone(defaults),
+      ...imported,
+      profile: { ...defaults.profile, ...imported.profile },
+      portfolio: { ...defaults.portfolio, ...(imported.portfolio || {}) },
+      budgets: { ...defaults.budgets, ...(imported.budgets || {}) },
+      recurring: Array.isArray(imported.recurring) ? imported.recurring : deepClone(defaults.recurring),
+      goals: Array.isArray(imported.goals) ? imported.goals : deepClone(defaults.goals),
+      merchantRules: imported.merchantRules || {},
+      settings: { ...data.settings, lastBackupAt: new Date().toISOString(), unsavedChangesCount: 0, onboardingCompleted: true },
+      transactions: imported.transactions
+    };
+    sessionHasUnsavedChanges = false;
+    persist(false);
+    closeDeviceSyncModal();
+    render();
+    showToast("Ο συγχρονισμός ολοκληρώθηκε με επιτυχία! 📲");
+  } catch {
+    showModal("Το κείμενο που επικόλλησες δεν είναι έγκυρο backup JSON του FinanceGR.");
+  }
 }
 
 /* ==========================================================================
