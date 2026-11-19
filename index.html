@@ -4646,19 +4646,15 @@ function parseBankGridRows(matrixRows, chosenSource) {
     const dateIso = parseFlexibleDate(rawDate);
     if (!dateIso) continue;
 
-    let desc = String(colDesc !== -1 ? (row[colDesc] ?? "") : (row[1] ?? "")).trim();
+    const rawDesc = String(colDesc !== -1 ? (row[colDesc] ?? "") : (row[1] ?? "")).trim();
     const commentText = colComments !== -1 ? String(row[colComments] ?? "").trim() : "";
     const bankCatText = colBankCat !== -1 ? String(row[colBankCat] ?? "").trim() : "";
 
-    if (!desc && commentText) desc = commentText;
+    // Προτεραιότητα στο «Σχόλια / Κωδικός Αναφοράς» ως κύρια περιγραφή συναλλαγής (αντί για γενικά «ΑΓΟΡΑ ΜΕ ΚΑΡΤΑ» κ.λπ.)
+    const desc = commentText || rawDesc;
     if (!desc) continue;
 
-    // Εμπλουτισμός αιτιολογίας αν τα Σχόλια περιέχουν χρήσιμη περιγραφή (π.χ. όνομα εμπόρου σε POS/IRIS)
-    const hasMeaningfulComment = commentText && !/^[\d\s/.-]+$/.test(commentText) && !desc.toUpperCase().includes(commentText.toUpperCase());
-    const classifyText = hasMeaningfulComment ? `${desc} ${commentText}` : desc;
-    if (hasMeaningfulComment && /^(ΑΓΟΡΑ POS|ΧΡΕΩΣΗ ΚΑΡΤΑΣ|ΠΛΗΡΩΜΗ|ΜΕΤΑΦΟΡΑ|IRIS)/i.test(desc)) {
-      desc = `${desc} — ${commentText}`;
-    }
+    const classifyText = [rawDesc, commentText].filter(Boolean).join(" ");
 
     const revState = colState !== -1 ? String(row[colState] ?? "").trim() : "";
     const revType = (isRevolutFormat && colDir !== -1) ? String(row[colDir] ?? "").trim() : "";
@@ -4722,6 +4718,7 @@ function parseBankGridRows(matrixRows, chosenSource) {
       checked: shouldCheck,
       date: dateIso,
       description: desc,
+      bankTxTypeLabel: (commentText && rawDesc && commentText !== rawDesc) ? rawDesc : "",
       source: effectiveSource,
       type: cls.type,
       category: cls.category,
@@ -4952,7 +4949,10 @@ function renderBankPreviewTable() {
         <td style="white-space:nowrap;">${row.date}</td>
         <td>
           <div style="font-weight:600;">${row.description}</div>
-          <span class="badge badge-source" style="margin-left:0;">${row.source}</span>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+            <span class="badge badge-source" style="margin-left:0;">${row.source}</span>
+            ${row.bankTxTypeLabel ? `<span class="small">${row.bankTxTypeLabel}</span>` : ""}
+          </div>
         </td>
         <td>
           <select style="padding:5px 8px; font-size:12px;" onchange="updateBankRowCategory(${idx}, this.value)">${catOptions}</select>
