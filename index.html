@@ -1706,10 +1706,10 @@ body.light-theme .first-use-panel {
 <div id="customModal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-content">
     <div id="customModalTitle" class="modal-title">Ενημέρωση</div>
-    <p id="customModalMessage" style="font-size: 14px; margin: 0; color: var(--muted); white-space: pre-line;"></p>
-    <div class="modal-buttons">
-      <button type="button" id="customModalCancel" class="secondary" style="display:none;">Ακύρωση</button>
-      <button type="button" id="customModalOk">ΟΚ</button>
+    <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+      <button type="button" id="cancelEditBtn" class="secondary" onclick="closeTransactionModal()" style="margin-top:0; width:auto;">Ακύρωση</button>
+      <button type="button" id="saveAndNewTransactionBtn" class="secondary" onclick="addTransaction(true)" style="margin-top:0; width:auto;">+ Αποθήκευση &amp; Νέα</button>
+      <button type="button" id="submitTransactionBtn" onclick="addTransaction(false)" style="margin-top:0; flex:1;">+ Αποθήκευση Συναλλαγής</button>
     </div>
   </div>
 </div>
@@ -1974,9 +1974,15 @@ body.light-theme .first-use-panel {
       </div>
 
       <div style="margin-top:10px;">
-        <label style="margin-top:0;">Κωδικός Δωματίου &amp; Πρόσκληση 2ου Μέλους</label>
+        <label style="margin-top:0;">Κωδικός Δωματίου, PIN &amp; Πρόσκληση 2ου Μέλους</label>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+          <input id="connectedRoomCodeDisplay" type="text" readonly style="flex:1 1 150px; font-weight:700; font-family:monospace;" title="Κωδικός Δωματίου">
+          <div style="display:flex; gap:4px; flex:1 1 130px;">
+            <input id="connectedRoomPinDisplay" type="password" readonly style="flex:1; font-weight:700; font-family:monospace;" title="Μυστικό PIN">
+            <button type="button" class="secondary small-btn" id="toggleConnectedPinBtn" onclick="togglePinVisibility('connectedRoomPinDisplay', 'toggleConnectedPinBtn')" title="Εμφάνιση / Απόκρυψη PIN">👁️</button>
+          </div>
+        </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <input id="connectedRoomCodeDisplay" type="text" readonly style="flex:1 1 160px; font-weight:700; font-family:monospace;">
           <button type="button" class="secondary small-btn" onclick="copyConnectedRoomCode()" title="Αντιγραφή Κωδικού">📋 Κωδικός</button>
           <button type="button" class="success small-btn" onclick="copyCloudSyncInvite()" title="Αντιγραφή Πρόσκλησης (Κωδικός + PIN)">📲 Πρόσκληση 2ου Μέλους</button>
         </div>
@@ -2017,7 +2023,10 @@ body.light-theme .first-use-panel {
         </div>
         <div>
           <label for="syncRoomPinInput" style="margin-top:0;">Μυστικό PIN Κρυπτογράφησης</label>
-          <input id="syncRoomPinInput" type="password" inputmode="numeric" placeholder="π.χ. 4829 (4+ χαρακτήρες)">
+          <div style="display:flex; gap:6px;">
+            <input id="syncRoomPinInput" type="password" inputmode="numeric" placeholder="π.χ. 4829 (4+ χαρακτήρες)" style="flex:1;">
+            <button type="button" class="secondary small-btn" id="toggleSyncPinBtn" onclick="togglePinVisibility('syncRoomPinInput', 'toggleSyncPinBtn')" title="Εμφάνιση / Απόκρυψη PIN">👁️</button>
+          </div>
         </div>
       </div>
 
@@ -2780,8 +2789,10 @@ body.light-theme .first-use-panel {
         <label for="recDay" style="margin-top:0;">Ημέρα (1-28)</label>
         <input id="recDay" type="number" min="1" max="28" value="1">
       </div>
-      <div>
-        <button type="button" class="small-btn" style="width:100%; height:40px;" onclick="addRecurringItem()">+ Προσθήκη</button>
+      <div style="display:flex; gap:6px;">
+        <input type="hidden" id="editingRecurringId" value="">
+        <button type="button" id="saveRecurringBtn" class="small-btn" style="flex:1; height:40px;" onclick="addRecurringItem()">+ Προσθήκη</button>
+        <button type="button" id="cancelRecurringEditBtn" class="secondary small-btn" style="display:none; height:40px;" onclick="cancelEditRecurringItem()" title="Ακύρωση επεξεργασίας">✕</button>
       </div>
     </div>
 
@@ -3987,6 +3998,13 @@ function openCloudSyncModal() {
       : "Μόλις τώρα";
     document.getElementById("syncLastTimeText").textContent = `Τελευταίος συγχρονισμός: ${dtStr}`;
     document.getElementById("connectedRoomCodeDisplay").value = cfg.roomCode;
+    const connPinInp = document.getElementById("connectedRoomPinDisplay");
+    const connPinBtn = document.getElementById("toggleConnectedPinBtn");
+    if (connPinInp) {
+      connPinInp.value = cfg.roomPin || "";
+      connPinInp.type = "password";
+    }
+    if (connPinBtn) connPinBtn.textContent = "👁️";
 
     const modeSel = document.getElementById("connectedSyncModeSelect");
     if (modeSel) {
@@ -4010,6 +4028,15 @@ function openCloudSyncModal() {
 
 function closeCloudSyncModal() {
   document.getElementById("cloudSyncModal").style.display = "none";
+}
+
+function togglePinVisibility(inputId, btnId) {
+  const inp = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  if (!inp) return;
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  if (btn) btn.textContent = show ? "🙈" : "👁️";
 }
 
 function copyToClipboardSafe(textToCopy) {
@@ -6728,6 +6755,7 @@ function getEffectiveRecurringDateForPeriod(dayNum, ctx) {
 }
 
 function addRecurringItem() {
+  const editingId = document.getElementById("editingRecurringId")?.value || "";
   const title = document.getElementById("recTitle").value.trim();
   const type = document.getElementById("recType").value;
   const category = document.getElementById("recCategory").value;
@@ -6742,6 +6770,27 @@ function addRecurringItem() {
   }
   if (!amount || amount <= 0) {
     showModal("Εισήγαγε έγκυρο ποσό (> 0).");
+    return;
+  }
+
+  if (editingId) {
+    const idx = data.recurring.findIndex(r => r.id === editingId);
+    if (idx !== -1) {
+      data.recurring[idx] = {
+        ...data.recurring[idx],
+        title,
+        type,
+        category,
+        amount,
+        day,
+        isShared,
+        paidBy
+      };
+    }
+    cancelEditRecurringItem();
+    persist();
+    render();
+    showToast(`Το πάγιο "${title}" ενημερώθηκε!`);
     return;
   }
 
@@ -6763,6 +6812,46 @@ function addRecurringItem() {
   persist();
   render();
   showToast(`Το πάγιο "${title}" αποθηκεύτηκε!`);
+}
+
+function editRecurringItem(recId) {
+  const item = data.recurring.find(r => r.id === recId);
+  if (!item) return;
+
+  document.getElementById("editingRecurringId").value = item.id;
+  document.getElementById("recTitle").value = item.title || "";
+  document.getElementById("recType").value = item.type || "expense";
+  document.getElementById("recCategory").value = item.category || "Στέγαση";
+  document.getElementById("recAmount").value = item.amount || "";
+  document.getElementById("recDay").value = item.day || 1;
+  if (document.getElementById("recIsShared")) {
+    document.getElementById("recIsShared").checked = Boolean(item.isShared);
+  }
+  if (document.getElementById("recPaidBy")) {
+    document.getElementById("recPaidBy").value = item.paidBy || "split";
+  }
+
+  const saveBtn = document.getElementById("saveRecurringBtn");
+  const cancelBtn = document.getElementById("cancelRecurringEditBtn");
+  if (saveBtn) saveBtn.textContent = "✓ Ενημέρωση";
+  if (cancelBtn) cancelBtn.style.display = "inline-flex";
+
+  document.getElementById("recurringPanel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  document.getElementById("recTitle")?.focus();
+}
+
+function cancelEditRecurringItem() {
+  const idInp = document.getElementById("editingRecurringId");
+  if (idInp) idInp.value = "";
+  document.getElementById("recTitle").value = "";
+  document.getElementById("recAmount").value = "";
+  document.getElementById("recDay").value = "1";
+  if (document.getElementById("recIsShared")) document.getElementById("recIsShared").checked = false;
+
+  const saveBtn = document.getElementById("saveRecurringBtn");
+  const cancelBtn = document.getElementById("cancelRecurringEditBtn");
+  if (saveBtn) saveBtn.textContent = "+ Προσθήκη";
+  if (cancelBtn) cancelBtn.style.display = "none";
 }
 
 function isRecurringAppliedForPeriod(recId, ctx) {
@@ -6853,6 +6942,9 @@ function deleteRecurringItem(recId) {
   if (!item) return;
   showModal(`Διαγραφή του παγίου "${item.title}";`, true, (ok) => {
     if (!ok) return;
+    if (document.getElementById("editingRecurringId")?.value === recId) {
+      cancelEditRecurringItem();
+    }
     data.recurring = data.recurring.filter(r => r.id !== recId);
     persist();
     render();
@@ -6898,7 +6990,8 @@ function renderRecurringTable() {
         <td style="white-space:nowrap;">
           ${!applied ? `<button type="button" class="small-btn" onclick="applyRecurringItem('${escapeHtml(r.id)}')">+ Καταχώριση</button>` : ""}
           ${toggleSharedBtn}
-          <button type="button" class="danger small-btn" onclick="deleteRecurringItem('${escapeHtml(r.id)}')">🗑️</button>
+          <button type="button" class="secondary small-btn" onclick="editRecurringItem('${escapeHtml(r.id)}')" title="Επεξεργασία παγίου">✏️</button>
+          <button type="button" class="danger small-btn" onclick="deleteRecurringItem('${escapeHtml(r.id)}')" title="Διαγραφή">🗑️</button>
         </td>
       </tr>
     `;
@@ -7005,14 +7098,18 @@ function syncCategoryWithType() {
     if (sharedBox) sharedBox.classList.remove("active");
   }
 
-  if (document.getElementById("editingTransactionId").value) return;
-  if (type === "income") cat.value = "Μισθός";
-  else if (type === "saving") cat.value = "Αποταμίευση";
-  else if (type === "withdrawal") cat.value = "Ανάληψη";
-  else if (cat.value === "Μισθός" || cat.value === "Αποταμίευση" || cat.value === "Ανάληψη") cat.value = "Τρόφιμα";
+  if (type === "income" && !["Μισθός", "Bonus / Έξτρα Έσοδο", "Επιστροφή Χρημάτων", "Άλλο"].includes(cat.value)) {
+    cat.value = "Μισθός";
+  } else if (type === "saving" && !["Αποταμίευση", "Επένδυση"].includes(cat.value)) {
+    cat.value = "Αποταμίευση";
+  } else if (type === "withdrawal") {
+    cat.value = "Αποταμίευση";
+  } else if (type === "expense" && ["Μισθός", "Bonus / Έξτρα Έσοδο", "Επιστροφή Χρημάτων", "Αποταμίευση", "Επένδυση"].includes(cat.value)) {
+    cat.value = "Τρόφιμα";
+  }
 }
 
-function addTransaction() {
+function addTransaction(keepOpenForNext = false) {
   const editingId = document.getElementById("editingTransactionId").value;
   const type = document.getElementById("type").value;
   const category = document.getElementById("category").value;
@@ -7082,7 +7179,11 @@ function addTransaction() {
     }
     cancelEditTransaction();
     persist();
-    document.getElementById("transactionModal").style.display = "none";
+    if (!keepOpenForNext) {
+      document.getElementById("transactionModal").style.display = "none";
+    } else {
+      setTimeout(() => document.getElementById("amount")?.focus(), 60);
+    }
     render();
     showToast("Η συναλλαγή ενημερώθηκε!");
   } else {
@@ -7109,7 +7210,11 @@ function addTransaction() {
     toggleSharedExpenseBox();
 
     persist();
-    document.getElementById("transactionModal").style.display = "none";
+    if (!keepOpenForNext) {
+      document.getElementById("transactionModal").style.display = "none";
+    } else {
+      setTimeout(() => document.getElementById("amount")?.focus(), 60);
+    }
     render();
     showToast(isShared ? `Κοινό έξοδο καταχωρίστηκε (μερίδιο: ${money(finalAmount)})!` : "Η συναλλαγή αποθηκεύτηκε!");
   }
@@ -7145,6 +7250,8 @@ function editTransaction(id) {
   document.getElementById("transactionFormTitle").textContent = "Επεξεργασία Συναλλαγής";
   document.getElementById("editModeBadge").style.display = "inline-block";
   document.getElementById("submitTransactionBtn").textContent = "✓ Ενημέρωση";
+  const saveNewBtn = document.getElementById("saveAndNewTransactionBtn");
+  if (saveNewBtn) saveNewBtn.style.display = "none";
   document.getElementById("transactionFormPanel").classList.add("editing-highlight");
 
   openTransactionModal();
@@ -7167,6 +7274,8 @@ function cancelEditTransaction() {
   document.getElementById("transactionFormTitle").textContent = "Καταχώριση Συναλλαγής";
   document.getElementById("editModeBadge").style.display = "none";
   document.getElementById("submitTransactionBtn").textContent = "+ Αποθήκευση Συναλλαγής";
+  const saveNewBtn = document.getElementById("saveAndNewTransactionBtn");
+  if (saveNewBtn) saveNewBtn.style.display = "inline-flex";
   document.getElementById("transactionFormPanel").classList.remove("editing-highlight");
 }
 
@@ -7751,6 +7860,7 @@ function renderCharts(mt, ctx, memberView = "all", split = null) {
   } else {
     pieEmpty.style.display = "none";
     if (pieCanvas && typeof Chart !== "undefined") {
+      pieCanvas.style.cursor = "pointer";
       pieChartInstance = new Chart(pieCanvas, {
         type: "doughnut",
         data: {
@@ -7765,6 +7875,18 @@ function renderCharts(mt, ctx, memberView = "all", split = null) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (_evt, elements) => {
+            if (elements && elements.length > 0) {
+              const clickedCat = labels[elements[0].index];
+              if (clickedCat) {
+                drillDownToTransactions({
+                  scope: pieScope === "all" ? "all" : "selectedPeriod",
+                  type: "expense",
+                  category: clickedCat
+                });
+              }
+            }
+          },
           plugins: {
             legend: { position: "right", labels: { color: textColor, boxWidth: 12 } }
           }
@@ -8612,19 +8734,14 @@ function processParsedBankMatrix(rows, fileName = "") {
     : (isRevolut ? "Revolut" : (fileName.toLowerCase().includes("piraeus") || fileName.toLowerCase().includes("πειραι") || fileName.toLowerCase().includes("winbank") ? "Πειραιώς" : "Τράπεζα"));
 
   if (selectedSource === "auto" && detectedSource === "Τράπεζα") {
-    const topMetaText = rows.slice(0, 10).map(r => r.map(c => normalizeForMatch(c)).join(" ")).join(" ");
-    if (topMetaText.includes("πειραιως") || topMetaText.includes("winbank") || topMetaText.includes("piraeus")) {
-      detectedSource = "Πειραιώς";
-    } else if (topMetaText.includes("εθνικη") || topMetaText.includes("nbg")) {
-      detectedSource = "Εθνική";
-    } else if (topMetaText.includes("alpha")) {
-      detectedSource = "Alpha Bank";
-    } else if (topMetaText.includes("eurobank")) {
-      detectedSource = "Eurobank";
-    }
+    const sampleTopText = rows.slice(0, 12).map(r => r.join(" ")).join(" ").toLowerCase();
+    if (sampleTopText.includes("πειραι") || sampleTopText.includes("piraeus") || sampleTopText.includes("winbank")) detectedSource = "Πειραιώς";
+    else if (sampleTopText.includes("εθνικ") || sampleTopText.includes("nbg")) detectedSource = "Εθνική";
+    else if (sampleTopText.includes("alpha")) detectedSource = "Alpha Bank";
+    else if (sampleTopText.includes("eurobank")) detectedSource = "Eurobank";
   }
 
-  let dateCol = -1, descCol = -1, commentCol = -1, amountCol = -1, debitCol = -1, creditCol = -1, stateCol = -1, revTypeCol = -1, feeCol = -1;
+  let dateCol = -1, descCol = -1, commentCol = -1, amountCol = -1, debitCol = -1, creditCol = -1, dcFlagCol = -1, stateCol = -1, revTypeCol = -1, feeCol = -1;
 
   if (headerIdx !== -1) {
     headersNorm.forEach((h, idx) => {
@@ -8640,10 +8757,13 @@ function processParsedBankMatrix(rows, fileName = "") {
       if (amountCol === -1 && (h === "ποσο" || h === "amount" || h.includes("ποσο συναλλαγ") || h.includes("ποσο ευρω") || h.includes("ποσο eur"))) {
         amountCol = idx;
       }
-      if (debitCol === -1 && (h.includes("χρεωσ") || h.includes("debit") || h.includes("αναληψ"))) {
+      if (dcFlagCol === -1 && (h === "χ π" || h === "χπ" || h === "d c" || h === "dc" || h.includes("χρεωση πιστωση") || h.includes("debit credit") || h.includes("κινηση χ π"))) {
+        dcFlagCol = idx;
+      }
+      if (debitCol === -1 && (h.includes("χρεωσ") || h.includes("debit") || h.includes("αναληψ")) && idx !== dcFlagCol) {
         debitCol = idx;
       }
-      if (creditCol === -1 && (h.includes("πιστωσ") || h.includes("credit") || h.includes("καταθεσ"))) {
+      if (creditCol === -1 && (h.includes("πιστωσ") || h.includes("credit") || h.includes("καταθεσ")) && idx !== dcFlagCol) {
         creditCol = idx;
       }
       if (stateCol === -1 && (h === "state" || h === "status" || h.includes("καταστασ"))) {
@@ -8689,7 +8809,7 @@ function processParsedBankMatrix(rows, fileName = "") {
 
     if (!Number.isFinite(rawAmt) || Math.abs(rawAmt) < 0.005) {
       for (let c = r.length - 1; c >= 1; c--) {
-        if (c === dateCol || c === descCol || c === commentCol) continue;
+        if (c === dateCol || c === descCol || c === commentCol || c === dcFlagCol) continue;
         const nTry = parseFlexibleNumber(r[c]);
         if (Number.isFinite(nTry) && Math.abs(nTry) >= 0.005) {
           rawAmt = nTry;
@@ -8698,6 +8818,15 @@ function processParsedBankMatrix(rows, fileName = "") {
       }
     }
     if (!Number.isFinite(rawAmt) || Math.abs(rawAmt) < 0.005) continue;
+
+    if (dcFlagCol !== -1 && r[dcFlagCol] !== undefined && r[dcFlagCol] !== null) {
+      const flag = normalizeForMatch(r[dcFlagCol]);
+      if (flag === "χ" || flag === "d" || flag === "dr" || flag.startsWith("χρεωσ") || flag.startsWith("debit")) {
+        rawAmt = -Math.abs(rawAmt);
+      } else if (flag === "π" || flag === "c" || flag === "cr" || flag.startsWith("πιστωσ") || flag.startsWith("credit")) {
+        rawAmt = Math.abs(rawAmt);
+      }
+    }
 
     if (feeCol !== -1) {
       const feeVal = Math.abs(parseFlexibleNumber(r[feeCol]) || 0);
@@ -8740,7 +8869,8 @@ function processParsedBankMatrix(rows, fileName = "") {
       if (amtDiff >= 0.02) return false;
       const dayDelta = Math.abs(diffDaysIso(existing.date, dateIso));
       if (dayDelta > 3) return false;
-      return areDescriptionsSimilar(existing.description || existing.category, `${desc} ${secondaryDesc}`);
+      const existingHaystack = `${existing.originalBankDesc || ""} ${existing.description || ""} ${existing.category || ""}`;
+      return areDescriptionsSimilar(existingHaystack, `${desc} ${secondaryDesc}`);
     });
 
     let skipReason = "";
@@ -8752,6 +8882,7 @@ function processParsedBankMatrix(rows, fileName = "") {
       selected: !skipReason,
       date: dateIso,
       description: desc,
+      originalBankDesc: `${desc} ${secondaryDesc}`.trim(),
       secondaryDesc,
       amount: absAmt,
       rawSigned: rawAmt,
@@ -9026,6 +9157,7 @@ function confirmBankImport() {
         settled: false,
         date: r.date,
         description: r.description,
+        originalBankDesc: r.originalBankDesc || r.description,
         source: r.source,
         unexpected: r.category === "Έκτακτο έξοδο",
         _updatedAt: Date.now()
@@ -9039,6 +9171,7 @@ function confirmBankImport() {
         amount: r.amount,
         date: r.date,
         description: r.description,
+        originalBankDesc: r.originalBankDesc || r.description,
         source: r.source,
         unexpected: r.category === "Έκτακτο έξοδο",
         _updatedAt: Date.now()
@@ -9600,6 +9733,14 @@ if (bankModalOverlay) {
 }
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("transactionModal")?.style.display === "flex") {
+    const tag = (e.target?.tagName || "").toUpperCase();
+    if (tag === "INPUT" && e.target.type !== "checkbox") {
+      e.preventDefault();
+      addTransaction(false);
+      return;
+    }
+  }
   if (e.key === "Escape") {
     const bankMod = document.getElementById("bankImportModal");
     if (bankMod && bankMod.style.display === "flex") {
