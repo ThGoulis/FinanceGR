@@ -650,7 +650,7 @@ button.small-btn {
   transition: width 0.4s ease, background-color 0.3s ease;
 }
 
-/* Category Budgets */
+/* Category Budgets & Drill-Down */
 .budget-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -663,6 +663,25 @@ button.small-btn {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.budget-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.drilldown-row {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px 6px;
+  margin: 0 -6px 8px;
+  transition: background 0.15s ease;
+}
+
+.drilldown-row:hover {
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .budget-header {
@@ -753,6 +772,8 @@ th {
 .badge-unexpected { background: rgba(245, 158, 11, 0.2); color: var(--amber); margin-left: 5px; }
 .badge-scheduled { background: rgba(168, 85, 247, 0.2); color: var(--purple); margin-left: 5px; }
 .badge-source { background: rgba(56, 189, 248, 0.14); color: var(--accent); margin-left: 5px; }
+.badge-owner-me { background: rgba(56, 189, 248, 0.15); color: var(--accent); margin-left: 5px; }
+.badge-owner-partner { background: rgba(236, 72, 153, 0.18); color: #f472b6; margin-left: 5px; }
 
 .mom-badge {
   display: inline-block;
@@ -780,10 +801,25 @@ th {
   color: var(--green);
   border-color: rgba(16, 185, 129, 0.35);
 }
+.backup-pill.syncing {
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--accent);
+  border-color: rgba(56, 189, 248, 0.4);
+}
 .backup-pill.warn {
   background: rgba(245, 158, 11, 0.16);
   color: var(--amber);
   border-color: rgba(245, 158, 11, 0.4);
+}
+
+.bank-desc-input {
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 4px;
 }
 
 .alloc-grid {
@@ -1117,7 +1153,7 @@ th {
   margin-bottom: 5px;
 }
 
-/* Couple Shared Expenses & Split Styles */
+/* Couple Shared Expenses, Member Filter & Split Styles */
 .couple-split-bar {
   display: flex;
   height: 12px;
@@ -1138,6 +1174,18 @@ th {
   background: linear-gradient(90deg, var(--purple), #ec4899);
   height: 100%;
   transition: width 0.35s ease;
+}
+
+.member-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
 }
 
 .shared-subbox {
@@ -1494,7 +1542,8 @@ body.light-theme .first-use-panel {
   #transactionModal,
   #paydayModal,
   #bankImportModal,
-  #deviceSyncModal,
+  #cloudSyncModal,
+  #coupleMergeModal,
   #customModal {
     align-items: flex-end;
     padding: 0;
@@ -1502,7 +1551,8 @@ body.light-theme .first-use-panel {
   #transactionModal .modal-content,
   #paydayModal .modal-content,
   #bankImportModal .modal-content,
-  #deviceSyncModal .modal-content,
+  #cloudSyncModal .modal-content,
+  #coupleMergeModal .modal-content,
   #customModal .modal-content {
     max-width: 100%;
     width: 100%;
@@ -1593,6 +1643,66 @@ body.light-theme .first-use-panel {
     border: none;
     padding: 0;
   }
+
+  /* Mobile Cards για την Προεπισκόπηση Εισαγωγής Τράπεζας / Revolut */
+  .bank-preview-table,
+  .bank-preview-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .bank-preview-table thead {
+    display: none;
+  }
+  .bank-preview-table tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px;
+    margin-bottom: 10px;
+  }
+  .bank-preview-table tbody td {
+    border: none;
+    padding: 0;
+  }
+  .bank-preview-table tbody td.bp-chk {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .bank-preview-table tbody td.bp-desc {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .bank-preview-table tbody td.bp-amt {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+    font-size: 14px;
+  }
+  .bank-preview-table tbody td.bp-date {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .bank-preview-table tbody td.bp-status {
+    grid-column: 3;
+    grid-row: 2;
+    text-align: right;
+  }
+  .bank-preview-table tbody td.bp-cat {
+    grid-column: 1 / 3;
+    grid-row: 3;
+  }
+  .bank-preview-table tbody td.bp-shared {
+    grid-column: 3;
+    grid-row: 3;
+    text-align: right;
+  }
+
   .toast-container {
     bottom: 84px;
     right: 12px;
@@ -1740,9 +1850,9 @@ body.light-theme .first-use-panel {
   </div>
 </div>
 
-<!-- Smart Bank Statement Import Modal (Locked against accidental outside click) -->
+<!-- Smart Bank Statement Import Modal (Locked against accidental outside click + Mobile Cards + Inline Edit) -->
 <div id="bankImportModal" class="modal-overlay" role="dialog" aria-modal="true">
-  <div id="bankImportModalCard" class="modal-content" style="max-width: 860px; text-align: left;">
+  <div id="bankImportModalCard" class="modal-content" style="max-width: 880px; text-align: left;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div class="modal-title" style="margin:0;">🏦 Έξυπνη Εισαγωγή Κινήσεων Τράπεζας &amp; Revolut</div>
       <button type="button" class="secondary small-btn" onclick="closeBankImportModal()">✕ Κλείσιμο</button>
@@ -1752,7 +1862,7 @@ body.light-theme .first-use-panel {
     <div class="form-grid" style="align-items:end; margin-bottom:14px;">
       <div>
         <label for="bankAccountSource" style="margin-top:0;">Πηγή Λογαριασμού</label>
-        <select id="bankAccountSource">
+        <select id="bankAccountSource" onchange="onBankAccountSourceChange(this.value)">
           <option value="auto" selected>✨ Αυτόματος εντοπισμός</option>
           <option value="Revolut">💳 Revolut</option>
           <option value="Εθνική">🏦 Εθνική Τράπεζα</option>
@@ -1810,13 +1920,13 @@ body.light-theme .first-use-panel {
         </div>
       </div>
 
-      <div class="table-wrap" style="max-height: 320px;">
-        <table>
+      <div class="table-wrap" style="max-height: 340px;">
+        <table class="bank-preview-table">
           <thead>
             <tr>
               <th style="width:34px;"><input type="checkbox" id="bankSelectAll" checked style="width:16px; height:16px; margin:0;" onchange="toggleAllBankRows(this.checked)"></th>
               <th>Ημερομηνία</th>
-              <th>Αιτιολογία &amp; Πηγή</th>
+              <th>Περιγραφή (Επεξεργάσιμη) &amp; Πηγή</th>
               <th>Κατηγορία (Auto-Learn)</th>
               <th>Ποσό</th>
               <th id="bankSharedColHeader">👫 Κοινό</th>
@@ -1828,11 +1938,146 @@ body.light-theme .first-use-panel {
       </div>
 
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-top:14px;">
-        <span class="small">💡 Το σύστημα θυμάται αυτόματα τόσο την <strong>κατηγορία</strong> όσο και την επιλογή <strong>👫 Κοινό</strong> για κάθε έμπορο!</span>
+        <span class="small">💡 Μπορείς να διορθώσεις οποιαδήποτε περιγραφή πριν την εισαγωγή ή να ορίσεις ένα έσοδο ως <strong>📌 Μισθός</strong>.</span>
         <div style="display:flex; gap:8px;">
           <button type="button" class="secondary" style="margin-top:0; width:auto;" onclick="closeBankImportModal()">Κλείσιμο</button>
           <button type="button" class="success" style="margin-top:0; width:auto;" onclick="confirmBankImport()">✅ Εισαγωγή Επιλεγμένων</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Cloud Sync Room Modal (Option 2: AES-256-GCM Zero-Knowledge Sync for Solo & Couple) -->
+<div id="cloudSyncModal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-content" style="max-width: 540px; text-align: left;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div class="modal-title" style="margin:0;">☁️ Live Cloud Sync (Laptop ↔ Κινητό &amp; Ζευγάρι)</div>
+      <button type="button" class="secondary small-btn" onclick="closeCloudSyncModal()">✕</button>
+    </div>
+    <p class="small">Αυτόματος συγχρονισμός σε πραγματικό χρόνο με <strong>AES-256-GCM κρυπτογράφηση</strong>. Τα δεδομένα κρυπτογραφούνται τοπικά με το PIN σου πριν σταλούν στο cloud.</p>
+
+    <!-- Κατάσταση όταν είναι ήδη συνδεδεμένο -->
+    <div id="syncConnectedBox" class="mini-card" style="display:none; margin-bottom:14px; border-color:rgba(16,185,129,0.4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div>
+          <strong class="green" id="syncRoomStatusText">☁️ Συνδεδεμένο σε Δωμάτιο Sync</strong>
+          <div class="small" id="syncLastTimeText">Τελευταίος συγχρονισμός: Μόλις τώρα</div>
+        </div>
+        <button type="button" class="small-btn" onclick="manualCloudSyncNow()">🔄 Συγχρονισμός Τώρα</button>
+      </div>
+
+      <div class="form-grid" style="margin-top:12px;">
+        <div>
+          <label for="connectedSyncPrivacySelect" style="margin-top:0;">Επίπεδο Ιδιωτικότητας Ζευγαριού</label>
+          <select id="connectedSyncPrivacySelect" onchange="updateConnectedSyncPrivacy(this.value)">
+            <option value="fullHousehold">🏠 Πλήρης Συγχρονισμός (Όλες οι κινήσεις)</option>
+            <option value="sharedOnly">🔒 Μόνο Κοινά Έξοδα (Προσωπικά ιδιωτικά)</option>
+          </select>
+        </div>
+        <div>
+          <label style="margin-top:0;">Κωδικός Δωματίου</label>
+          <div style="display:flex; gap:6px;">
+            <input id="connectedRoomCodeDisplay" type="text" readonly style="font-weight:700; font-family:monospace;">
+            <button type="button" class="secondary small-btn" onclick="copyConnectedRoomCode()" title="Αντιγραφή Κωδικού">📋</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+        <button type="button" class="secondary small-btn" onclick="disconnectCloudSync(false)">🔓 Αποσύνδεση Συσκευής</button>
+        <button type="button" class="danger small-btn" onclick="disconnectCloudSync(true)">🗑️ Διαγραφή Δωματίου από Cloud</button>
+      </div>
+    </div>
+
+    <!-- Φόρμα σύνδεσης / δημιουργίας νέου δωματίου -->
+    <div id="syncDisconnectedBox" class="mini-card" style="margin-bottom:14px;">
+      <div class="form-grid">
+        <div>
+          <label for="syncModeSelect" style="margin-top:0;">Τύπος Συγχρονισμού</label>
+          <select id="syncModeSelect" onchange="toggleSyncModeFields()">
+            <option value="solo" selected>👤 Ατομικό Sync (Laptop ↔ Κινητό)</option>
+            <option value="couple">👫 Ζευγάρι (Κοινό Δωμάτιο Νοικοκυριού)</option>
+          </select>
+        </div>
+        <div id="syncPrivacyWrap" style="display:none;">
+          <label for="syncPrivacySelect" style="margin-top:0;">Τι να ανεβαίνει στο δωμάτιο;</label>
+          <select id="syncPrivacySelect">
+            <option value="sharedOnly" selected>🔒 Μόνο Κοινά Έξοδα (Privacy First)</option>
+            <option value="fullHousehold">🏠 Πλήρης Εικόνα Νοικοκυριού</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:10px;">
+        <div>
+          <label for="syncRoomCodeInput" style="margin-top:0;">Κωδικός Δωματίου (Room ID)</label>
+          <div style="display:flex; gap:6px;">
+            <input id="syncRoomCodeInput" type="text" placeholder="π.χ. FG-8492-KLMN" style="font-family:monospace; font-weight:700;">
+            <button type="button" class="secondary small-btn" onclick="generateRandomRoomCode()" title="Δημιουργία Τυχαίου Κωδικού">🎲 Νέος</button>
+          </div>
+        </div>
+        <div>
+          <label for="syncRoomPinInput" style="margin-top:0;">Μυστικό PIN Κρυπτογράφησης</label>
+          <input id="syncRoomPinInput" type="password" inputmode="numeric" placeholder="π.χ. 4829 (4+ χαρακτήρες)">
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:10px; margin-bottom:0;">
+        💡 Βάλε τον <strong>ίδιο Κωδικό Δωματίου &amp; PIN</strong> στο κινητό ή στον σύντροφό σου για αυτόματο ζωντανό συγχρονισμό.
+      </p>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+        <button type="button" class="secondary small-btn" onclick="closeCloudSyncModal()">Ακύρωση</button>
+        <button type="button" class="success small-btn" onclick="connectCloudSyncRoom()">☁️ Σύνδεση &amp; Συγχρονισμός</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <span class="small">Προτιμάς ανταλλαγή αρχείου χωρίς cloud;</span>
+      <button type="button" class="secondary small-btn" onclick="closeCloudSyncModal(); openCoupleMergeModal();">🤝 Ενοποίηση με Αρχείο JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- Couple Data Merge Modal (Offline File Merge Option) -->
+<div id="coupleMergeModal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-content" style="max-width: 580px; text-align: left;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div class="modal-title" style="margin:0;">🤝 Ενοποίηση Δεδομένων μέσω Αρχείου (Offline)</div>
+      <button type="button" class="secondary small-btn" onclick="closeCoupleMergeModal()">✕</button>
+    </div>
+    <p class="small">Εναλλακτικά του Live Cloud Sync, μπορείτε να ανταλλάξετε αρχείο ή κωδικό κινήσεων μέσω WhatsApp / Viber χωρίς διπλοεγγραφές.</p>
+
+    <div class="mini-card" style="margin-bottom:14px;">
+      <div style="font-weight:700; font-size:14px; color:var(--accent); margin-bottom:6px;">1. 📤 Αποστολή Δικών σου Στοιχείων στον Σύντροφο</div>
+      <div class="form-grid" style="align-items:end; margin-bottom:8px;">
+        <div>
+          <label for="coupleExportScopeSelect" style="margin-top:0;">Τι να περιλαμβάνει το πακέτο;</label>
+          <select id="coupleExportScopeSelect" onchange="updateCoupleExportSummary()">
+            <option value="sharedOnly" selected>🔒 Μόνο Κοινά Έξοδα (Privacy First)</option>
+            <option value="fullHousehold">🏠 Πλήρης Εικόνα (Κοινά + Ατομικά)</option>
+          </select>
+        </div>
+        <div id="coupleExportCountBadge" class="small" style="padding:9px 10px; background:var(--panel); border-radius:8px; border:1px solid var(--border);">
+          Υπολογισμός...
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="success small-btn" onclick="exportPartnerMergeFile()">📤 Αποστολή / Λήψη Αρχείου (.json)</button>
+        <button type="button" class="secondary small-btn" onclick="copyPartnerMergePayload()">📋 Αντιγραφή Κωδικού (WhatsApp / Viber)</button>
+      </div>
+    </div>
+
+    <div class="mini-card">
+      <div style="font-weight:700; font-size:14px; color:var(--purple); margin-bottom:6px;">2. 📥 Παραλαβή &amp; Έξυπνη Συγχώνευση από Σύντροφο</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+        <input type="file" id="coupleMergeFileInput" accept=".json" onchange="handleCoupleMergeFileUpload(event)" style="flex:1;">
+      </div>
+      <textarea id="coupleMergePasteArea" rows="3" placeholder="Ή επικόλλησε εδώ τον κωδικό ενοποίησης JSON από WhatsApp / Viber..." style="width:100%; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); padding:8px 10px; font-size:12px; font-family:monospace; resize:vertical;"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="secondary small-btn" onclick="closeCoupleMergeModal()">Ακύρωση</button>
+        <button type="button" class="small-btn" onclick="importPartnerMergeFromText()">🤝 Ενοποίηση Δεδομένων</button>
       </div>
     </div>
   </div>
@@ -1897,7 +2142,7 @@ body.light-theme .first-use-panel {
       </div>
       <button type="button" class="secondary small-btn" onclick="closeWelcomeSetupModal(true)">✕</button>
     </div>
-    <p class="small" style="margin-bottom:14px;">Συμπλήρωσε λίγα βασικά στοιχεία για να προσαρμοστεί το dashboard στα μέτρα σου. Όλα αποθηκεύονται αποκλειστικά στη συσκευή σου.</p>
+    <p class="small" style="margin-bottom:14px;">Συμπλήρωσε λίγα βασικά στοιχεία για να προσαρμοστεί το dashboard στα μέτρα σου. Όλα αποθηκεύονται αποκλειστικά στη συσκευή σου (ή στο κρυπτογραφημένο Cloud Sync σου).</p>
 
     <div class="form-grid">
       <div>
@@ -1991,36 +2236,6 @@ body.light-theme .first-use-panel {
   </div>
 </div>
 
-<!-- Device Sync Modal (Laptop <-> Mobile Quick Transfer) -->
-<div id="deviceSyncModal" class="modal-overlay" role="dialog" aria-modal="true">
-  <div class="modal-content" style="max-width: 520px; text-align: left;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <div class="modal-title" style="margin:0;">📲 Συγχρονισμός Laptop ↔ Κινητό</div>
-      <button type="button" class="secondary small-btn" onclick="closeDeviceSyncModal()">✕</button>
-    </div>
-    <p class="small">Μετέφερε εύκολα τα δεδομένα σου μεταξύ υπολογιστή και κινητού χωρίς λογαριασμό ή server.</p>
-
-    <div class="mini-card" style="margin-bottom:12px;">
-      <div style="font-weight:700; font-size:13px; margin-bottom:4px;">1. Αποστολή από αυτή τη συσκευή</div>
-      <p class="small" style="margin-bottom:8px;">Στείλε το backup στον εαυτό σου (WhatsApp, Viber, AirDrop, Email) ή αντέγραψε τον κωδικό δεδομένων.</p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button type="button" class="success small-btn" onclick="shareBackupFileNative()">📤 Αποστολή Αρχείου Backup</button>
-        <button type="button" class="secondary small-btn" onclick="copySyncPayloadToClipboard()">📋 Αντιγραφή Κωδικού Δεδομένων</button>
-      </div>
-    </div>
-
-    <div class="mini-card">
-      <div style="font-weight:700; font-size:13px; margin-bottom:4px;">2. Παραλαβή σε αυτή τη συσκευή</div>
-      <p class="small" style="margin-bottom:6px;">Επικόλλησε εδώ τον κωδικό δεδομένων που έστειλες από την άλλη συσκευή ή επίλεξε αρχείο JSON:</p>
-      <textarea id="deviceSyncPasteArea" rows="4" placeholder='Επικόλλησε εδώ το περιεχόμενο JSON...' style="width:100%; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); padding:8px 10px; font-size:12px; font-family:monospace; resize:vertical;"></textarea>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; justify-content:space-between;">
-        <button type="button" class="secondary small-btn" onclick="triggerQuickLoadFile()">📂 Επιλογή Αρχείου JSON</button>
-        <button type="button" class="small-btn" onclick="importSyncPayloadFromText()">✅ Εισαγωγή από Κείμενο</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Discreet One-Time Share Nudge -->
 <div id="discreetShareNudge" class="discreet-share-nudge" role="status">
   <div style="line-height:1.35;">
@@ -2071,8 +2286,7 @@ body.light-theme .first-use-panel {
       <div>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <h1>FinanceGR</h1>
-          <button type="button" id="backupStatusBtn" class="backup-pill warn" onclick="handleBackupPillClick()" title="Κατάσταση Backup — Κλικ για εξαγωγή JSON">⚠️ Εκκρεμεί Backup</button>
-          <span id="storageModePill" class="badge badge-source" style="margin-left:0;" title="Κατάσταση αποθήκευσης browser">💾 Browser Storage</span>
+          <button type="button" id="backupStatusBtn" class="backup-pill safe" onclick="handleBackupPillClick()" title="Κατάσταση Αποθήκευσης & Live Cloud Sync">💾 Αποθηκευμένο τοπικά</button>
         </div>
         <p class="small" id="headerGreetingSubtitle" style="margin:0;">Προσωπικά Οικονομικά</p>
       </div>
@@ -2102,6 +2316,7 @@ body.light-theme .first-use-panel {
 
       <button type="button" class="primary-cta header-primary-btn" onclick="focusNewTransaction()">+ Νέα Συναλλαγή</button>
       <button type="button" class="icon-btn" onclick="openBankImportModal()" title="Εισαγωγή Κινήσεων Τράπεζας & Revolut (CSV / Excel)">🏦</button>
+      <button type="button" class="icon-btn" onclick="openCloudSyncModal()" title="Live Cloud Sync (Laptop ↔ Κινητό & Ζευγάρι)">☁️</button>
       <button type="button" class="icon-btn" onclick="openPaydayModal()" title="Οδηγός Κατανομής Μισθού">💸</button>
       <button type="button" id="privacyToggleBtn" class="icon-btn" onclick="togglePrivacyMode()" title="Απόκρυψη / Εμφάνιση Ποσών">👁️</button>
       <button type="button" id="themeToggleBtn" class="icon-btn" onclick="toggleTheme()" title="Εναλλαγή Θέματος">☀️</button>
@@ -2113,12 +2328,11 @@ body.light-theme .first-use-panel {
   <div id="storageNoticeBanner" class="smart-banner">
     <div>
       <strong>🔒 Περιορισμός Google Sites (Sandboxed Iframe):</strong>
-      <span class="small" style="margin-left:4px;">Το Google Sites μπλοκάρει τη μόνιμη μνήμη του browser στο refresh. Αποθήκευσε ένα αρχείο δεδομένων ή χρησιμοποίησε το σταθερό URL στο GitHub Pages για 100% αυτόματη αποθήκευση.</span>
+      <span class="small" style="margin-left:4px;">Το Google Sites μπλοκάρει τη μόνιμη μνήμη του browser στο refresh. Ενεργοποίησε το <strong>☁️ Live Cloud Sync</strong> ή άνοιξε το site από το σταθερό URL στο GitHub Pages.</span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" class="success small-btn" onclick="quickSaveToFile()">💾 Αποθήκευση (Ctrl+S)</button>
-      <button type="button" class="secondary small-btn" onclick="triggerQuickLoadFile()">📂 Φόρτωση</button>
-      <button type="button" class="small-btn" onclick="downloadStandaloneAppHtml()">📲 Λήψη Αυτόνομης Εφαρμογής</button>
+      <button type="button" class="success small-btn" onclick="openCloudSyncModal()">☁️ Live Cloud Sync</button>
+      <button type="button" class="secondary small-btn" onclick="quickSaveToFile()">💾 Backup JSON</button>
       <button type="button" class="secondary small-btn" onclick="dismissStorageNotice()" aria-label="Κλείσιμο">✕</button>
     </div>
   </div>
@@ -2148,13 +2362,16 @@ body.light-theme .first-use-panel {
        ΕΝΟΤΗΤΑ 1: ΚΑΘΑΡΗ ΕΠΙΣΚΟΠΗΣΗ (OVERVIEW)
        ====================================================================== -->
   <div class="panel first-use-panel" id="firstUseGuidePanel" data-section="overview">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
       <div>
         <div class="accent" style="font-size:11px; font-weight:800; letter-spacing:0.6px; text-transform:uppercase;">ΠΡΩΤΗ ΧΡΗΣΗ</div>
         <h2 id="firstUseGuideHeading" style="font-size:19px; margin:4px 0 4px;">Ξεκίνα με 3 απλά βήματα</h2>
-        <p class="small" style="margin:0;">Ρύθμισε τα βασικά στοιχεία σου και παρακολούθησε ξεκάθαρα την οικονομική σου εικόνα.</p>
+        <p class="small" style="margin:0;">Ξεκινάς με καθαρό μηδέν (€0). Ρύθμισε το προφίλ σου ή δες ένα γρήγορο παράδειγμα με έτοιμα δεδομένα.</p>
       </div>
-      <button type="button" class="secondary small-btn" onclick="dismissFirstUseGuide()">Κλείσιμο</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="secondary small-btn" onclick="loadDemoData()">👀 Δοκιμή με Demo Δεδομένα</button>
+        <button type="button" class="secondary small-btn" onclick="dismissFirstUseGuide()">Κλείσιμο</button>
+      </div>
     </div>
 
     <div class="steps-grid-3">
@@ -2187,16 +2404,12 @@ body.light-theme .first-use-panel {
         <div>
           <div class="step-card-head">
             <span class="step-num-circle" id="step3Badge">3</span>
-            <strong style="font-size:15px;">Οργάνωσε την περίοδό σου</strong>
+            <strong style="font-size:15px;">Συγχρόνισε τις συσκευές σου</strong>
           </div>
-          <p class="small" style="margin:8px 0 0;">Όρισε όρια δαπανών ανά κατηγορία, πάγια και κουμπαράδες στόχων.</p>
+          <p class="small" style="margin:8px 0 0;">Σύνδεσε Laptop &amp; Κινητό (ή τον σύντροφό σου) με κρυπτογραφημένο Cloud Sync.</p>
         </div>
-        <button type="button" class="secondary small-btn" style="align-self:flex-start;" onclick="switchWorkspaceTab('budget')">Άνοιγμα προϋπολογισμού</button>
+        <button type="button" class="secondary small-btn" style="align-self:flex-start;" onclick="openCloudSyncModal()">☁️ Ρύθμιση Cloud Sync</button>
       </div>
-    </div>
-
-    <div class="step-info-footer">
-      <strong style="color:var(--text);">Σημαντικό για τα δεδομένα σου:</strong> Οι πληροφορίες αποθηκεύονται τοπικά στον browser σου. Κατέβαζε τακτικά αντίγραφο ασφαλείας JSON από την ένδειξη «Backup» ώστε να έχεις πάντα πρόσβαση στα δεδομένα σου.
     </div>
   </div>
 
@@ -2228,47 +2441,40 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
-  <!-- ΚΟΙΝΑ ΕΞΟΔΑ ΣΠΙΤΙΟΥ & ΕΚΚΑΘΑΡΙΣΗ ΖΕΥΓΑΡΙΟΥ -->
-  <div class="panel" id="coupleSplitPanel" style="margin-top:20px;" data-section="overview daily">
-    <div id="soloUserView">
-      <h2>
-        <span id="soloPanelTitle">👤 Οικονομικό Προφίλ Χρήστη</span>
-        <button type="button" class="secondary small-btn" onclick="openCoupleSettingsScroll()">+ Προσθήκη Συντρόφου</button>
-      </h2>
-      <div class="couple-split-bar">
-        <div class="couple-split-me" style="width:100%;"></div>
+  <!-- ΣΥΜΠΑΓΗΣ ΓΡΑΜΜΗ SOLO ΧΡΗΣΤΗ Ή ΚΑΡΤΑ ΚΟΙΝΩΝ ΕΞΟΔΩΝ ΖΕΥΓΑΡΙΟΥ -->
+  <div class="panel" id="coupleSplitPanel" style="padding:14px 18px;" data-section="overview daily">
+    <!-- Compact 1-line bar για Solo χρήστες -->
+    <div id="soloUserView" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-weight:700; font-size:14px;" id="soloPanelTitle">👤 Ατομική Διαχείριση</span>
+        <span class="badge badge-saving" id="soloLabelMe">Εισόδημα: €1.200</span>
+        <span class="small" id="soloPaydayBadge">Πληρωμή: 25η του μήνα</span>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:14px;">
-        <span class="accent" id="soloLabelMe">Εσύ: 100%</span>
-        <span class="small" id="soloPaydayBadge">Ατομική διαχείριση εξόδων</span>
-      </div>
-      <div class="grid" style="margin-bottom:0;">
-        <div class="mini-card">
-          <div class="label">Δηλωμένο Μηνιαίο Εισόδημα</div>
-          <div class="val accent" id="soloIncomeVal">€0,00</div>
-          <div class="small">Βάση υπολογισμού προϋπολογισμού</div>
-        </div>
-        <div class="mini-card">
-          <div class="label">Βασικά Μηνιαία Έξοδα</div>
-          <div class="val" id="soloEssentialVal">€0,00</div>
-          <div class="small">Πάγιες &amp; ανελαστικές ανάγκες</div>
-        </div>
-        <div class="mini-card">
-          <div class="label">Μηνιαίος Στόχος Αποταμίευσης</div>
-          <div class="val green" id="soloSavingGoalVal">€0,00</div>
-          <div class="small">Στόχος περιόδου</div>
-        </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="secondary small-btn" onclick="openCloudSyncModal()">☁️ Cloud Sync</button>
+        <button type="button" class="secondary small-btn" onclick="openCoupleSettingsScroll()">+ Σύντροφος</button>
       </div>
     </div>
 
+    <!-- Αναλυτική προβολή Ζευγαριού -->
     <div id="coupleMultiView" style="display:none;">
       <h2>
         <span>👫 Κοινά Έξοδα Σπιτιού &amp; Εκκαθάριση</span>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="small-btn" onclick="openCloudSyncModal()">☁️ Sync Ζευγαριού</button>
           <button type="button" class="secondary small-btn" onclick="openCoupleSettingsScroll()">⚙️ Αναλογία</button>
-          <button type="button" class="success small-btn" id="settleCoupleBtn" onclick="settleCoupleBalance()">🤝 Εξόφληση</button>
+          <button type="button" class="success small-btn" id="settleCoupleBtn" onclick="settleCoupleBalance()">✓ Εξόφληση</button>
         </div>
       </h2>
+
+      <!-- Διακόπτης Προβολής Μέλους Νοικοκυριού -->
+      <div class="member-filter-bar" id="memberViewFilterBar">
+        <span class="small" style="font-weight:700; margin-right:4px;">👁️ Προβολή:</span>
+        <button type="button" class="chip-btn active" data-mview="all" onclick="setMemberViewFilter('all')">🏠 Όλο το Νοικοκυριό</button>
+        <button type="button" class="chip-btn" data-mview="me" id="mviewBtnMe" onclick="setMemberViewFilter('me')">👤 Εσύ</button>
+        <button type="button" class="chip-btn" data-mview="partner" id="mviewBtnPartner" onclick="setMemberViewFilter('partner')">👤 Σύντροφος</button>
+        <button type="button" class="chip-btn" data-mview="shared" onclick="setMemberViewFilter('shared')">👫 Μόνο Κοινά</button>
+      </div>
 
       <div class="couple-split-bar">
         <div id="coupleBarMe" class="couple-split-me" style="width:55%;"></div>
@@ -2382,6 +2588,15 @@ body.light-theme .first-use-panel {
             <option value="all">Όλες οι Περίοδοι</option>
           </select>
         </div>
+        <div id="filterOwnerWrap" style="display:none;">
+          <label for="filterOwner">Μέλος / Είδος</label>
+          <select id="filterOwner" onchange="setMemberViewFilter(this.value)">
+            <option value="all">🏠 Όλο το Νοικοκυριό</option>
+            <option value="me">👤 Εσύ</option>
+            <option value="partner">👤 Σύντροφος</option>
+            <option value="shared">👫 Μόνο Κοινά</option>
+          </select>
+        </div>
         <div>
           <label for="filterSource">Λογαριασμός / Πηγή</label>
           <select id="filterSource" onchange="renderTransactionsTable()">
@@ -2450,7 +2665,16 @@ body.light-theme .first-use-panel {
   <!-- ======================================================================
        ΕΝΟΤΗΤΑ 3: ΠΡΟΫΠΟΛΟΓΙΣΜΟΣ, ΑΠΟΤΑΜΙΕΥΣΗ, ΚΟΥΜΠΑΡΑΔΕΣ & ΠΑΓΙΑ
        ====================================================================== -->
-  <div class="grid-2" data-section="budget">
+  <!-- Υπο-μενού φίλτρων για άμεση πλοήγηση χωρίς ατελείωτο scroll -->
+  <div class="quick-chips-bar" id="budgetSubFilterBar" data-section="budget">
+    <span class="small" style="font-weight:700;">Ενότητα:</span>
+    <button type="button" class="chip-btn active" data-bsub="all" onclick="setBudgetSubFilter('all')">📋 Όλα</button>
+    <button type="button" class="chip-btn" data-bsub="budgets" onclick="setBudgetSubFilter('budgets')">📊 Προϋπολογισμός</button>
+    <button type="button" class="chip-btn" data-bsub="recurring" onclick="setBudgetSubFilter('recurring')">🔁 Πάγια &amp; Συνδρομές</button>
+    <button type="button" class="chip-btn" data-bsub="goals" onclick="setBudgetSubFilter('goals')">🎯 Στόχοι &amp; Ετήσια</button>
+  </div>
+
+  <div class="grid-2" data-section="budget" data-bsub-group="budgets">
     <div class="panel" style="margin-bottom:0;">
       <h2>
         <span>Αποθεματικό Ασφαλείας</span>
@@ -2475,12 +2699,12 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
-  <div class="panel" style="margin-top:20px;" data-section="budget">
+  <div class="panel" style="margin-top:20px;" data-section="budget" data-bsub-group="budgets">
     <h2>
       <span>Προϋπολογισμός ανά Κατηγορία (Επιλεγμένη Περίοδος)</span>
       <button type="button" class="secondary small-btn" onclick="toggleBudgetEditor()">⚙️ Όρια Κατηγοριών</button>
     </h2>
-    <p class="small" id="totalBudgetSummary">Παρακολούθηση ορίων ανά κατηγορία εξόδων.</p>
+    <p class="small" id="totalBudgetSummary">Κάνε κλικ σε οποιαδήποτε κατηγορία για να δεις τις αναλυτικές συναλλαγές της.</p>
 
     <div id="budgetCardsContainer" class="budget-list"></div>
 
@@ -2491,8 +2715,8 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
-  <!-- ΦΑΣΗ 2: ΑΥΤΟΜΑΤΟΣ ΕΝΤΟΠΙΣΜΟΣ ΣΥΝΔΡΟΜΩΝ & ΚΡΥΦΩΝ ΠΑΓΙΩΝ -->
-  <div class="panel" data-section="budget">
+  <!-- ΑΥΤΟΜΑΤΟΣ ΕΝΤΟΠΙΣΜΟΣ ΣΥΝΔΡΟΜΩΝ & ΚΡΥΦΩΝ ΠΑΓΙΩΝ -->
+  <div class="panel" data-section="budget" data-bsub-group="recurring">
     <h2>
       <span>🔍 Εντοπισμός Συνδρομών &amp; Επαναλαμβανόμενων Χρεώσεων</span>
       <span class="badge badge-saving" id="detectedSubsBadge">Ανάλυση κινήσεων</span>
@@ -2502,7 +2726,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <!-- ΠΑΓΙΑ / ΕΠΑΝΑΛΑΜΒΑΝΟΜΕΝΕΣ ΣΥΝΑΛΛΑΓΕΣ -->
-  <div class="panel" data-section="budget">
+  <div class="panel" data-section="budget" data-bsub-group="recurring">
     <h2>
       <span>Πάγια &amp; Επαναλαμβανόμενες Συναλλαγές</span>
       <button type="button" class="success small-btn" onclick="applyAllRecurringForMonth()">⚡ Καταχώριση Εκκρεμών Παγίων</button>
@@ -2585,13 +2809,13 @@ body.light-theme .first-use-panel {
     </div>
   </div>
 
-  <!-- ΦΑΣΗ 2: ΕΠΕΡΧΟΜΕΝΕΣ ΕΤΗΣΙΕΣ / ΕΠΟΧΙΚΕΣ ΥΠΟΧΡΕΩΣΕΙΣ -->
-  <div class="panel" data-section="budget">
+  <!-- ΕΠΕΡΧΟΜΕΝΕΣ ΕΤΗΣΙΕΣ / ΕΠΟΧΙΚΕΣ ΥΠΟΧΡΕΩΣΕΙΣ -->
+  <div class="panel" data-section="budget" data-bsub-group="goals">
     <h2>
       <span>📅 Επερχόμενες Ετήσιες / Εποχικές Υποχρεώσεις</span>
       <button type="button" class="secondary small-btn" onclick="toggleAnnualBillCreator()">+ Νέα Υποχρέωση</button>
     </h2>
-    <p class="small">Οργάνωσε ετήσια ή εποχικά έξοδα (Τέλη Κυκλοφορίας, Ασφάλεια, ΕΝΦΙΑ, Φόρος) ορίζοντας το <strong>ποσό</strong> και την <strong>ημερομηνία καταβολής</strong>.</p>
+    <p class="small">Οργάνωσε ετήσια έξοδα (Τέλη Κυκλοφορίας, Ασφάλεια, ΕΝΦΙΑ). Όταν βάζεις χρήματα στην άκρη (`+€25`) δεσμεύονται από το Safe-to-Spend και αποδεσμεύονται αυτόματα στην πληρωμή.</p>
 
     <div id="annualBillCreatorBox" class="budget-editor" style="margin-top:0; margin-bottom:14px; padding:14px; background:var(--bg-soft); border-radius:12px; border:1px solid var(--border);">
       <div class="form-grid">
@@ -2633,7 +2857,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <!-- ΚΑΝΟΝΑΣ 50/30/20 & ΚΟΥΜΠΑΡΑΔΕΣ ΣΤΟΧΩΝ -->
-  <div class="grid-2" data-section="budget">
+  <div class="grid-2" data-section="budget" data-bsub-group="goals">
     <div class="panel" style="margin-bottom:0;">
       <h2>
         <span>⚖️ Κανόνας 50 / 30 / 20</span>
@@ -2734,7 +2958,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <div class="grid-2" data-section="analytics">
-    <!-- ΦΑΣΗ 2: ΠΟΛΛΑΠΛΑ ΠΕΡΙΟΥΣΙΑΚΑ ΣΤΟΙΧΕΙΑ ΧΑΡΤΟΦΥΛΑΚΙΟΥ (MULTI-ASSET) -->
+    <!-- ΠΟΛΛΑΠΛΑ ΠΕΡΙΟΥΣΙΑΚΑ ΣΤΟΙΧΕΙΑ ΧΑΡΤΟΦΥΛΑΚΙΟΥ (MULTI-ASSET) -->
     <div class="panel" style="margin-bottom:0;">
       <h2>
         <span>📈 Χαρτοφυλάκιο Επενδύσεων</span>
@@ -2777,7 +3001,7 @@ body.light-theme .first-use-panel {
         <div class="form-grid">
           <div>
             <label for="newAssetName">Τίτλος / Όνομα</label>
-            <input id="newAssetName" placeholder="π.χ. VWCE, XEON, Bitcoin">
+            <input id="newAssetName" placeholder="π.χ. VUAA, VWCE, XEON">
           </div>
           <div>
             <label for="newAssetType">Κατηγορία</label>
@@ -2848,7 +3072,7 @@ body.light-theme .first-use-panel {
     <div class="form-grid" style="background:var(--bg-soft); padding:14px; border-radius:12px; border:1px solid var(--border); margin-bottom:16px;">
       <div>
         <label for="simInitial">Αρχικό Κεφάλαιο (€)</label>
-        <input id="simInitial" type="number" min="0" step="10" value="378" oninput="renderWealthSimulator()">
+        <input id="simInitial" type="number" min="0" step="10" value="0" oninput="renderWealthSimulator()">
       </div>
       <div>
         <label for="simMonthly">Μηνιαία Επένδυση (€)</label>
@@ -2892,7 +3116,7 @@ body.light-theme .first-use-panel {
   <div class="grid-2" style="margin-top:20px;" data-section="analytics">
     <div class="panel" style="margin-bottom:0;">
       <h2>
-        <span>🏪 Top Έμποροι Περιόδου</span>
+        <span>🏪 Top Έμποροι Περιόδου (Κλικ για προβολή)</span>
         <span class="small" id="topMerchantsSubtitle">Κατάταξη δαπανών</span>
       </h2>
       <div id="topMerchantsContainer"></div>
@@ -2928,7 +3152,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <!-- ======================================================================
-       ΕΝΟΤΗΤΑ 5: ΡΥΘΜΙΣΕΙΣ ΠΡΟΦΙΛ, ΑΝΑΛΟΓΙΑΣ, ΚΑΝΟΝΩΝ AUTO-LEARN & BACKUP
+       ΕΝΟΤΗΤΑ 5: ΡΥΘΜΙΣΕΙΣ ΠΡΟΦΙΛ, ΑΝΑΛΟΓΙΑΣ, ΚΑΝΟΝΩΝ AUTO-LEARN & SYNC
        ====================================================================== -->
   <div class="panel" id="profileFormPanel" data-section="settings">
     <h2>⚙️ Οικονομικό Προφίλ, Κύκλος Μισθοδοσίας &amp; Αναλογία Σπιτιού</h2>
@@ -2964,7 +3188,14 @@ body.light-theme .first-use-panel {
     </div>
 
     <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border);">
-      <h3 style="color:var(--purple); margin-bottom:4px;">👫 Επιμερισμός Εξόδων με Σύντροφο (Προαιρετικό)</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+        <h3 style="color:var(--purple); margin:0;">👫 Επιμερισμός Εξόδων &amp; Σύνδεση με Σύντροφο</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="small-btn" onclick="openCloudSyncModal()">☁️ Live Sync Ζευγαριού</button>
+          <button type="button" class="secondary small-btn" onclick="openCoupleMergeModal()">🤝 Ενοποίηση Αρχείου</button>
+          <button type="button" id="unlinkPartnerSettingsBtn" class="danger small-btn" style="display:none;" onclick="unlinkPartnerSeparation()">🔓 Διαχωρισμός / Αποσύνδεση</button>
+        </div>
+      </div>
       <p class="small" style="margin-bottom:8px;">Αν δεν συμπληρωθεί ποσό εισοδήματος συντρόφου (ή είναι 0), εμφανίζεσαι μόνο εσύ (100%).</p>
       <div class="form-grid">
         <div>
@@ -2993,13 +3224,13 @@ body.light-theme .first-use-panel {
     <button type="button" onclick="saveProfile()">Αποθήκευση Προφίλ &amp; Ρυθμίσεων</button>
   </div>
 
-  <!-- ΦΑΣΗ 2: ΔΙΑΧΕΙΡΙΣΗ ΑΠΟΜΝΗΜΟΝΕΥΜΕΝΩΝ ΚΑΝΟΝΩΝ ΕΜΠΟΡΩΝ (AUTO-LEARN) -->
+  <!-- ΔΙΑΧΕΙΡΙΣΗ ΑΠΟΜΝΗΜΟΝΕΥΜΕΝΩΝ ΚΑΝΟΝΩΝ ΕΜΠΟΡΩΝ (AUTO-LEARN) -->
   <div class="panel" data-section="settings" id="merchantRulesPanel">
     <h2>
       <span>🧠 Διαχείριση Κανόνων Εμπόρων (Auto-Learn)</span>
       <span class="badge badge-saving" id="merchantRulesCountBadge">0 κανόνες</span>
     </h2>
-    <p class="small">Εδώ αποθηκεύονται αυτόματα οι προτιμήσεις σου κάθε φορά που κατηγοριοποιείς έναν έμπορο στην εισαγωγή τράπεζας/Revolut. Μπορείς να τους επεξεργαστείς ή να προσθέσεις νέους.</p>
+    <p class="small">Εδώ αποθηκεύονται αυτόματα οι προτιμήσεις σου κάθε φορά που κατηγοριοποιείς έναν έμπορο στην εισαγωγή τράπεζας/Revolut.</p>
 
     <div style="background:var(--bg-soft); padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
       <div class="form-grid" style="align-items:end;">
@@ -3032,16 +3263,17 @@ body.light-theme .first-use-panel {
 
   <div class="panel" data-section="settings" id="backupSectionPanel">
     <h2>
-      <span>Δεδομένα, Backup &amp; Εργαλεία</span>
-      <span class="small" id="backupStatusDetail">Τελευταίο Backup: Ποτέ</span>
+      <span>☁️ Live Sync, Backup &amp; Εργαλεία</span>
+      <span class="small" id="backupStatusDetail">Αποθηκευμένο τοπικά</span>
     </h2>
     <div class="action-row">
+      <button type="button" class="success" onclick="openCloudSyncModal()">☁️ Live Cloud Sync (Laptop ↔ Κινητό)</button>
       <button type="button" onclick="exportJSON()">📥 Εξαγωγή JSON (Backup)</button>
       <button type="button" class="secondary" onclick="exportCSV()">📊 Εξαγωγή CSV</button>
       <button type="button" class="secondary" onclick="openBankImportModal()">🏦 Εισαγωγή Τράπεζας / Revolut</button>
+      <button type="button" class="secondary" onclick="openCoupleMergeModal()">🤝 Ενοποίηση Αρχείου Ζευγαριού</button>
       <button type="button" class="secondary" onclick="printMonthlyReport()">🖨️ Εκτύπωση / PDF</button>
       <button type="button" class="secondary" onclick="reopenFirstUseGuide()">📖 Οδηγός &amp; Αρχική Ρύθμιση</button>
-      <button type="button" class="secondary" onclick="openDeviceSyncModal()">📲 Συγχρονισμός Laptop ↔ Κινητό</button>
       <button type="button" class="secondary" onclick="openShareModal()">📤 Μοιράσου το (QR &amp; Social)</button>
       <button type="button" class="secondary" onclick="loadDemoData()">🧪 Φόρτωση Demo</button>
       <button type="button" class="secondary" onclick="installPWA()">📲 Εγκατάσταση App</button>
@@ -3068,7 +3300,7 @@ body.light-theme .first-use-panel {
   </div>
 
   <footer class="app-subtle-footer">
-    <span>FinanceGR • Προσωπική Διαχείριση Οικονομικών</span>
+    <span>FinanceGR • Προσωπική &amp; Οικογενειακή Διαχείριση Οικονομικών</span>
     <button type="button" class="discreet-footer-share" onclick="openShareModal()">📤 Μοιράσου το</button>
   </footer>
 
@@ -3076,10 +3308,11 @@ body.light-theme .first-use-panel {
 
 <script>
 /* ==========================================================================
-1. ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΑΣΤΑΣΗΣ, ΠΡΟΕΠΙΛΟΓΩΝ & ΠΟΛΥΕΠΙΠΕΔΗ ΑΠΟΘΗΚΕΥΣΗ (REFRESH SAFE)
+1. ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΑΣΤΑΣΗΣ, ΚΑΘΑΡΗ ΕΚΚΙΝΗΣΗ (€0) & ΠΟΛΥΕΠΙΠΕΔΗ ΑΠΟΘΗΚΕΥΣΗ
    ========================================================================== */
 const KEY = "personalFinanceDashboard_v5";
 const WINDOW_NAME_PREFIX = "__FINANCEGR_STATE__:";
+const FIREBASE_RTDB_URL = "https://financegr-sync-default-rtdb.europe-west1.firebasedatabase.app";
 
 const EXPENSE_CATEGORIES = [
   "Στέγαση",
@@ -3113,6 +3346,7 @@ const ALL_CATEGORIES = [
 const NEEDS_CATEGORIES = ["Στέγαση", "Λογαριασμοί", "Τρόφιμα", "Μεταφορές", "Υγεία"];
 const WANTS_CATEGORIES = ["Διασκέδαση", "Έκτακτο έξοδο", "Ανάληψη", "Άλλο"];
 
+// Καθαρή εκκίνηση (€0) για νέους χρήστες χωρίς σύγχυση από προεπιλεγμένα demo ποσά
 const defaults = {
   profile: {
     userName: "",
@@ -3129,21 +3363,12 @@ const defaults = {
   },
   portfolio: {
     name: "VUAA",
-    units: 2.85984851,
-    value: 378.01,
-    cost: 371.90,
+    units: 0,
+    value: 0,
+    cost: 0,
     cash: 0
   },
-  portfolioAssets: [
-    {
-      id: "asset-vuaa",
-      name: "VUAA",
-      assetType: "ETF",
-      units: 2.85984851,
-      value: 378.01,
-      cost: 371.90
-    }
-  ],
+  portfolioAssets: [],
   portfolioCash: 0,
   budgets: {
     "Στέγαση": 400,
@@ -3156,20 +3381,16 @@ const defaults = {
     "Ανάληψη": 60,
     "Άλλο": 70
   },
-  recurring: [
-    { id: "rec-salary", title: "Μισθοδοσία", type: "income", category: "Μισθός", amount: 1200, day: 1 },
-    { id: "rec-rent", title: "Ενοίκιο", type: "expense", category: "Στέγαση", amount: 380, day: 2 },
-    { id: "rec-save", title: "Πάγια Αποταμίευση", type: "saving", category: "Αποταμίευση", amount: 100, day: 3 }
-  ],
+  recurring: [],
   annualBills: [],
-  goals: [
-    { id: "goal-vacation", title: "Καλοκαιρινές Διακοπές", target: 600, saved: 150, targetMonth: "2026-08" },
-    { id: "goal-car", title: "Service & Ασφάλεια Αυτοκινήτου", target: 450, saved: 120, targetMonth: "2026-10" }
-  ],
+  goals: [],
   merchantRules: {},
+  deletedTxIds: {},
   settings: {
     periodMode: "month",
     selectedCycleIndex: 0,
+    memberViewFilter: "all",
+    budgetSubFilter: "all",
     privacyMode: false,
     lightTheme: false,
     lastBackupAt: null,
@@ -3177,7 +3398,17 @@ const defaults = {
     onboardingCompleted: false,
     guideDismissed: false,
     sharePromptShown: false,
-    customShareUrl: ""
+    customShareUrl: "",
+    deviceId: "",
+    stateUpdatedAt: 0,
+    cloudSync: {
+      enabled: false,
+      roomCode: "",
+      roomPin: "",
+      mode: "solo",
+      privacyScope: "sharedOnly",
+      lastSyncedAt: null
+    }
   },
   transactions: []
 };
@@ -3368,27 +3599,54 @@ function safeStorageSet(key, value) {
   return localSaved;
 }
 
-function normalizeLoadedState(saved, hasExistingStorage = true) {
-  if (!saved || typeof saved !== "object") return deepClone(defaults);
+function generateId(prefix = "id") {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
-  // Μετάπτωση παλαιού single-ETF portfolio σε multi-asset portfolioAssets
+function normalizeLoadedState(saved, hasExistingStorage = true) {
+  if (!saved || typeof saved !== "object") {
+    const fresh = deepClone(defaults);
+    fresh.settings.deviceId = generateId("dev");
+    return fresh;
+  }
+
   let assets = Array.isArray(saved.portfolioAssets) ? saved.portfolioAssets : null;
   let brokerCash = Number(saved.portfolioCash);
   if (!assets) {
     const legacyPort = saved.portfolio || defaults.portfolio;
-    assets = [{
-      id: "asset-legacy-1",
-      name: legacyPort.name || "VUAA",
-      assetType: "ETF",
-      units: Number(legacyPort.units) || 0,
-      value: Number(legacyPort.value) || 0,
-      cost: Number(legacyPort.cost) || 0
-    }];
+    if ((Number(legacyPort.value) || 0) > 0 || (Number(legacyPort.units) || 0) > 0) {
+      assets = [{
+        id: "asset-legacy-1",
+        name: legacyPort.name || "VUAA",
+        assetType: "ETF",
+        units: Number(legacyPort.units) || 0,
+        value: Number(legacyPort.value) || 0,
+        cost: Number(legacyPort.cost) || 0
+      }];
+    } else {
+      assets = [];
+    }
     if (!Number.isFinite(brokerCash)) {
       brokerCash = Number(legacyPort.cash) || 0;
     }
   }
   if (!Number.isFinite(brokerCash)) brokerCash = 0;
+
+  const mergedSettings = {
+    ...defaults.settings,
+    ...(saved.settings || {}),
+    cloudSync: {
+      ...defaults.settings.cloudSync,
+      ...(saved.settings?.cloudSync || {})
+    },
+    onboardingCompleted: saved.settings?.onboardingCompleted ?? hasExistingStorage
+  };
+  if (!mergedSettings.deviceId) {
+    mergedSettings.deviceId = generateId("dev");
+  }
 
   return {
     ...deepClone(defaults),
@@ -3398,15 +3656,12 @@ function normalizeLoadedState(saved, hasExistingStorage = true) {
     portfolioAssets: assets,
     portfolioCash: brokerCash,
     budgets: { ...defaults.budgets, ...(saved.budgets || {}) },
-    recurring: Array.isArray(saved.recurring) ? saved.recurring : deepClone(defaults.recurring),
+    recurring: Array.isArray(saved.recurring) ? saved.recurring : [],
     annualBills: Array.isArray(saved.annualBills) ? saved.annualBills : [],
-    goals: Array.isArray(saved.goals) ? saved.goals : deepClone(defaults.goals),
+    goals: Array.isArray(saved.goals) ? saved.goals : [],
     merchantRules: (saved.merchantRules && typeof saved.merchantRules === "object") ? saved.merchantRules : {},
-    settings: {
-      ...defaults.settings,
-      ...(saved.settings || {}),
-      onboardingCompleted: saved.settings?.onboardingCompleted ?? hasExistingStorage
-    },
+    deletedTxIds: (saved.deletedTxIds && typeof saved.deletedTxIds === "object") ? saved.deletedTxIds : {},
+    settings: mergedSettings,
     transactions: Array.isArray(saved.transactions) ? saved.transactions : []
   };
 }
@@ -3479,13 +3734,16 @@ function handleQuickLoadFile(event) {
       if (!imported.profile || !Array.isArray(imported.transactions)) {
         throw new Error("Invalid");
       }
+      const preservedDeviceId = data.settings?.deviceId || generateId("dev");
+      const preservedCloudSync = data.settings?.cloudSync || deepClone(defaults.settings.cloudSync);
       data = normalizeLoadedState(imported, true);
+      data.settings.deviceId = preservedDeviceId;
+      data.settings.cloudSync = preservedCloudSync;
       data.settings.lastBackupAt = new Date().toISOString();
       data.settings.unsavedChangesCount = 0;
       data.settings.onboardingCompleted = true;
       sessionHasUnsavedChanges = false;
-      persist(false);
-      closeDeviceSyncModal();
+      persist(true);
       render();
       showToast("Τα δεδομένα φορτώθηκαν με επιτυχία! 📂");
     } catch {
@@ -3493,22 +3751,6 @@ function handleQuickLoadFile(event) {
     }
   };
   reader.readAsText(file);
-}
-
-function downloadStandaloneAppHtml() {
-  try {
-    const cloneDoc = document.documentElement.cloneNode(true);
-    cloneDoc.querySelectorAll("canvas").forEach(c => {
-      const fresh = document.createElement("canvas");
-      fresh.id = c.id;
-      c.replaceWith(fresh);
-    });
-    const htmlContent = "<!DOCTYPE html>\n" + cloneDoc.outerHTML;
-    downloadFile(htmlContent, "FinanceGR-App.html", "text/html;charset=utf-8");
-    showToast("Κατέβηκε το FinanceGR-App.html! Άνοιξέ το τοπικά για 100% μόνιμη αποθήκευση. 📲");
-  } catch {
-    showModal("Πάτησε «📥 Εξαγωγή JSON» για να αποθηκεύσεις τα δεδομένα σου.");
-  }
 }
 
 function dismissStorageNotice() {
@@ -3540,13 +3782,6 @@ let barChartInstance = null;
 let compoundChartInstance = null;
 let deferredPwaPrompt = null;
 
-function generateId(prefix = "id") {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
 function loadData() {
   try {
     const rawV5 = safeStorageGet(KEY);
@@ -3558,50 +3793,591 @@ function loadData() {
     const hasExistingStorage = Boolean(rawV5 || rawV4 || rawV3 || rawV2 || rawV1);
     const saved = JSON.parse(rawV5 || rawV4 || rawV3 || rawV2 || rawV1 || "null");
 
-    if (!saved) return deepClone(defaults);
+    if (!saved) {
+      const fresh = deepClone(defaults);
+      fresh.settings.deviceId = generateId("dev");
+      return fresh;
+    }
     return normalizeLoadedState(saved, hasExistingStorage);
   } catch {
-    return deepClone(defaults);
+    const fresh = deepClone(defaults);
+    fresh.settings.deviceId = generateId("dev");
+    return fresh;
   }
 }
 
-function persist(markChange = true) {
-  if (!data.settings) data.settings = { ...defaults.settings };
+function persist(markChange = true, skipCloudPush = false) {
+  if (!data.settings) data.settings = deepClone(defaults.settings);
   if (markChange) {
     data.settings.unsavedChangesCount = Number(data.settings.unsavedChangesCount || 0) + 1;
+    data.settings.stateUpdatedAt = Date.now();
     sessionHasUnsavedChanges = true;
   }
   safeStorageSet(KEY, JSON.stringify(data));
   updateBackupStatusUI();
+
+  if (markChange && !skipCloudPush && data.settings?.cloudSync?.enabled) {
+    scheduleCloudPush();
+  }
 }
+
+/* ==========================================================================
+   1A. LIVE CLOUD SYNC ROOM (FIREBASE RTDB + AES-256-GCM ZERO-KNOWLEDGE)
+   ========================================================================== */
+let cloudSyncStatus = "local"; // "local" | "syncing" | "synced" | "offline"
+let cloudPushTimer = null;
+let cloudPollTimer = null;
+let cachedCryptoContext = { cacheKey: "", roomHash: "", aesKey: null };
 
 function updateBackupStatusUI() {
   const btn = document.getElementById("backupStatusBtn");
   const detail = document.getElementById("backupStatusDetail");
   if (!btn) return;
 
+  const cloudCfg = data.settings?.cloudSync;
   const lastBackup = data.settings?.lastBackupAt;
   const unsaved = Number(data.settings?.unsavedChangesCount || 0);
 
-  if (lastBackup && unsaved === 0) {
-    const dt = new Date(lastBackup).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" });
+  if (cloudCfg?.enabled && cloudCfg.roomCode) {
+    if (cloudSyncStatus === "syncing") {
+      btn.className = "backup-pill syncing";
+      btn.textContent = "🔄 Συγχρονισμός...";
+      btn.title = "Γίνεται ασφαλής συγχρονισμός με το Cloud Sync Room...";
+    } else if (cloudSyncStatus === "offline") {
+      btn.className = "backup-pill warn";
+      btn.textContent = "📴 Εκτός σύνδεσης";
+      btn.title = "Χωρίς σύνδεση internet — οι αλλαγές αποθηκεύονται τοπικά και θα ανέβουν αυτόματα.";
+    } else {
+      btn.className = "backup-pill safe";
+      btn.textContent = "☁️ Συγχρονισμένο";
+      const syncDt = cloudCfg.lastSyncedAt
+        ? new Date(cloudCfg.lastSyncedAt).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })
+        : "Ενεργό";
+      btn.title = `Live Cloud Sync ενεργό (${cloudCfg.roomCode}) • Τελευταίος έλεγχος: ${syncDt}`;
+      if (detail) detail.textContent = `☁️ Live Cloud Sync (${cloudCfg.roomCode}) • Τελευταίος συγχρονισμός: ${syncDt}`;
+    }
+    return;
+  }
+
+  // Τοπική λειτουργία (χωρίς cloud): ήρεμη ένδειξη έως τις 15 αλλαγές
+  if (unsaved < 15) {
     btn.className = "backup-pill safe";
-    btn.textContent = "✓ Ασφαλές Backup";
-    btn.title = `Τελευταίο Backup: ${dt}`;
-    if (detail) detail.textContent = `Τελευταίο Backup: ${dt} (0 εκκρεμείς αλλαγές)`;
+    btn.textContent = "💾 Αποθηκευμένο τοπικά";
+    btn.title = "Τα δεδομένα αποθηκεύονται αυτόματα στον browser. Κλικ για Cloud Sync ή Backup JSON.";
+    if (detail) {
+      const lastStr = lastBackup ? new Date(lastBackup).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" }) : "Τοπικά στον browser";
+      detail.textContent = `Κατάσταση: ${lastStr} • Αλλαγές από τελευταίο JSON: ${unsaved}`;
+    }
   } else {
     btn.className = "backup-pill warn";
-    btn.textContent = unsaved > 0 ? `⚠️ Εκκρεμεί Backup (${unsaved})` : "⚠️ Εκκρεμεί Backup";
-    btn.title = "Έχουν γίνει αλλαγές που δεν έχουν εξαχθεί σε JSON. Κλικ για άμεσο Backup.";
+    btn.textContent = `⚠️ Προτείνεται Backup (${unsaved})`;
+    btn.title = "Έχουν γίνει 15+ αλλαγές. Κλικ για Cloud Sync ή εξαγωγή Backup JSON.";
     if (detail) {
       const lastStr = lastBackup ? new Date(lastBackup).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" }) : "Ποτέ";
-      detail.textContent = `Τελευταίο Backup: ${lastStr} • Μη αποθηκευμένες αλλαγές: ${unsaved}`;
+      detail.textContent = `Τελευταίο Backup JSON: ${lastStr} • Εκκρεμείς αλλαγές: ${unsaved}`;
     }
   }
 }
 
 function handleBackupPillClick() {
-  exportJSON();
+  if (data.settings?.cloudSync?.enabled) {
+    openCloudSyncModal();
+  } else {
+    openCloudSyncModal();
+  }
+}
+
+function bytesToBase64(bytes) {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) {
+    bin += String.fromCharCode(bytes[i]);
+  }
+  return btoa(bin);
+}
+
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    bytes[i] = bin.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function getRoomCryptoMaterial(roomCode, roomPin) {
+  const normRoom = String(roomCode || "").trim().toLowerCase();
+  const normPin = String(roomPin || "").trim();
+  const cacheKey = `${normRoom}::${normPin}`;
+  if (cachedCryptoContext.cacheKey === cacheKey && cachedCryptoContext.aesKey) {
+    return cachedCryptoContext;
+  }
+
+  const enc = new TextEncoder();
+  // 1. Παραγωγή SHA-256 roomHash (64 hex chars >= 24 chars για Firebase Security Rules)
+  const pathDigest = await crypto.subtle.digest("SHA-256", enc.encode(`FinanceGR-Room-v1:${normRoom}:${normPin}`));
+  const roomHash = Array.from(new Uint8Array(pathDigest)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  // 2. Παραγωγή AES-256-GCM κλειδιού μέσω PBKDF2
+  const saltDigest = await crypto.subtle.digest("SHA-256", enc.encode(`FinanceGR-Salt-v1:${normRoom}`));
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(normPin), "PBKDF2", false, ["deriveKey"]);
+  const aesKey = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: new Uint8Array(saltDigest), iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+
+  cachedCryptoContext = { cacheKey, roomHash, aesKey };
+  return cachedCryptoContext;
+}
+
+async function encryptSyncPayload(obj, aesKey) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(JSON.stringify(obj));
+  const cipherBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
+  return {
+    iv: bytesToBase64(iv),
+    ct: bytesToBase64(new Uint8Array(cipherBuf))
+  };
+}
+
+async function decryptSyncPayload(envelope, aesKey) {
+  if (!envelope || !envelope.iv || !envelope.ct) return null;
+  const iv = base64ToBytes(envelope.iv);
+  const ct = base64ToBytes(envelope.ct);
+  const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, ct);
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+
+function generateRandomRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const part = (n) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const inp = document.getElementById("syncRoomCodeInput");
+  if (inp) inp.value = `FG-${part(4)}-${part(4)}`;
+}
+
+function toggleSyncModeFields() {
+  const mode = document.getElementById("syncModeSelect")?.value || "solo";
+  const privWrap = document.getElementById("syncPrivacyWrap");
+  if (privWrap) privWrap.style.display = mode === "couple" ? "block" : "none";
+}
+
+function openCloudSyncModal() {
+  const cfg = data.settings?.cloudSync || {};
+  const connBox = document.getElementById("syncConnectedBox");
+  const discBox = document.getElementById("syncDisconnectedBox");
+
+  if (cfg.enabled && cfg.roomCode) {
+    if (connBox) connBox.style.display = "block";
+    if (discBox) discBox.style.display = "none";
+    document.getElementById("syncRoomStatusText").textContent =
+      `☁️ Συνδεδεμένο (${cfg.mode === "couple" ? "👫 Ζευγάρι" : "👤 Ατομικό Sync"})`;
+    const dtStr = cfg.lastSyncedAt
+      ? new Date(cfg.lastSyncedAt).toLocaleString("el-GR", { dateStyle: "short", timeStyle: "short" })
+      : "Μόλις τώρα";
+    document.getElementById("syncLastTimeText").textContent = `Τελευταίος συγχρονισμός: ${dtStr}`;
+    document.getElementById("connectedRoomCodeDisplay").value = cfg.roomCode;
+    const privSel = document.getElementById("connectedSyncPrivacySelect");
+    if (privSel) {
+      privSel.value = cfg.privacyScope || "sharedOnly";
+      privSel.disabled = cfg.mode !== "couple";
+    }
+  } else {
+    if (connBox) connBox.style.display = "none";
+    if (discBox) discBox.style.display = "block";
+    const codeInp = document.getElementById("syncRoomCodeInput");
+    if (codeInp && !codeInp.value) generateRandomRoomCode();
+    toggleSyncModeFields();
+  }
+
+  document.getElementById("cloudSyncModal").style.display = "flex";
+}
+
+function closeCloudSyncModal() {
+  document.getElementById("cloudSyncModal").style.display = "none";
+}
+
+function copyConnectedRoomCode() {
+  const val = document.getElementById("connectedRoomCodeDisplay")?.value || "";
+  if (!val) return;
+  const temp = document.createElement("textarea");
+  temp.value = val;
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  document.body.appendChild(temp);
+  temp.select();
+  try { document.execCommand("copy"); } catch {}
+  document.body.removeChild(temp);
+  showToast(`Ο κωδικός δωματίου ${val} αντιγράφηκε! 📋`);
+}
+
+function updateConnectedSyncPrivacy(newScope) {
+  if (!data.settings?.cloudSync) return;
+  data.settings.cloudSync.privacyScope = newScope;
+  persist(false);
+  pushCloudSyncNow(true);
+  showToast("Η ρύθμιση ιδιωτικότητας συγχρονισμού ενημερώθηκε.");
+}
+
+async function connectCloudSyncRoom() {
+  const roomCode = (document.getElementById("syncRoomCodeInput")?.value || "").trim().toUpperCase();
+  const roomPin = (document.getElementById("syncRoomPinInput")?.value || "").trim();
+  const mode = document.getElementById("syncModeSelect")?.value || "solo";
+  const privacyScope = mode === "couple"
+    ? (document.getElementById("syncPrivacySelect")?.value || "sharedOnly")
+    : "fullHousehold";
+
+  if (roomCode.length < 4) {
+    showModal("Εισήγαγε έναν Κωδικό Δωματίου (τουλάχιστον 4 χαρακτήρες).");
+    return;
+  }
+  if (roomPin.length < 4) {
+    showModal("Εισήγαγε ένα Μυστικό PIN (τουλάχιστον 4 ψηφία ή χαρακτήρες) για την κρυπτογράφηση.");
+    return;
+  }
+
+  cloudSyncStatus = "syncing";
+  updateBackupStatusUI();
+
+  try {
+    const { roomHash, aesKey } = await getRoomCryptoMaterial(roomCode, roomPin);
+    const resp = await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomHash}.json`);
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    const existingRoom = await resp.json();
+
+    // Αν υπάρχει ήδη δωμάτιο, ελέγχουμε αν αποκρυπτογραφείται σωστά με το PIN
+    if (existingRoom && existingRoom.members) {
+      const firstMemberEnvelope = Object.values(existingRoom.members)[0];
+      if (firstMemberEnvelope) {
+        try {
+          await decryptSyncPayload(firstMemberEnvelope, aesKey);
+        } catch {
+          cloudSyncStatus = "local";
+          updateBackupStatusUI();
+          showModal("Το δωμάτιο υπάρχει ήδη, αλλά το Μυστικό PIN που πληκτρολόγησες είναι λάθος.");
+          return;
+        }
+      }
+    }
+
+    data.settings.cloudSync = {
+      enabled: true,
+      roomCode,
+      roomPin,
+      mode,
+      privacyScope,
+      lastSyncedAt: new Date().toISOString()
+    };
+
+    // Πρώτα τραβάμε ό,τι υπάρχει στο cloud και μετά ανεβάζουμε τα δικά μας
+    if (existingRoom) {
+      await applyRemoteRoomSnapshot(existingRoom, aesKey);
+    }
+    await pushCloudSyncNow(true);
+
+    startCloudSyncPolling();
+    closeCloudSyncModal();
+    render();
+    showToast("Το Live Cloud Sync συνδέθηκε με επιτυχία! ☁️");
+  } catch (err) {
+    console.error("Cloud sync connect error:", err);
+    cloudSyncStatus = "offline";
+    updateBackupStatusUI();
+    showModal("Δεν ήταν δυνατή η σύνδεση με τη βάση συγχρονισμού. Έλεγξε τη σύνδεσή σου στο internet ή τους κανόνες ασφαλείας της Firebase.");
+  }
+}
+
+function scheduleCloudPush() {
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => {
+    pushCloudSyncNow(true);
+  }, 800);
+}
+
+async function pushCloudSyncNow(silent = true) {
+  const cfg = data.settings?.cloudSync;
+  if (!cfg?.enabled || !cfg.roomCode || !cfg.roomPin) return;
+
+  cloudSyncStatus = "syncing";
+  updateBackupStatusUI();
+
+  try {
+    const { roomHash, aesKey } = await getRoomCryptoMaterial(cfg.roomCode, cfg.roomPin);
+    const myDevId = data.settings.deviceId;
+    const myName = getDisplayUserName();
+    const myIncome = Math.max(0, Number(data.profile?.monthlyIncome) || 0);
+    const nowTs = Date.now();
+
+    const patchBody = {};
+    patchBody[`members/${myDevId}`] = await encryptSyncPayload({
+      deviceId: myDevId,
+      name: myName,
+      monthlyIncome: myIncome,
+      mode: cfg.mode,
+      updatedAt: nowTs
+    }, aesKey);
+
+    // Ανέβασμα συναλλαγών ανά ID ώστε να μη συγκρούονται οι εγγραφές
+    const isCoupleSharedOnly = cfg.mode === "couple" && cfg.privacyScope === "sharedOnly";
+    for (const tx of data.transactions || []) {
+      if ((tx.owner || "me") !== "me") continue;
+      if (isCoupleSharedOnly && !tx.isShared) continue;
+      const txPayload = {
+        ...deepClone(tx),
+        _originDeviceId: myDevId,
+        _originName: myName,
+        _updatedAt: tx._updatedAt || nowTs
+      };
+      patchBody[`txs/${tx.id}`] = await encryptSyncPayload(txPayload, aesKey);
+    }
+
+    // Ανέβασμα διαγραφών (tombstones)
+    for (const [delId, delTs] of Object.entries(data.deletedTxIds || {})) {
+      patchBody[`txs/${delId}`] = await encryptSyncPayload({
+        id: delId,
+        _deleted: true,
+        _originDeviceId: myDevId,
+        _updatedAt: delTs
+      }, aesKey);
+    }
+
+    // Σε Solo mode ή Full Household mode, συγχρονίζουμε και ρυθμίσεις/στόχους/χαρτοφυλάκιο
+    if (!isCoupleSharedOnly) {
+      patchBody["sharedState"] = await encryptSyncPayload({
+        profile: data.profile,
+        portfolioAssets: data.portfolioAssets,
+        portfolioCash: data.portfolioCash,
+        budgets: data.budgets,
+        recurring: data.recurring,
+        annualBills: data.annualBills,
+        goals: data.goals,
+        merchantRules: data.merchantRules,
+        updatedAt: data.settings.stateUpdatedAt || nowTs
+      }, aesKey);
+    }
+
+    const resp = await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomHash}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchBody)
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    data.settings.cloudSync.lastSyncedAt = new Date().toISOString();
+    cloudSyncStatus = "synced";
+    persist(false, true);
+    if (!silent) showToast("Ο συγχρονισμός ολοκληρώθηκε! ☁️");
+  } catch (err) {
+    console.warn("Cloud push error:", err);
+    cloudSyncStatus = "offline";
+    updateBackupStatusUI();
+    if (!silent) showToast("Εκτός σύνδεσης — οι αλλαγές θα ανέβουν μόλις βρεθεί internet.");
+  }
+}
+
+async function applyRemoteRoomSnapshot(roomObj, aesKey) {
+  if (!roomObj || typeof roomObj !== "object") return false;
+  const myDevId = data.settings.deviceId;
+  const cfg = data.settings.cloudSync;
+  let hasChanges = false;
+
+  // 1. Ανάγνωση μελών δωματίου (για αυτόματο εντοπισμό ονόματος & εισοδήματος συντρόφου)
+  if (roomObj.members && cfg.mode === "couple") {
+    for (const [devId, env] of Object.entries(roomObj.members)) {
+      if (devId === myDevId) continue;
+      try {
+        const memberInfo = await decryptSyncPayload(env, aesKey);
+        if (memberInfo) {
+          if (memberInfo.name && memberInfo.name !== "Εσύ" && data.profile.partnerName !== memberInfo.name) {
+            data.profile.partnerName = memberInfo.name;
+            hasChanges = true;
+          }
+          if (Number(memberInfo.monthlyIncome) > 0 && Number(data.profile.partnerIncome) !== Number(memberInfo.monthlyIncome)) {
+            data.profile.partnerIncome = Number(memberInfo.monthlyIncome);
+            hasChanges = true;
+          }
+        }
+      } catch {
+        // Skip invalid envelope
+      }
+    }
+  }
+
+  // 2. Ανάγνωση & συγχώνευση συναλλαγών ανά ID
+  if (roomObj.txs && typeof roomObj.txs === "object") {
+    const split = getCoupleSplit();
+    const localMap = new Map((data.transactions || []).map(t => [t.id, t]));
+
+    for (const [txId, env] of Object.entries(roomObj.txs)) {
+      try {
+        const remoteTx = await decryptSyncPayload(env, aesKey);
+        if (!remoteTx) continue;
+
+        if (remoteTx._deleted) {
+          if (localMap.has(txId)) {
+            localMap.delete(txId);
+            data.deletedTxIds[txId] = remoteTx._updatedAt || Date.now();
+            hasChanges = true;
+          }
+          continue;
+        }
+
+        if (data.deletedTxIds && data.deletedTxIds[txId]) continue;
+
+        const isFromMe = remoteTx._originDeviceId === myDevId || cfg.mode === "solo";
+        const existingLocal = localMap.get(txId);
+        const remoteTs = Number(remoteTx._updatedAt) || 0;
+        const localTs = Number(existingLocal?._updatedAt) || 0;
+
+        if (!existingLocal || remoteTs > localTs) {
+          if (isFromMe) {
+            const cleanTx = { ...remoteTx, owner: "me" };
+            delete cleanTx._originDeviceId;
+            delete cleanTx._originName;
+            localMap.set(txId, cleanTx);
+          } else {
+            // Perspective Flip για κινήσεις συντρόφου
+            let flippedPaidBy = remoteTx.paidBy || "me";
+            if (flippedPaidBy === "me") flippedPaidBy = "partner";
+            else if (flippedPaidBy === "partner") flippedPaidBy = "me";
+
+            const isShared = Boolean(remoteTx.isShared);
+            const fullBill = Number(remoteTx.totalBillAmount) || Number(remoteTx.amount) || 0;
+            const myShare = (isShared && remoteTx.type === "expense")
+              ? Number(((fullBill * split.myPct) / 100).toFixed(2))
+              : (Number(remoteTx.amount) || 0);
+
+            const partnerTx = {
+              ...remoteTx,
+              owner: "partner",
+              amount: myShare,
+              isShared,
+              totalBillAmount: isShared ? fullBill : undefined,
+              userSharePct: isShared ? split.myPct : undefined,
+              paidBy: isShared ? flippedPaidBy : undefined,
+              settled: isShared ? (flippedPaidBy === "split" ? true : Boolean(remoteTx.settled)) : false
+            };
+            delete partnerTx._originDeviceId;
+            delete partnerTx._originName;
+            localMap.set(txId, partnerTx);
+          }
+          hasChanges = true;
+        }
+      } catch {
+        // Ignore corrupted entry
+      }
+    }
+
+    if (hasChanges) {
+      data.transactions = Array.from(localMap.values());
+    }
+  }
+
+  // 3. Ανάγνωση sharedState (σε Solo mode ή Full Household mode)
+  const isCoupleSharedOnly = cfg.mode === "couple" && cfg.privacyScope === "sharedOnly";
+  if (!isCoupleSharedOnly && roomObj.sharedState) {
+    try {
+      const remoteShared = await decryptSyncPayload(roomObj.sharedState, aesKey);
+      const remoteStateTs = Number(remoteShared?.updatedAt) || 0;
+      const localStateTs = Number(data.settings?.stateUpdatedAt) || 0;
+
+      if (remoteShared && remoteStateTs > localStateTs) {
+        if (remoteShared.profile) data.profile = { ...data.profile, ...remoteShared.profile };
+        if (Array.isArray(remoteShared.portfolioAssets)) data.portfolioAssets = remoteShared.portfolioAssets;
+        if (Number.isFinite(Number(remoteShared.portfolioCash))) data.portfolioCash = Number(remoteShared.portfolioCash);
+        if (remoteShared.budgets) data.budgets = { ...data.budgets, ...remoteShared.budgets };
+        if (Array.isArray(remoteShared.recurring)) data.recurring = remoteShared.recurring;
+        if (Array.isArray(remoteShared.annualBills)) data.annualBills = remoteShared.annualBills;
+        if (Array.isArray(remoteShared.goals)) data.goals = remoteShared.goals;
+        if (remoteShared.merchantRules) data.merchantRules = { ...data.merchantRules, ...remoteShared.merchantRules };
+        data.settings.stateUpdatedAt = remoteStateTs;
+        hasChanges = true;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return hasChanges;
+}
+
+async function pullCloudSyncNow(silent = true) {
+  const cfg = data.settings?.cloudSync;
+  if (!cfg?.enabled || !cfg.roomCode || !cfg.roomPin) return;
+
+  try {
+    const { roomHash, aesKey } = await getRoomCryptoMaterial(cfg.roomCode, cfg.roomPin);
+    const resp = await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomHash}.json`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const roomObj = await resp.json();
+
+    const changed = await applyRemoteRoomSnapshot(roomObj, aesKey);
+    data.settings.cloudSync.lastSyncedAt = new Date().toISOString();
+    cloudSyncStatus = "synced";
+    persist(false, true);
+
+    if (changed) {
+      render();
+      if (!silent) showToast("Ενημερώθηκαν νέα δεδομένα από το Cloud Sync! ☁️");
+    } else if (!silent) {
+      showToast("Όλα είναι ήδη συγχρονισμένα! ☁️");
+    }
+  } catch (err) {
+    console.warn("Cloud pull error:", err);
+    cloudSyncStatus = "offline";
+    updateBackupStatusUI();
+  }
+}
+
+async function manualCloudSyncNow() {
+  await pullCloudSyncNow(true);
+  await pushCloudSyncNow(false);
+  openCloudSyncModal();
+}
+
+function startCloudSyncPolling() {
+  clearInterval(cloudPollTimer);
+  const cfg = data.settings?.cloudSync;
+  if (!cfg?.enabled || !cfg.roomCode) return;
+
+  cloudPollTimer = setInterval(() => {
+    if (document.visibilityState === "visible") {
+      pullCloudSyncNow(true);
+    }
+  }, 12000);
+}
+
+async function disconnectCloudSync(deleteFromCloud = false) {
+  const cfg = data.settings?.cloudSync;
+  if (!cfg?.enabled) return;
+
+  const confirmMsg = deleteFromCloud
+    ? "ΠΡΟΣΟΧΗ: Θα διαγραφούν οριστικά τα κρυπτογραφημένα δεδομένα του δωματίου από το cloud (τα τοπικά σου δεδομένα στη συσκευή θα παραμείνουν). Συνέχεια;"
+    : "Θέλεις να αποσυνδέσεις αυτή τη συσκευή από το Live Cloud Sync Room;";
+
+  showModal(confirmMsg, true, async (ok) => {
+    if (!ok) return;
+    if (deleteFromCloud && cfg.roomCode && cfg.roomPin) {
+      try {
+        const { roomHash } = await getRoomCryptoMaterial(cfg.roomCode, cfg.roomPin);
+        await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomHash}.json`, { method: "DELETE" });
+      } catch {
+        // Ignore network failure on delete
+      }
+    }
+
+    clearInterval(cloudPollTimer);
+    data.settings.cloudSync = deepClone(defaults.settings.cloudSync);
+    cloudSyncStatus = "local";
+    persist(false, true);
+    closeCloudSyncModal();
+    render();
+    showToast(deleteFromCloud ? "Το δωμάτιο διαγράφηκε από το cloud. 🗑️" : "Αποσυνδεθήκατε από το Cloud Sync. 🔓");
+  }, "Αποσύνδεση Cloud Sync");
 }
 
 /* ==========================================================================
@@ -3790,7 +4566,7 @@ function filterTransactionsForRange(startIso, endIso, useCycleOverride = false) 
 }
 
 function setPeriodMode(mode) {
-  if (!data.settings) data.settings = { ...defaults.settings };
+  if (!data.settings) data.settings = deepClone(defaults.settings);
   data.settings.periodMode = mode === "cycle" ? "cycle" : "month";
   if (data.settings.periodMode === "cycle") {
     data.settings.selectedCycleIndex = 0;
@@ -3830,19 +4606,33 @@ function shiftTransactionToNextCycle(txId) {
 
   if (tx.cycleOverrideDate) {
     delete tx.cycleOverrideDate;
+    tx._updatedAt = Date.now();
     persist();
     render();
     showToast("Η συναλλαγή επανήλθε στην αρχική της ημερομηνία.");
   } else {
     tx.cycleOverrideDate = addDaysIso(ctx.end, 1);
+    tx._updatedAt = Date.now();
     persist();
     render();
     showToast(`Μεταφέρθηκε στον επόμενο κύκλο (${formatShortGrDate(tx.cycleOverrideDate)})! ⏭️`);
   }
 }
 
+function markTransactionAsSalary(txId) {
+  const tx = data.transactions.find(t => t.id === txId);
+  if (!tx || tx.type !== "income") return;
+  tx.category = "Μισθός";
+  tx._updatedAt = Date.now();
+  data.settings.periodMode = "cycle";
+  data.settings.selectedCycleIndex = 0;
+  persist();
+  render();
+  showToast(`Ορίστηκε ως Μισθός (${formatShortGrDate(tx.date)}) και ενεργοποιήθηκε ο Κύκλος Μισθοδοσίας! 📌`);
+}
+
 /* ==========================================================================
-   1C. ΥΠΟΛΟΓΙΣΜΟΣ ΠΟΣΟΣΤΙΑΙΑΣ ΑΝΑΛΟΓΙΑΣ ΖΕΥΓΑΡΙΟΥ (COUPLE SPLIT ENGINE)
+   1C. ΥΠΟΛΟΓΙΣΜΟΣ ΠΟΣΟΣΤΙΑΙΑΣ ΑΝΑΛΟΓΙΑΣ & ΕΝΟΠΟΙΗΣΗΣ ΖΕΥΓΑΡΙΟΥ
    ========================================================================== */
 function getDisplayUserName() {
   const raw = (data.profile?.userName || "").trim();
@@ -3854,7 +4644,7 @@ function getCoupleSplit() {
   const userName = getDisplayUserName();
   const myIncome = Math.max(0, Number(p.monthlyIncome) || 0);
   const partnerIncome = Math.max(0, Number(p.partnerIncome) || 0);
-  const hasPartner = partnerIncome > 0;
+  const hasPartner = partnerIncome > 0 || Boolean((p.partnerName || "").trim());
   const totalIncome = hasPartner ? (myIncome + partnerIncome) : myIncome;
   const partnerName = (p.partnerName && String(p.partnerName).trim()) ? String(p.partnerName).trim() : "Σύντροφος";
   const splitMode = p.splitMode || "auto";
@@ -3894,6 +4684,319 @@ function getCoupleSplit() {
   };
 }
 
+// Διορθωμένο: Στην προβολή "🏠 Όλο το Νοικοκυριό", τα κοινά έξοδα αθροίζονται στο 100% της απόδειξης!
+function getEffectiveTxAmountForMemberView(t, memberView, split) {
+  const baseAmt = Number(t.amount) || 0;
+  if (!split.hasPartner) return baseAmt;
+
+  if (memberView === "all") {
+    if (t.isShared && t.type === "expense") {
+      return Number(t.totalBillAmount) || baseAmt;
+    }
+    return baseAmt;
+  }
+  if (memberView === "me") {
+    return baseAmt;
+  }
+  if (memberView === "shared") {
+    return t.isShared ? (Number(t.totalBillAmount) || baseAmt) : 0;
+  }
+  if (memberView === "partner") {
+    if (t.isShared && t.type === "expense") {
+      const fullBill = Number(t.totalBillAmount) || baseAmt;
+      return Math.max(0, Number((fullBill - baseAmt).toFixed(2)));
+    }
+    return t.owner === "partner" ? baseAmt : 0;
+  }
+  return baseAmt;
+}
+
+function filterTransactionsByMemberView(txs, memberView, split) {
+  if (!split.hasPartner || !memberView || memberView === "all") return txs;
+  if (memberView === "me") {
+    return txs.filter(t => (t.owner || "me") === "me" || t.isShared);
+  }
+  if (memberView === "partner") {
+    return txs.filter(t => t.owner === "partner" || t.isShared);
+  }
+  if (memberView === "shared") {
+    return txs.filter(t => Boolean(t.isShared));
+  }
+  return txs;
+}
+
+function setMemberViewFilter(viewKey) {
+  const allowed = ["all", "me", "partner", "shared"];
+  const nextVal = allowed.includes(viewKey) ? viewKey : "all";
+  if (!data.settings) data.settings = deepClone(defaults.settings);
+  data.settings.memberViewFilter = nextVal;
+
+  document.querySelectorAll("#memberViewFilterBar .chip-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mview === nextVal);
+  });
+  const filterOwnerSel = document.getElementById("filterOwner");
+  if (filterOwnerSel) filterOwnerSel.value = nextVal;
+
+  persist(false);
+  render();
+}
+
+function openCoupleMergeModal() {
+  const pasteArea = document.getElementById("coupleMergePasteArea");
+  if (pasteArea) pasteArea.value = "";
+  const fileInp = document.getElementById("coupleMergeFileInput");
+  if (fileInp) fileInp.value = "";
+  updateCoupleExportSummary();
+  const modal = document.getElementById("coupleMergeModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeCoupleMergeModal() {
+  const modal = document.getElementById("coupleMergeModal");
+  if (modal) modal.style.display = "none";
+}
+
+function buildPartnerExportObject() {
+  const scope = document.getElementById("coupleExportScopeSelect")?.value || "sharedOnly";
+  const myTxs = (data.transactions || []).filter(t => (t.owner || "me") === "me");
+  const selectedTxs = scope === "sharedOnly"
+    ? myTxs.filter(t => Boolean(t.isShared))
+    : myTxs;
+
+  return {
+    type: "financegr-couple-sync",
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    scope,
+    sender: {
+      name: getDisplayUserName(),
+      monthlyIncome: Math.max(0, Number(data.profile?.monthlyIncome) || 0)
+    },
+    transactions: selectedTxs.map(t => ({
+      ...deepClone(t),
+      owner: "me"
+    }))
+  };
+}
+
+function updateCoupleExportSummary() {
+  const badge = document.getElementById("coupleExportCountBadge");
+  if (!badge) return;
+  const payload = buildPartnerExportObject();
+  badge.innerHTML = `Θα σταλούν <strong>${payload.transactions.length}</strong> κινήσεις`;
+}
+
+async function exportPartnerMergeFile() {
+  const payload = buildPartnerExportObject();
+  if (payload.transactions.length === 0) {
+    showModal("Δεν βρέθηκαν συναλλαγές για εξαγωγή με αυτή την επιλογή. Βεβαιώσου ότι έχεις σημειώσει τα κοινά έξοδα με «👫 Κοινό».");
+    return;
+  }
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const safeUser = sanitizeFilenamePart(data.profile?.userName) || "Partner";
+  const filename = `FinanceGR-Couple-${safeUser}-${formatFriendlyDate()}.json`;
+
+  try {
+    const file = new File([jsonStr], filename, { type: "application/json" });
+    if (typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `FinanceGR — Κινήσεις από ${payload.sender.name}`,
+        text: "Αρχείο ενοποίησης εξόδων FinanceGR",
+        files: [file]
+      });
+      return;
+    }
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+  }
+
+  downloadFile(jsonStr, filename, "application/json");
+  showToast(`Εξήχθη το αρχείο ενοποίησης (${payload.transactions.length} κινήσεις)! 📤`);
+}
+
+function copyPartnerMergePayload() {
+  const payload = buildPartnerExportObject();
+  if (payload.transactions.length === 0) {
+    showModal("Δεν υπάρχουν κινήσεις για αντιγραφή. Σημείωσε πρώτα κάποια έξοδα ως «👫 Κοινό» ή επίλεξε «Πλήρης Εικόνα».");
+    return;
+  }
+  const jsonStr = JSON.stringify(payload);
+  const temp = document.createElement("textarea");
+  temp.value = jsonStr;
+  temp.style.position = "fixed";
+  temp.style.opacity = "0";
+  document.body.appendChild(temp);
+  temp.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(temp);
+
+  if (ok) {
+    showToast(`Αντιγράφηκαν ${payload.transactions.length} κινήσεις! Επικόλλησέ τες σε μήνυμα στον σύντροφό σου. 📋`);
+  } else {
+    showModal("Δεν ήταν δυνατή η αυτόματη αντιγραφή. Χρησιμοποίησε «📤 Αποστολή / Λήψη Αρχείου».");
+  }
+}
+
+function handleCoupleMergeFileUpload(event) {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    processPartnerMergeRawText(reader.result);
+  };
+  reader.readAsText(file);
+}
+
+function importPartnerMergeFromText() {
+  const raw = (document.getElementById("coupleMergePasteArea")?.value || "").trim();
+  if (!raw) {
+    showModal("Επίλεξε ένα αρχείο JSON ή επικόλλησε πρώτα τον κωδικό ενοποίησης του συντρόφου.");
+    return;
+  }
+  processPartnerMergeRawText(raw);
+}
+
+function processPartnerMergeRawText(rawText) {
+  try {
+    const incoming = JSON.parse(rawText);
+    const incomingTxs = Array.isArray(incoming.transactions) ? incoming.transactions : null;
+    if (!incomingTxs) {
+      throw new Error("Invalid format");
+    }
+
+    const senderName = (incoming.sender?.name || incoming.profile?.userName || "").trim();
+    const senderIncome = Math.max(0, Number(incoming.sender?.monthlyIncome ?? incoming.profile?.monthlyIncome) || 0);
+
+    if (senderName && senderName !== "Εσύ" && !(data.profile.partnerName || "").trim()) {
+      data.profile.partnerName = senderName;
+    }
+    if (senderIncome > 0 && (Number(data.profile.partnerIncome) || 0) <= 0) {
+      data.profile.partnerIncome = senderIncome;
+    }
+    if (!data.profile.partnerName && (Number(data.profile.partnerIncome) || 0) > 0) {
+      data.profile.partnerName = senderName || "Σύντροφος";
+    }
+
+    const split = getCoupleSplit();
+    const existingIds = new Set((data.transactions || []).map(t => t.id));
+    let mergedCount = 0;
+    let skippedDupCount = 0;
+
+    incomingTxs.forEach(rawTx => {
+      if (!rawTx || !rawTx.date) return;
+
+      if (rawTx.id && existingIds.has(rawTx.id)) {
+        skippedDupCount++;
+        return;
+      }
+
+      const incomingAmt = Number(rawTx.amount) || 0;
+      const incomingFullBill = Number(rawTx.totalBillAmount) || incomingAmt;
+      const isShared = Boolean(rawTx.isShared);
+
+      if (isShared) {
+        const alreadyHaveReceipt = (data.transactions || []).some(localTx => {
+          if (!localTx.isShared) return false;
+          const localFull = Number(localTx.totalBillAmount) || Number(localTx.amount) || 0;
+          const sameTotal = Math.abs(localFull - incomingFullBill) < 0.05;
+          const closeDate = Math.abs(diffDaysIso(localTx.date, rawTx.date)) <= 1;
+          const sameDesc = areDescriptionsSimilar(localTx.description || localTx.category, rawTx.description || rawTx.category);
+          return sameTotal && closeDate && sameDesc;
+        });
+        if (alreadyHaveReceipt) {
+          skippedDupCount++;
+          return;
+        }
+      }
+
+      let flippedPaidBy = rawTx.paidBy || "me";
+      if (flippedPaidBy === "me") flippedPaidBy = "partner";
+      else if (flippedPaidBy === "partner") flippedPaidBy = "me";
+
+      let myShareAmt = incomingAmt;
+      if (isShared && rawTx.type === "expense") {
+        myShareAmt = Number(((incomingFullBill * split.myPct) / 100).toFixed(2));
+      }
+
+      const mergedTx = {
+        ...deepClone(rawTx),
+        id: rawTx.id || generateId("tx"),
+        owner: "partner",
+        amount: myShareAmt,
+        isShared,
+        totalBillAmount: isShared ? incomingFullBill : undefined,
+        userSharePct: isShared ? split.myPct : undefined,
+        paidBy: isShared ? flippedPaidBy : undefined,
+        settled: isShared ? (flippedPaidBy === "split" ? true : Boolean(rawTx.settled)) : false,
+        _updatedAt: Date.now()
+      };
+
+      data.transactions.push(mergedTx);
+      existingIds.add(mergedTx.id);
+      mergedCount++;
+    });
+
+    persist(true);
+    closeCoupleMergeModal();
+    render();
+
+    const pLabel = data.profile.partnerName || "Σύντροφο";
+    showModal(
+      `Η ενοποίηση με τον/την ${pLabel} ολοκληρώθηκε!\n\n` +
+      `• Προστέθηκαν: ${mergedCount} νέες συναλλαγές\n` +
+      `• Παραλείφθηκαν: ${skippedDupCount} διπλοεγγραφές`,
+      false,
+      null,
+      "🤝 Ενοποίηση Ολοκληρώθηκε"
+    );
+  } catch {
+    showModal("Το αρχείο ή ο κωδικός που δόθηκε δεν είναι έγκυρο πακέτο ενοποίησης FinanceGR.");
+  }
+}
+
+function unlinkPartnerSeparation() {
+  const split = getCoupleSplit();
+  if (!split.hasPartner) return;
+
+  showModal(
+    `Θέλεις σίγουρα να αποσυνδέσεις τον/την ${split.partnerName};\n\n` +
+    `• Θα διατηρηθούν όλες οι δικές σου συναλλαγές και το δικό σου μερίδιο από τα παλιά κοινά έξοδα.\n` +
+    `• Θα αφαιρεθούν οι ατομικές κινήσεις του/της ${split.partnerName} και το προφίλ θα επανέλθει σε 100% ατομικό.`,
+    true,
+    (confirmed) => {
+      if (!confirmed) return;
+
+      data.transactions = (data.transactions || [])
+        .filter(t => !(t.owner === "partner" && !t.isShared))
+        .map(t => {
+          if (t.isShared) {
+            const copy = { ...t, isShared: false, owner: "me", _updatedAt: Date.now() };
+            delete copy.totalBillAmount;
+            delete copy.userSharePct;
+            delete copy.paidBy;
+            delete copy.settled;
+            return copy;
+          }
+          return { ...t, owner: "me" };
+        });
+
+      data.profile.partnerName = "";
+      data.profile.partnerIncome = 0;
+      data.settings.memberViewFilter = "all";
+
+      persist(true);
+      render();
+      showToast("Το προφίλ επανήλθε σε 100% ατομική διαχείριση. 🔓");
+    },
+    "🔓 Διαχωρισμός & Αποσύνδεση"
+  );
+}
+
 function previewProfileSplit() {
   const uName = (document.getElementById("userName")?.value || "").trim() || "Εσύ";
   const myInc = Math.max(0, Number(document.getElementById("monthlyIncome")?.value) || 0);
@@ -3903,10 +5006,15 @@ function previewProfileSplit() {
   const customWrap = document.getElementById("customSplitInputWrap");
   if (customWrap) customWrap.style.display = (partInc > 0 && mode === "custom") ? "block" : "none";
 
+  const unlinkBtn = document.getElementById("unlinkPartnerSettingsBtn");
+  if (unlinkBtn) {
+    unlinkBtn.style.display = (partInc > 0 || Boolean((document.getElementById("partnerName")?.value || "").trim())) ? "inline-flex" : "none";
+  }
+
   const previewEl = document.getElementById("profileSplitPreviewText");
   if (!previewEl) return;
 
-  if (partInc <= 0) {
+  if (partInc <= 0 && !(document.getElementById("partnerName")?.value || "").trim()) {
     previewEl.textContent = `Ατομική λειτουργία: Εμφανίζεται μόνο ${uName} (100% — ${money(myInc)}).`;
     return;
   }
@@ -3993,6 +5101,7 @@ function settleCoupleBalance() {
       data.transactions.forEach(t => {
         if (t.isShared && !t.settled) {
           t.settled = true;
+          t._updatedAt = Date.now();
         }
       });
       persist();
@@ -4016,8 +5125,9 @@ function toggleTransactionShared(txId) {
     tx.totalBillAmount = fullBill;
     tx.userSharePct = split.myPct;
     tx.amount = myShare;
-    tx.paidBy = "me";
+    tx.paidBy = (tx.owner === "partner") ? "partner" : "me";
     tx.settled = false;
+    tx._updatedAt = Date.now();
     persist();
     render();
     showToast(`Μετατράπηκε σε Κοινό Έξοδο (${split.myPct}%): Το μερίδιό σου είναι ${money(myShare)} από ${money(fullBill)}!`);
@@ -4025,6 +5135,7 @@ function toggleTransactionShared(txId) {
     const restoredAmount = Number(tx.totalBillAmount) || Number(tx.amount) || 0;
     tx.amount = restoredAmount;
     tx.isShared = false;
+    tx._updatedAt = Date.now();
     delete tx.totalBillAmount;
     delete tx.userSharePct;
     delete tx.paidBy;
@@ -4074,26 +5185,29 @@ function renderCoupleSplitPanel(periodTransactions) {
   const multiView = document.getElementById("coupleMultiView");
 
   if (!split.hasPartner) {
-    if (soloView) soloView.style.display = "block";
+    if (soloView) soloView.style.display = "flex";
     if (multiView) multiView.style.display = "none";
 
     const soloTitle = document.getElementById("soloPanelTitle");
-    if (soloTitle) soloTitle.textContent = `👤 Οικονομική Εικόνα — ${split.userName}`;
+    if (soloTitle) soloTitle.textContent = `👤 ${split.userName}`;
     const soloLabel = document.getElementById("soloLabelMe");
-    if (soloLabel) soloLabel.textContent = `${split.userName}: 100% (${money(split.myIncome)})`;
+    if (soloLabel) soloLabel.textContent = `Εισόδημα: ${money(split.myIncome)}`;
     const soloPayBadge = document.getElementById("soloPaydayBadge");
-    if (soloPayBadge) soloPayBadge.textContent = `Τυπική πληρωμή: ${p.typicalPayday || 25}η του μήνα`;
-    const soloInc = document.getElementById("soloIncomeVal");
-    if (soloInc) soloInc.textContent = money(split.myIncome);
-    const soloEss = document.getElementById("soloEssentialVal");
-    if (soloEss) soloEss.textContent = money(p.essentialExpenses || 0);
-    const soloSav = document.getElementById("soloSavingGoalVal");
-    if (soloSav) soloSav.textContent = money(p.savingGoal || 0);
+    if (soloPayBadge) soloPayBadge.textContent = `Πληρωμή: ${p.typicalPayday || 25}η του μήνα`;
     return;
   }
 
   if (soloView) soloView.style.display = "none";
   if (multiView) multiView.style.display = "block";
+
+  const activeMView = data.settings?.memberViewFilter || "all";
+  const btnMe = document.getElementById("mviewBtnMe");
+  const btnPartner = document.getElementById("mviewBtnPartner");
+  if (btnMe) btnMe.textContent = `👤 ${split.userName}`;
+  if (btnPartner) btnPartner.textContent = `👤 ${split.partnerName}`;
+  document.querySelectorAll("#memberViewFilterBar .chip-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mview === activeMView);
+  });
 
   const barMe = document.getElementById("coupleBarMe");
   const barPartner = document.getElementById("coupleBarPartner");
@@ -4193,11 +5307,11 @@ function openWelcomeSetupModal() {
   document.getElementById("onboardSavingGoal").value = p.savingGoal || "";
   document.getElementById("onboardReserveGoal").value = p.reserveGoal || "";
 
-  const hasPartner = (Number(p.partnerIncome) || 0) > 0;
+  const hasPartner = (Number(p.partnerIncome) || 0) > 0 || Boolean((p.partnerName || "").trim());
   const partnerChk = document.getElementById("onboardHasPartner");
   if (partnerChk) partnerChk.checked = hasPartner;
   document.getElementById("onboardPartnerName").value = p.partnerName || "";
-  document.getElementById("onboardPartnerIncome").value = hasPartner ? p.partnerIncome : "";
+  document.getElementById("onboardPartnerIncome").value = (Number(p.partnerIncome) || 0) > 0 ? p.partnerIncome : "";
   toggleOnboardPartnerFields();
 
   document.getElementById("welcomeSetupModal").style.display = "flex";
@@ -4238,7 +5352,7 @@ function saveWelcomeSetup() {
   const pName = hasPartner ? (document.getElementById("onboardPartnerName")?.value || "").trim() : "";
 
   data.profile.partnerIncome = pInc;
-  data.profile.partnerName = pInc > 0 ? pName : "";
+  data.profile.partnerName = (pInc > 0 || pName) ? pName : "";
 
   data.settings.onboardingCompleted = true;
   closeWelcomeSetupModal(false);
@@ -4283,7 +5397,7 @@ function renderFirstUseGuide() {
 
   const step1Done = Boolean(data.settings?.onboardingCompleted || uName);
   const step2Done = Array.isArray(data.transactions) && data.transactions.length > 0;
-  const step3Done = Array.isArray(data.goals) && data.goals.length > 0 && step2Done;
+  const step3Done = Boolean(data.settings?.cloudSync?.enabled);
 
   const b1 = document.getElementById("step1Badge");
   const b2 = document.getElementById("step2Badge");
@@ -4295,7 +5409,7 @@ function renderFirstUseGuide() {
 }
 
 /* ==========================================================================
-2. ΒΟΗΘΗΤΙΚΕΣ ΣΥΝΑΡΤΗΣΕΙΣ (ΗΜΕΡΟΜΗΝΙΕΣ, ΝΟΜΙΣΜΑ, MODAL & TOAST)
+2. ΒΟΗΘΗΤΙΚΕΣ ΣΥΝΑΡΤΗΣΕΙΣ (ΗΜΕΡΟΜΗΝΙΕΣ, ΝΟΜΙΣΜΑ, MODAL, DRILL-DOWN & TOAST)
    ========================================================================== */
 function money(value) {
   return new Intl.NumberFormat("el-GR", {
@@ -4401,6 +5515,10 @@ function switchWorkspaceTab(tabId) {
     sec.style.display = allowed.includes(tabId) ? "" : "none";
   });
 
+  if (tabId === "budget") {
+    applyBudgetSubFilter();
+  }
+
   if (window.innerWidth <= 640) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4412,6 +5530,43 @@ function switchWorkspaceTab(tabId) {
     renderFirstUseGuide();
     renderCharts();
   }
+}
+
+function setBudgetSubFilter(subKey) {
+  if (!data.settings) data.settings = deepClone(defaults.settings);
+  data.settings.budgetSubFilter = subKey || "all";
+  persist(false);
+  applyBudgetSubFilter();
+}
+
+function applyBudgetSubFilter() {
+  const activeSub = data.settings?.budgetSubFilter || "all";
+  document.querySelectorAll("#budgetSubFilterBar .chip-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.bsub === activeSub);
+  });
+  document.querySelectorAll("[data-bsub-group]").forEach(el => {
+    const grp = el.dataset.bsubGroup;
+    el.style.display = (activeSub === "all" || activeSub === grp) ? "" : "none";
+  });
+}
+
+function drillDownToTransactions({ category = "all", search = "" } = {}) {
+  switchWorkspaceTab("daily");
+  const scopeEl = document.getElementById("filterScope");
+  const typeEl = document.getElementById("filterType");
+  const catEl = document.getElementById("filterCategory");
+  const searchEl = document.getElementById("filterSearch");
+  const srcEl = document.getElementById("filterSource");
+  const unexpEl = document.getElementById("filterOnlyUnexpected");
+
+  if (scopeEl) scopeEl.value = "selectedPeriod";
+  if (typeEl) typeEl.value = "expense";
+  if (srcEl) srcEl.value = "all";
+  if (unexpEl) unexpEl.checked = false;
+  if (catEl) catEl.value = category || "all";
+  if (searchEl) searchEl.value = search || "";
+
+  renderTransactionsTable();
 }
 
 /* ==========================================================================
@@ -4561,8 +5716,10 @@ function addTransaction() {
     const idx = data.transactions.findIndex(t => t.id === editingId);
     if (idx !== -1) {
       const prevSettled = data.transactions[idx].settled;
+      const prevOwner = data.transactions[idx].owner || "me";
       data.transactions[idx] = {
         ...data.transactions[idx],
+        owner: prevOwner,
         type,
         amount: finalAmount,
         date,
@@ -4571,7 +5728,8 @@ function addTransaction() {
         source: source || undefined,
         unexpected,
         ...sharedProps,
-        settled: isShared ? (sharedProps.paidBy === "split" ? true : Boolean(prevSettled)) : false
+        settled: isShared ? (sharedProps.paidBy === "split" ? true : Boolean(prevSettled)) : false,
+        _updatedAt: Date.now()
       };
       persist();
       closeTransactionModal();
@@ -4583,6 +5741,7 @@ function addTransaction() {
 
   data.transactions.push({
     id: generateId("tx"),
+    owner: "me",
     type,
     amount: finalAmount,
     date,
@@ -4590,7 +5749,8 @@ function addTransaction() {
     description,
     source: source || undefined,
     unexpected,
-    ...sharedProps
+    ...sharedProps,
+    _updatedAt: Date.now()
   });
 
   persist();
@@ -4649,8 +5809,10 @@ function duplicateTransaction(id) {
   const copy = {
     ...deepClone(tx),
     id: generateId("tx"),
+    owner: "me",
     date: today(),
-    settled: tx.isShared ? (tx.paidBy === "split") : false
+    settled: tx.isShared ? (tx.paidBy === "split") : false,
+    _updatedAt: Date.now()
   };
   delete copy.cycleOverrideDate;
   data.transactions.push(copy);
@@ -4663,6 +5825,8 @@ function deleteTransaction(id) {
   showModal("Να διαγραφεί οριστικά αυτή η συναλλαγή;", true, (confirmed) => {
     if (!confirmed) return;
     data.transactions = data.transactions.filter(t => t.id !== id);
+    if (!data.deletedTxIds) data.deletedTxIds = {};
+    data.deletedTxIds[id] = Date.now();
     persist();
     render();
     showToast("Η συναλλαγή διαγράφηκε.");
@@ -4680,13 +5844,15 @@ function quickLogSalary() {
   const dateStr = (todayStr >= ctx.start && todayStr <= ctx.end) ? todayStr : ctx.start;
   data.transactions.push({
     id: generateId("tx"),
+    owner: "me",
     type: "income",
     amount: salaryAmount,
     date: dateStr,
     category: "Μισθός",
     description: "Μηνιαία Μισθοδοσία",
     unexpected: false,
-    isShared: false
+    isShared: false,
+    _updatedAt: Date.now()
   });
   persist();
   render();
@@ -4694,9 +5860,10 @@ function quickLogSalary() {
 }
 
 /* ==========================================================================
-4. ΕΞΥΠΝΗ ΕΙΣΑΓΩΓΗ ΚΙΝΗΣΕΩΝ ΤΡΑΠΕΖΑΣ & REVOLUT (.CSV / .XLSX)
+4. ΕΞΥΠΝΗ ΕΙΣΑΓΩΓΗ ΚΙΝΗΣΕΩΝ ΤΡΑΠΕΖΑΣ & REVOLUT (.CSV / .XLSX + MOBILE CARDS)
    ========================================================================== */
 let parsedBankRows = [];
+let detectedBankSourceAuto = "Τράπεζα";
 let bankPreviewFilter = "all";
 let bankPreviewSearch = "";
 let detectedBankSalaryDate = null;
@@ -4782,7 +5949,6 @@ function classifyBankMovement(desc, isCredit, revState = "", revType = "", bankC
     return { skipReason: "topup", statusBadge: "🔄 Εσωτ. Μεταφορά", type: isCredit ? "income" : "expense", category: "Άλλο", isShared: false };
   }
 
-  // Έλεγχος αποθηκευμένης μνήμης χρήστη (Auto-Learn: ακριβές ή υποσυμβολοσειρά)
   const merchantKey = normalizeMerchantKey(desc);
   let learnedRule = merchantKey ? data.merchantRules?.[merchantKey] : null;
   if (!learnedRule && merchantKey && data.merchantRules) {
@@ -4912,6 +6078,7 @@ function areDescriptionsSimilar(descA, descB) {
 function detectDuplicateStatus(dateIso, amountAbs, description = "") {
   let nearMatchDate = null;
   for (const t of data.transactions || []) {
+    if ((t.owner || "me") !== "me") continue;
     const tAmt1 = Number(t.amount) || 0;
     const tAmt2 = Number(t.totalBillAmount) || tAmt1;
     const sameAmount = Math.abs(tAmt1 - amountAbs) < 0.02 || Math.abs(tAmt2 - amountAbs) < 0.02;
@@ -4960,9 +6127,8 @@ function parseBankGridRows(matrixRows, chosenSource) {
   const isRevolutFormat = headers.includes("STARTED DATE") || headers.includes("COMPLETED DATE") || (headers.includes("STATE") && headers.includes("FEE"));
   const isPiraeusFormat = headers.some(h => h.includes("ΠΡΟΟΔΕΥΤΙΚΟ ΛΟΓΙΣΤΙΚΟ ΥΠΟΛΟΙΠΟ")) || headers.some(h => h.includes("ΣΧΟΛΙΑ / ΚΩΔΙΚΟΣ ΑΝΑΦΟΡΑΣ"));
 
-  const effectiveSource = chosenSource === "auto"
-    ? (isRevolutFormat ? "Revolut" : (isPiraeusFormat ? "Πειραιώς" : "Τράπεζα"))
-    : chosenSource;
+  detectedBankSourceAuto = isRevolutFormat ? "Revolut" : (isPiraeusFormat ? "Πειραιώς" : "Τράπεζα");
+  const effectiveSource = chosenSource === "auto" ? detectedBankSourceAuto : chosenSource;
 
   const findCol = (keys) => headers.findIndex(h => keys.some(k => h === k || h.includes(k)));
 
@@ -5069,6 +6235,16 @@ function parseBankGridRows(matrixRows, chosenSource) {
   return results;
 }
 
+function onBankAccountSourceChange(newSourceVal) {
+  if (!parsedBankRows.length) return;
+  const resolved = newSourceVal === "auto" ? detectedBankSourceAuto : newSourceVal;
+  parsedBankRows.forEach(r => {
+    r.source = resolved;
+  });
+  renderBankPreviewTable();
+  showToast(`Η πηγή λογαριασμού ενημερώθηκε σε «${resolved}» για όλες τις γραμμές.`);
+}
+
 function splitCsvLinesToMatrix(text) {
   const clean = String(text || "").replace(/^\uFEFF/, "");
   const lines = clean.split(/\r?\n/).filter(l => l.trim());
@@ -5171,7 +6347,7 @@ function handleBankFileUpload(event) {
         renderBankPreviewTable();
       } catch (err) {
         console.error("Excel read error:", err);
-        showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel (.xlsx). Αν χρησιμοποιείς firewall/adblocker που μπλοκάρει εξωτερικά scripts, αποθήκευσε το αρχείο από το Excel ως CSV (UTF-8 ή Ελληνικά) και ανέβασέ το.");
+        showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel (.xlsx). Αποθήκευσε το αρχείο από το Excel ως CSV (UTF-8 ή Ελληνικά) και ανέβασέ το.");
       }
     };
     reader.readAsArrayBuffer(file);
@@ -5215,9 +6391,13 @@ function loadSampleBankPreview() {
 
 function getFilteredBankPreviewItems() {
   const q = bankPreviewSearch.trim().toLowerCase();
+  const isMobile = window.innerWidth <= 640;
   return parsedBankRows
     .map((row, idx) => ({ row, idx }))
     .filter(({ row }) => {
+      // Στο mobile (Εναλλακτική Γ), στην αρχική προβολή "Όλες" κρύβουμε αυτόματα τις διπλοεγγραφές/εξαιρέσεις
+      // ώστε να μη πιάνουν χώρο, εκτός αν ο χρήστης πατήσει ρητά το φίλτρο "Εξαιρέσεις / Διπλές"
+      if (bankPreviewFilter === "all" && isMobile && row.isSkippedOrDup && !q) return false;
       if (bankPreviewFilter === "selected" && !row.checked) return false;
       if (bankPreviewFilter === "review" && !row.isReviewNeeded) return false;
       if (bankPreviewFilter === "skipped" && !row.isSkippedOrDup) return false;
@@ -5287,6 +6467,34 @@ function applyBulkBankCategory() {
   showToast(`Ενημερώθηκε η κατηγορία «${newCat}» σε ${visibleSelected.length} κινήσεις!`);
 }
 
+function updateBankRowDescription(idx, newDesc) {
+  const row = parsedBankRows[idx];
+  if (!row) return;
+  const trimmed = String(newDesc || "").trim();
+  if (!trimmed) return;
+  row.description = trimmed;
+}
+
+function setBankRowAsSalary(idx) {
+  const row = parsedBankRows[idx];
+  if (!row) return;
+  row.type = "income";
+  row.category = "Μισθός";
+  row.checked = true;
+  row.statusText = "💰 Μισθοδοσία (Κύκλος)";
+  row.isWarning = false;
+  row.isReviewNeeded = false;
+
+  const key = normalizeMerchantKey(row.description);
+  if (key) {
+    if (!data.merchantRules) data.merchantRules = {};
+    data.merchantRules[key] = { category: "Μισθός", isShared: false };
+    persist(false);
+  }
+  renderBankPreviewTable();
+  showToast(`Ορίστηκε ως Μισθός (${formatShortGrDate(row.date)})! 📌`);
+}
+
 function renderBankPreviewTable() {
   const container = document.getElementById("bankPreviewContainer");
   const tbody = document.getElementById("bankPreviewTableBody");
@@ -5332,6 +6540,7 @@ function renderBankPreviewTable() {
     : "";
 
   const selectedCount = parsedBankRows.filter(r => r.checked).length;
+  const skippedCount = parsedBankRows.filter(r => r.isSkippedOrDup).length;
   const totalSelectedExpenses = parsedBankRows
     .filter(r => r.checked && r.type === "expense")
     .reduce((s, r) => s + (r.isShared ? (r.amount * split.myPct) / 100 : r.amount), 0);
@@ -5341,7 +6550,7 @@ function renderBankPreviewTable() {
 
   if (summaryEl) {
     summaryEl.innerHTML = `
-      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις ${rangeStr ? `• Εύρος: <strong>${rangeStr}</strong>` : ""}</span>
+      <span>Επιλεγμένες: <strong>${selectedCount}</strong> / ${parsedBankRows.length} κινήσεις ${skippedCount > 0 ? `(${skippedCount} εξαιρέσεις)` : ""} ${rangeStr ? `• Εύρος: <strong>${rangeStr}</strong>` : ""}</span>
       <span>Έσοδα: <strong class="green">+${money(totalSelectedIncome)}</strong> • Έξοδα: <strong class="red">-${money(totalSelectedExpenses)}</strong></span>
     `;
   }
@@ -5357,7 +6566,10 @@ function renderBankPreviewTable() {
     const col = row.type === "income" ? "green" : (row.type === "saving" ? "accent" : "red");
     const catOptions = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${c === row.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
     const sharedCell = split.hasPartner
-      ? `<td>${row.type === "expense" ? `<button type="button" class="small-btn ${row.isShared ? "success" : "secondary"}" onclick="toggleBankRowShared(${idx})" title="Επιμερισμός Κοινού Εξόδου (${split.myPct}%)">${row.isShared ? `👫 ${split.myPct}%` : "👤 100%"}</button>` : "—"}</td>`
+      ? `<td class="bp-shared">${row.type === "expense" ? `<button type="button" class="small-btn ${row.isShared ? "success" : "secondary"}" onclick="toggleBankRowShared(${idx})" title="Επιμερισμός Κοινού Εξόδου (${split.myPct}%)">${row.isShared ? `👫 ${split.myPct}%` : "👤 100%"}</button>` : "—"}</td>`
+      : `<td class="bp-shared" style="display:none;"></td>`;
+    const salaryQuickBtn = (row.type === "income" && row.category !== "Μισθός")
+      ? `<button type="button" class="secondary small-btn" style="padding:3px 7px; font-size:11px; margin-left:6px;" onclick="setBankRowAsSalary(${idx})" title="Ορισμός ως Μισθός (Έναρξη Κύκλου)">📌 Μισθός</button>`
       : "";
     const typeSub = row.movementTypeNote
       ? `<span class="small" style="margin-left:6px; opacity:0.85;">• ${escapeHtml(row.movementTypeNote)}</span>`
@@ -5365,18 +6577,18 @@ function renderBankPreviewTable() {
 
     return `
       <tr style="${row.checked ? "" : "opacity:0.55;"}">
-        <td><input type="checkbox" ${row.checked ? "checked" : ""} style="width:16px; height:16px; margin:0;" onchange="toggleBankRowSelect(${idx}, this.checked)"></td>
-        <td style="white-space:nowrap;">${escapeHtml(row.date)}</td>
-        <td>
-          <div style="font-weight:600;">${escapeHtml(row.description)}</div>
-          <div><span class="badge badge-source" style="margin-left:0;">${escapeHtml(row.source)}</span>${typeSub}</div>
+        <td class="bp-chk"><input type="checkbox" ${row.checked ? "checked" : ""} style="width:16px; height:16px; margin:0;" onchange="toggleBankRowSelect(${idx}, this.checked)"></td>
+        <td class="bp-date" style="white-space:nowrap;">${escapeHtml(row.date)}</td>
+        <td class="bp-desc">
+          <input type="text" class="bank-desc-input" value="${escapeHtml(row.description)}" onchange="updateBankRowDescription(${idx}, this.value)" aria-label="Περιγραφή κίνησης">
+          <div><span class="badge badge-source" style="margin-left:0;">${escapeHtml(row.source)}</span>${typeSub}${salaryQuickBtn}</div>
         </td>
-        <td>
+        <td class="bp-cat">
           <select style="padding:5px 8px; font-size:12px;" onchange="updateBankRowCategory(${idx}, this.value)">${catOptions}</select>
         </td>
-        <td class="${col}" style="font-weight:700; white-space:nowrap;">${sign}${money(row.amount)}</td>
+        <td class="bp-amt ${col}" style="font-weight:700; white-space:nowrap;">${sign}${money(row.amount)}</td>
         ${sharedCell}
-        <td><span class="badge ${row.isWarning ? "badge-withdrawal" : "badge-saving"}">${escapeHtml(row.statusText)}</span></td>
+        <td class="bp-status"><span class="badge ${row.isWarning ? "badge-withdrawal" : "badge-saving"}">${escapeHtml(row.statusText)}</span></td>
       </tr>
     `;
   }).join("");
@@ -5440,6 +6652,7 @@ function confirmBankImport() {
 
   const split = getCoupleSplit();
   const activateCycle = Boolean(document.getElementById("activateCycleOnImportChk")?.checked);
+  const nowTs = Date.now();
 
   selected.forEach(row => {
     const isShared = split.hasPartner && row.type === "expense" && row.isShared;
@@ -5447,6 +6660,7 @@ function confirmBankImport() {
 
     data.transactions.push({
       id: generateId("tx"),
+      owner: "me",
       type: row.type,
       amount: myShare,
       date: row.date,
@@ -5458,7 +6672,8 @@ function confirmBankImport() {
       totalBillAmount: isShared ? row.amount : undefined,
       userSharePct: isShared ? split.myPct : undefined,
       paidBy: isShared ? "me" : undefined,
-      settled: false
+      settled: false,
+      _updatedAt: nowTs
     });
   });
 
@@ -5541,16 +6756,19 @@ function executePaydayAllocation() {
   const todayStr = today();
   const baseDate = (todayStr >= ctx.start && todayStr <= ctx.end) ? todayStr : ctx.start;
   const fundGoals = document.getElementById("paydayFundGoalsToggle")?.checked;
+  const nowTs = Date.now();
 
   data.transactions.push({
     id: generateId("tx"),
+    owner: "me",
     type: "income",
     amount: income,
     date: baseDate,
     category: "Μισθός",
     description: "Μηνιαία Μισθοδοσία (Payday)",
     unexpected: false,
-    isShared: false
+    isShared: false,
+    _updatedAt: nowTs
   });
 
   applyAllRecurringForMonth(true, true);
@@ -5559,13 +6777,15 @@ function executePaydayAllocation() {
   if (emergencySave > 0) {
     data.transactions.push({
       id: generateId("tx"),
+      owner: "me",
       type: "saving",
       amount: emergencySave,
       date: baseDate,
       category: "Αποταμίευση",
       description: "Μηνιαία Αποταμίευση Ασφαλείας",
       unexpected: false,
-      isShared: false
+      isShared: false,
+      _updatedAt: nowTs
     });
   }
 
@@ -5576,13 +6796,15 @@ function executePaydayAllocation() {
         g.saved = Number(((Number(g.saved) || 0) + needed).toFixed(2));
         data.transactions.push({
           id: generateId("tx"),
+          owner: "me",
           type: "saving",
           amount: needed,
           date: baseDate,
           category: "Αποταμίευση",
           description: `Κουμπαράς: ${g.title}`,
           unexpected: false,
-          isShared: false
+          isShared: false,
+          _updatedAt: nowTs
         });
       }
     });
@@ -5625,7 +6847,15 @@ function saveCategoryBudgets() {
   showToast("Τα όρια κατηγοριών αποθηκεύτηκαν! ✓");
 }
 
-function renderCategoryBudgets(periodTransactions) {
+let budgetCatDrillCache = [];
+
+function handleBudgetCardClick(idx) {
+  const cat = budgetCatDrillCache[idx];
+  if (!cat) return;
+  drillDownToTransactions({ category: cat });
+}
+
+function renderCategoryBudgets(periodTransactions, memberView = "all", split = getCoupleSplit()) {
   const container = document.getElementById("budgetCardsContainer");
   const summaryEl = document.getElementById("totalBudgetSummary");
   if (!container) return;
@@ -5635,14 +6865,15 @@ function renderCategoryBudgets(periodTransactions) {
   periodTransactions.forEach(t => {
     if (t.type === "expense") {
       const cat = EXPENSE_CATEGORIES.includes(t.category) ? t.category : "Άλλο";
-      spentByCat[cat] += Number(t.amount) || 0;
+      spentByCat[cat] += getEffectiveTxAmountForMemberView(t, memberView, split);
     }
   });
 
   let totalBudget = 0;
   let totalSpent = 0;
+  budgetCatDrillCache = [...EXPENSE_CATEGORIES];
 
-  container.innerHTML = EXPENSE_CATEGORIES.map(cat => {
+  container.innerHTML = EXPENSE_CATEGORIES.map((cat, idx) => {
     const limit = Number(data.budgets[cat]) || 0;
     const spent = spentByCat[cat] || 0;
     totalBudget += limit;
@@ -5655,9 +6886,9 @@ function renderCategoryBudgets(periodTransactions) {
     const remaining = limit - spent;
 
     return `
-      <div class="budget-card">
+      <div class="budget-card" onclick="handleBudgetCardClick(${idx})" title="Κλικ για προβολή συναλλαγών στην κατηγορία ${escapeHtml(cat)}">
         <div class="budget-header">
-          <span class="budget-title">${escapeHtml(cat)}</span>
+          <span class="budget-title">${escapeHtml(cat)} <span class="small">↗</span></span>
           <span class="budget-amounts">${money(spent)} / ${money(limit)}</span>
         </div>
         <div class="progress" style="height:8px; margin-top:6px;">
@@ -5671,11 +6902,10 @@ function renderCategoryBudgets(periodTransactions) {
   }).join("");
 
   if (summaryEl) {
-    summaryEl.textContent = `Συνολικές δαπάνες κατηγοριών: ${money(totalSpent)} από συνολικό προϋπολογισμό ${money(totalBudget)}.`;
+    summaryEl.textContent = `Συνολικές δαπάνες κατηγοριών: ${money(totalSpent)} από συνολικό προϋπολογισμό ${money(totalBudget)}. (Κάνε κλικ σε μια κάρτα για αναλυτικές κινήσεις)`;
   }
 }
 
-/* --- ΦΑΣΗ 2: Αυτόματος Εντοπισμός Συνδρομών & Κρυφών Παγίων --- */
 let currentDetectedSubscriptions = [];
 
 function detectRecurringSubscriptions() {
@@ -5719,7 +6949,6 @@ function detectRecurringSubscriptions() {
 
     const avg = amounts.reduce((s, a) => s + a, 0) / amounts.length;
     const maxDiff = Math.max(...amounts.map(a => Math.abs(a - avg)));
-    // Σταθερό ή σχεδόν σταθερό μηνιαίο ποσό (απόκλιση <= 20% ή <= €4)
     if (maxDiff <= Math.max(4, avg * 0.20)) {
       const latestItem = [...g.items].sort((a, b) => b.date.localeCompare(a.date))[0];
       const avgDay = Math.min(28, Math.max(1, Math.round(g.items.reduce((s, i) => s + i.day, 0) / g.items.length)));
@@ -5772,7 +7001,7 @@ function renderDetectedSubscriptions() {
   }
 
   const totalMonthly = currentDetectedSubscriptions.reduce((s, x) => s + x.avgAmount, 0);
-  if (badgeEl) badgeEl.textContent = `${currentDetectedSubscriptions.length} εντοπίστηκαν (${money(totalMonthly)}/μήνα)`;
+  if (badgeEl) badgeEl.textContent = `${currentDetectedSubscriptions.length} εντοππίστηκαν (${money(totalMonthly)}/μήνα)`;
 
   container.innerHTML = `
     <div class="filter-summary" style="margin-bottom:10px;">
@@ -5855,6 +7084,7 @@ function resolveDateForRecurringInContext(day, ctx) {
 function buildTransactionFromRecurring(rec, ctx) {
   const dateStr = resolveDateForRecurringInContext(rec.day, ctx);
   const split = getCoupleSplit();
+  const nowTs = Date.now();
 
   if (rec.type === "expense" && rec.isShared) {
     const fullBill = Number(rec.amount) || 0;
@@ -5862,6 +7092,7 @@ function buildTransactionFromRecurring(rec, ctx) {
     const paidBy = rec.paidBy || "split";
     return {
       id: generateId("tx"),
+      owner: "me",
       recurringId: rec.id,
       type: "expense",
       amount: myShare,
@@ -5873,12 +7104,14 @@ function buildTransactionFromRecurring(rec, ctx) {
       totalBillAmount: fullBill,
       userSharePct: split.myPct,
       paidBy,
-      settled: (paidBy === "split")
+      settled: (paidBy === "split"),
+      _updatedAt: nowTs
     };
   }
 
   return {
     id: generateId("tx"),
+    owner: "me",
     recurringId: rec.id,
     type: rec.type,
     amount: Number(rec.amount) || 0,
@@ -5886,7 +7119,8 @@ function buildTransactionFromRecurring(rec, ctx) {
     category: rec.category,
     description: rec.title,
     unexpected: false,
-    isShared: false
+    isShared: false,
+    _updatedAt: nowTs
   };
 }
 
@@ -5974,7 +7208,6 @@ function renderRecurringTable(ctx) {
     }).join("");
 }
 
-/* --- ΦΑΣΗ 2: Επερχόμενες Ετήσιες / Εποχικές Υποχρεώσεις --- */
 function toggleAnnualBillCreator() {
   const box = document.getElementById("annualBillCreatorBox");
   if (!box) return;
@@ -6021,33 +7254,78 @@ function addAnnualBill() {
   showToast(`Η υποχρέωση «${title}» (${money(amount)} στις ${formatShortGrDate(dueDate)}) αποθηκεύτηκε! 📅`);
 }
 
+// Δεσμεύει πραγματικά χρήματα από το Safe-to-Spend με κίνηση αποταμίευσης
 function topUpAnnualBill(abId, delta) {
   const item = (data.annualBills || []).find(a => a.id === abId);
   if (!item) return;
   item.saved = Number(((Number(item.saved) || 0) + delta).toFixed(2));
+
+  const ctx = getActivePeriodContext();
+  const todayStr = today();
+  const dateStr = (todayStr >= ctx.start && todayStr <= ctx.end) ? todayStr : ctx.start;
+  data.transactions.push({
+    id: generateId("tx"),
+    owner: "me",
+    type: "saving",
+    amount: delta,
+    date: dateStr,
+    category: "Αποταμίευση",
+    description: `Κουμπαράς Υποχρέωσης: ${item.title}`,
+    unexpected: false,
+    isShared: false,
+    _updatedAt: Date.now()
+  });
+
   persist();
   render();
-  showToast(`+${money(delta)} στην υποχρέωση «${item.title}»!`);
+  showToast(`Δεσμεύτηκαν +${money(delta)} για «${item.title}»!`);
 }
 
+// Λογιστική ισοσκέλιση: καταχωρεί το έξοδο και αποδεσμεύει αυτόματα όσα είχαν μαζευτεί στην άκρη
 function markAnnualBillPaid(abId) {
   const item = (data.annualBills || []).find(a => a.id === abId);
   if (!item) return;
 
+  const todayStr = today();
+  const nowTs = Date.now();
+  const savedReserve = Math.max(0, Number(item.saved) || 0);
+
+  if (savedReserve > 0) {
+    data.transactions.push({
+      id: generateId("tx"),
+      owner: "me",
+      type: "withdrawal",
+      amount: savedReserve,
+      date: todayStr,
+      category: "Αποταμίευση",
+      description: `Αποδέσμευση Υποχρέωσης: ${item.title}`,
+      unexpected: false,
+      isShared: false,
+      _updatedAt: nowTs
+    });
+  }
+
   data.transactions.push({
     id: generateId("tx"),
+    owner: "me",
     type: "expense",
     amount: Number(item.amount) || 0,
-    date: today(),
+    date: todayStr,
     category: item.category || "Λογαριασμοί",
     description: item.title,
     unexpected: false,
-    isShared: false
+    isShared: false,
+    _updatedAt: nowTs
   });
+
   item.paid = true;
   persist();
   render();
-  showToast(`Καταχωρίστηκε η πληρωμή «${item.title}» (${money(item.amount)})! ✅`);
+  showToast(
+    savedReserve > 0
+      ? `Πληρώθηκε «${item.title}» (${money(item.amount)}) και αποδεσμεύτηκαν ${money(savedReserve)}! ✅`
+      : `Καταχωρίστηκε η πληρωμή «${item.title}» (${money(item.amount)})! ✅`
+  );
 }
 
 function renewAnnualBillNextYear(abId) {
@@ -6195,13 +7473,15 @@ function contributeGoal(goalId, amount) {
     const dateStr = (todayStr >= ctx.start && todayStr <= ctx.end) ? todayStr : ctx.start;
     data.transactions.push({
       id: generateId("tx"),
+      owner: "me",
       type: "saving",
       amount,
       date: dateStr,
       category: "Αποταμίευση",
       description: `Κουμπαράς: ${goal.title}`,
       unexpected: false,
-      isShared: false
+      isShared: false,
+      _updatedAt: Date.now()
     });
   }
 
@@ -6384,7 +7664,6 @@ function renderFinancialHealth(reserveTotal, mt, incomeBase) {
   }
 }
 
-/* --- Multi-Asset Portfolio Functions --- */
 function getPortfolioTotals() {
   const assets = Array.isArray(data.portfolioAssets) ? data.portfolioAssets : [];
   const cash = Math.max(0, Number(data.portfolioCash) || 0);
@@ -6506,13 +7785,15 @@ function executeEtfQuickBuy() {
     const dateStr = (todayStr >= ctx.start && todayStr <= ctx.end) ? todayStr : ctx.start;
     data.transactions.push({
       id: generateId("tx"),
+      owner: "me",
       type: "saving",
       amount: buyAmt,
       date: dateStr,
       category: "Επένδυση",
       description: `Αγορά ${targetAsset.name}${buyUnits > 0 ? ` (${buyUnits} τεμ.)` : ""}`,
       unexpected: false,
-      isShared: false
+      isShared: false,
+      _updatedAt: Date.now()
     });
   }
 
@@ -6540,7 +7821,7 @@ function renderPortfolioAssets() {
 
   if (!container) return;
   if (!pt.assets.length) {
-    container.innerHTML = `<p class="small">Δεν έχεις προσθέσει ακόμα επενδυτικές θέσεις. Πάτησε «+ Νέα Θέση».</p>`;
+    container.innerHTML = `<p class="small">Δεν έχεις προσθέσει ακόμα επενδυτικές θέσεις. Πάτησε «+ Νέα Θέση» για να καταχωρίσεις ETF, μετοχές ή καταθέσεις.</p>`;
     return;
   }
 
@@ -6672,9 +7953,17 @@ function renderWealthSimulator() {
 }
 
 /* ==========================================================================
-8. ΓΡΑΦΗΜΑΤΑ, TOP MERCHANTS & ΕΛΛΗΝΙΚΟΣ ΜΕΤΡΗΤΗΣ e-ΑΠΟΔΕΙΞΕΩΝ (30% Ε1)
+8. ΓΡΑΦΗΜΑΤΑ, TOP MERCHANTS (DRILL-DOWN) & ΜΕΤΡΗΤΗΣ e-ΑΠΟΔΕΙΞΕΩΝ (30% Ε1)
    ========================================================================== */
-function renderTopMerchants(periodTxs, ctx) {
+let topMerchantsDrillCache = [];
+
+function handleTopMerchantClick(idx) {
+  const label = topMerchantsDrillCache[idx];
+  if (!label) return;
+  drillDownToTransactions({ search: label });
+}
+
+function renderTopMerchants(periodTxs, ctx, memberView = "all", split = getCoupleSplit()) {
   const container = document.getElementById("topMerchantsContainer");
   const subEl = document.getElementById("topMerchantsSubtitle");
   if (!container) return;
@@ -6686,7 +7975,7 @@ function renderTopMerchants(periodTxs, ctx) {
 
   periodTxs.forEach(t => {
     if (t.type !== "expense") return;
-    const amt = Number(t.amount) || 0;
+    const amt = getEffectiveTxAmountForMemberView(t, memberView, split);
     totalPeriodExpenses += amt;
     const rawLabel = (t.description && t.description.trim()) ? t.description.trim() : t.category;
     const key = normalizeMerchantKey(rawLabel) || rawLabel.toUpperCase();
@@ -6701,6 +7990,8 @@ function renderTopMerchants(periodTxs, ctx) {
     .sort((a, b) => b.total - a.total)
     .slice(0, 6);
 
+  topMerchantsDrillCache = sorted.map(m => m.label);
+
   if (!sorted.length) {
     container.innerHTML = `<p class="small" style="padding:12px 0;">Δεν υπάρχουν καταχωρισμένα έξοδα στην περίοδο ${escapeHtml(ctx.label)}.</p>`;
     return;
@@ -6709,11 +8000,11 @@ function renderTopMerchants(periodTxs, ctx) {
   container.innerHTML = sorted.map((m, idx) => {
     const sharePct = totalPeriodExpenses > 0 ? (m.total / totalPeriodExpenses) * 100 : 0;
     return `
-      <div style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+      <div class="drilldown-row" onclick="handleTopMerchantClick(${idx})" style="padding-bottom:8px; border-bottom:1px solid var(--border);" title="Κλικ για προβολή κινήσεων: ${escapeHtml(m.label)}">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px;">
           <div>
             <strong>${idx + 1}. ${escapeHtml(m.label)}</strong>
-            <span class="small" style="margin-left:6px;">(${m.count}x • ${escapeHtml(m.category)})</span>
+            <span class="small" style="margin-left:6px;">(${m.count}x • ${escapeHtml(m.category)}) ↗</span>
           </div>
           <div class="privacy-sensitive red" style="font-weight:700; white-space:nowrap;">${money(m.total)}</div>
         </div>
@@ -6733,7 +8024,7 @@ function renderEReceiptsCounter(ctx) {
   const yearStr = (ctx.anchorMonth || currentYearMonth()).slice(0, 4);
   if (badgeEl) badgeEl.textContent = `Έτος ${yearStr}`;
 
-  const yearTxs = (data.transactions || []).filter(t => t.date && t.date.startsWith(yearStr));
+  const yearTxs = (data.transactions || []).filter(t => t.date && t.date.startsWith(yearStr) && (t.owner || "me") === "me");
   const loggedYearIncome = yearTxs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -6772,16 +8063,19 @@ function renderEReceiptsCounter(ctx) {
 function renderCharts(ctxOverride = null) {
   if (typeof Chart === "undefined") return;
   const ctx = ctxOverride || getActivePeriodContext();
+  const split = getCoupleSplit();
+  const memberView = data.settings?.memberViewFilter || "all";
 
   const pieScope = document.getElementById("pieScopeSelect")?.value || "month";
-  const scopeTxs = pieScope === "month"
+  const baseScopeTxs = pieScope === "month"
     ? filterTransactionsForRange(ctx.start, ctx.end, ctx.mode === "cycle")
     : data.transactions;
+  const scopeTxs = filterTransactionsByMemberView(baseScopeTxs, memberView, split);
 
   const catTotals = {};
   scopeTxs.forEach(t => {
     if (t.type === "expense") {
-      catTotals[t.category] = (catTotals[t.category] || 0) + (Number(t.amount) || 0);
+      catTotals[t.category] = (catTotals[t.category] || 0) + getEffectiveTxAmountForMemberView(t, memberView, split);
     }
   });
 
@@ -6829,8 +8123,8 @@ function renderCharts(ctxOverride = null) {
       const sliceCycles = ctx.cycles.slice(ctx.cycleIndex, ctx.cycleIndex + 6).reverse();
       sliceCycles.forEach(c => {
         barLabels.push(c.label.split(" – ")[0]);
-        const cTxs = filterTransactionsForRange(c.start, c.end, true);
-        const t = totals(cTxs);
+        const cTxs = filterTransactionsByMemberView(filterTransactionsForRange(c.start, c.end, true), memberView, split);
+        const t = totals(cTxs, memberView, split);
         incData.push(t.income);
         expData.push(t.expense);
         savData.push(t.netSaving);
@@ -6841,8 +8135,8 @@ function renderCharts(ctxOverride = null) {
         const d = new Date(sy, sm - 1 - i, 1);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         barLabels.push(ym);
-        const mTxs = data.transactions.filter(t => t.date.startsWith(ym));
-        const t = totals(mTxs);
+        const mTxs = filterTransactionsByMemberView(data.transactions.filter(t => t.date.startsWith(ym)), memberView, split);
+        const t = totals(mTxs, memberView, split);
         incData.push(t.income);
         expData.push(t.expense);
         savData.push(t.netSaving);
@@ -6876,9 +8170,9 @@ function renderCharts(ctxOverride = null) {
 /* ==========================================================================
 9. ΚΥΡΙΑ ΣΥΝΑΡΤΗΣΗ RENDER, ΠΙΝΑΚΑΣ ΙΣΤΟΡΙΚΟΥ & ΔΙΑΧΕΙΡΙΣΗ ΚΑΝΟΝΩΝ ΕΜΠΟΡΩΝ
    ========================================================================== */
-function totals(transactions) {
+function totals(transactions, memberView = "all", split = getCoupleSplit()) {
   return transactions.reduce((a, t) => {
-    const amt = Number(t.amount) || 0;
+    const amt = getEffectiveTxAmountForMemberView(t, memberView, split);
     if (t.type === "income") a.income += amt;
     if (t.type === "expense") {
       a.expense += amt;
@@ -6958,7 +8252,6 @@ function syncPeriodSelectorUI(ctx) {
   }
 }
 
-/* --- ΦΑΣΗ 2: Διαχείριση Κανόνων Εμπόρων (Auto-Learn Rules Manager) --- */
 let merchantRulesListCache = [];
 
 function addManualMerchantRule() {
@@ -7068,6 +8361,7 @@ function render() {
   const ctx = getActivePeriodContext();
   const isCycle = ctx.mode === "cycle";
   const split = getCoupleSplit();
+  const memberView = split.hasPartner ? (data.settings?.memberViewFilter || "all") : "all";
 
   syncPeriodSelectorUI(ctx);
 
@@ -7086,22 +8380,27 @@ function render() {
     }
   }
 
-  const periodTxs = filterTransactionsForRange(ctx.start, ctx.end, isCycle);
-  const prevPeriodTxs = (ctx.prevStart && ctx.prevEnd)
+  const rawPeriodTxs = filterTransactionsForRange(ctx.start, ctx.end, isCycle);
+  const rawPrevPeriodTxs = (ctx.prevStart && ctx.prevEnd)
     ? filterTransactionsForRange(ctx.prevStart, ctx.prevEnd, isCycle)
     : [];
-  const mt = totals(periodTxs);
-  const pmt = totals(prevPeriodTxs);
 
-  const hasSalary = periodTxs.some(t => t.type === "income" && t.category === "Μισθός");
+  const periodTxs = filterTransactionsByMemberView(rawPeriodTxs, memberView, split);
+  const prevPeriodTxs = filterTransactionsByMemberView(rawPrevPeriodTxs, memberView, split);
+
+  const mt = totals(periodTxs, memberView, split);
+  const pmt = totals(prevPeriodTxs, memberView, split);
+
+  const hasSalary = rawPeriodTxs.some(t => t.type === "income" && t.category === "Μισθός" && (t.owner || "me") === "me");
   const banner = document.getElementById("smartSalaryBanner");
   if (banner) {
     banner.classList.toggle("visible", !hasSalary && (Number(p.monthlyIncome) || 0) > 0);
   }
 
   const reserve = Math.max(0, (Number(p.initialSavings) || 0) + data.transactions.reduce((sum, t) => {
+    if ((t.owner || "me") !== "me") return sum;
     const isInvestmentTx = t.category === "Επένδυση";
-    const isGoalPiggyTx = typeof t.description === "string" && t.description.startsWith("Κουμπαράς:");
+    const isGoalPiggyTx = typeof t.description === "string" && (t.description.startsWith("Κουμπαράς:") || t.description.startsWith("Κουμπαράς Υποχρέωσης:") || t.description.startsWith("Αποδέσμευση Υποχρέωσης:"));
     if (isInvestmentTx || isGoalPiggyTx) return sum;
     if (t.type === "saving") return sum + (Number(t.amount) || 0);
     if (t.type === "withdrawal") return sum - (Number(t.amount) || 0);
@@ -7114,7 +8413,11 @@ function render() {
   const portTotal = pt.totalValue;
 
   const actualBalance = mt.income - mt.expense - mt.saving + mt.withdrawal;
-  const incomeBase = Math.max(Number(p.monthlyIncome) || 0, mt.income);
+  const incomeBase = (memberView === "all" && split.hasPartner)
+    ? Math.max(split.totalIncome, mt.income)
+    : (memberView === "partner"
+      ? Math.max(Number(p.partnerIncome) || 0, mt.income)
+      : Math.max(Number(p.monthlyIncome) || 0, mt.income));
   const projectedBalance = incomeBase - mt.expense - mt.saving + mt.withdrawal;
 
   const netWorth = reserve + goalsTotal + portTotal + Math.max(0, actualBalance);
@@ -7125,11 +8428,20 @@ function render() {
   document.getElementById("nwMonthCash").textContent = money(actualBalance);
 
   document.getElementById("actualIncomeMetric").textContent = money(mt.income);
-  document.getElementById("actualIncomeSub").textContent = `Προφίλ: ${money(p.monthlyIncome)}`;
+  document.getElementById("actualIncomeSub").textContent = (memberView === "all" && split.hasPartner)
+    ? `Νοικοκυριό: ${money(split.totalIncome)}`
+    : (memberView === "partner"
+      ? `Προφίλ ${split.partnerName}: ${money(p.partnerIncome)}`
+      : `Προφίλ: ${money(p.monthlyIncome)}`);
   updateMoMBadge("incomeMoMBadge", mt.income, pmt.income, false, isCycle);
 
   document.getElementById("expenseMetric").textContent = money(mt.expense);
-  document.getElementById("expenseSub").textContent = mt.unexpected > 0 ? `Έκτακτα: ${money(mt.unexpected)}` : "Δικό σου μερίδιο εξόδων";
+  const expViewLabel = (memberView === "all" && split.hasPartner)
+    ? "Σύνολο δαπανών νοικοκυριού (100%)"
+    : (memberView === "shared"
+      ? "Σύνολο κοινών λογαριασμών (100%)"
+      : (memberView === "partner" ? `Μερίδιο ${split.partnerName}` : "Δικό σου μερίδιο εξόδων"));
+  document.getElementById("expenseSub").textContent = mt.unexpected > 0 ? `Έκτακτα: ${money(mt.unexpected)}` : expViewLabel;
   updateMoMBadge("expenseMoMBadge", mt.expense, pmt.expense, true, isCycle);
 
   const actBalEl = document.getElementById("actualBalanceMetric");
@@ -7154,16 +8466,22 @@ function render() {
       recentContainer.innerHTML = `<p class="small" style="padding:14px 0;">Δεν υπάρχουν καταχωρισμένες συναλλαγές για την περίοδο ${escapeHtml(ctx.label)}.</p>`;
     } else {
       recentContainer.innerHTML = recentList.map(t => {
+        const effAmt = getEffectiveTxAmountForMemberView(t, memberView, split);
         const sign = (t.type === "expense" || t.type === "withdrawal") ? "-" : "+";
         const col = t.type === "income" ? "green" : (t.type === "expense" ? "red" : "accent");
         const srcBadge = t.source ? `<span class="badge badge-source">${escapeHtml(t.source)}</span>` : "";
+        const ownerBadge = split.hasPartner
+          ? (t.owner === "partner"
+              ? `<span class="badge badge-owner-partner">👤 ${escapeHtml(split.partnerName)}</span>`
+              : `<span class="badge badge-owner-me">👤 ${escapeHtml(split.userName)}</span>`)
+          : "";
         return `
           <div class="recent-tx-item">
             <div>
-              <div style="font-weight:700; font-size:13px;">${escapeHtml(t.description || t.category)} ${t.isShared ? '<span class="badge badge-shared">👫 Κοινό</span>' : ''}${srcBadge}</div>
+              <div style="font-weight:700; font-size:13px;">${escapeHtml(t.description || t.category)} ${t.isShared ? '<span class="badge badge-shared">👫 Κοινό</span>' : ''}${ownerBadge}${srcBadge}</div>
               <div class="small">${escapeHtml(t.date)} • ${escapeHtml(t.category)}</div>
             </div>
-            <div class="privacy-sensitive ${col}" style="font-weight:800; font-size:14px; white-space:nowrap;">${sign}${money(t.amount)}</div>
+            <div class="privacy-sensitive ${col}" style="font-weight:800; font-size:14px; white-space:nowrap;">${sign}${money(effAmt)}</div>
           </div>
         `;
       }).join("");
@@ -7189,11 +8507,15 @@ function render() {
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - 6);
   weekStart.setHours(0, 0, 0, 0);
-  const weekly = data.transactions.filter(t => {
-    const d = new Date(t.date + "T00:00:00");
-    return d >= weekStart && d <= new Date(todayStr + "T23:59:59");
-  });
-  const wt = totals(weekly);
+  const weekly = filterTransactionsByMemberView(
+    data.transactions.filter(t => {
+      const d = new Date(t.date + "T00:00:00");
+      return d >= weekStart && d <= new Date(todayStr + "T23:59:59");
+    }),
+    memberView,
+    split
+  );
+  const wt = totals(weekly, memberView, split);
   document.getElementById("weekIncome").textContent = money(wt.income);
   document.getElementById("weekExpense").textContent = money(wt.expense);
   document.getElementById("weekUnexpected").textContent = money(wt.unexpected);
@@ -7211,8 +8533,8 @@ function render() {
   previewProfileSplit();
 
   renderFirstUseGuide();
-  renderCoupleSplitPanel(periodTxs);
-  renderCategoryBudgets(periodTxs);
+  renderCoupleSplitPanel(rawPeriodTxs);
+  renderCategoryBudgets(periodTxs, memberView, split);
   renderDetectedSubscriptions();
   renderRecurringTable(ctx);
   renderAnnualBills();
@@ -7220,7 +8542,7 @@ function render() {
   render503020Rule(mt, incomeBase);
   renderFinancialHealth(reserve, mt, incomeBase);
   renderPortfolioAssets();
-  renderTopMerchants(periodTxs, ctx);
+  renderTopMerchants(periodTxs, ctx, memberView, split);
   renderEReceiptsCounter(ctx);
   renderMerchantRulesManager();
   renderTransactionsTable();
@@ -7240,7 +8562,8 @@ function resetFilters() {
   document.getElementById("filterType").value = "all";
   document.getElementById("filterCategory").value = "all";
   document.getElementById("filterOnlyUnexpected").checked = false;
-  renderTransactionsTable();
+  if (data.settings) data.settings.memberViewFilter = "all";
+  render();
 }
 
 let availableSourcesCache = [];
@@ -7259,17 +8582,29 @@ function renderTransactionsTable() {
   const summaryBar = document.getElementById("filterSummaryBar");
   const sourceSel = document.getElementById("filterSource");
   const sourceBreakdownEl = document.getElementById("accountSourcesBreakdown");
+  const ownerFilterWrap = document.getElementById("filterOwnerWrap");
+  const ownerFilterSel = document.getElementById("filterOwner");
   if (!tbody) return;
 
   const ctx = getActivePeriodContext();
   const isCycle = ctx.mode === "cycle";
   const split = getCoupleSplit();
+  const memberView = split.hasPartner ? (data.settings?.memberViewFilter || "all") : "all";
   const todayStr = today();
   const search = (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
   const scope = document.getElementById("filterScope")?.value || "selectedPeriod";
   const fType = document.getElementById("filterType")?.value || "all";
   const fCat = document.getElementById("filterCategory")?.value || "all";
   const onlyUnexpected = Boolean(document.getElementById("filterOnlyUnexpected")?.checked);
+
+  if (ownerFilterWrap && ownerFilterSel) {
+    ownerFilterWrap.style.display = split.hasPartner ? "" : "none";
+    if (split.hasPartner && ownerFilterSel.options.length >= 4) {
+      ownerFilterSel.options[1].text = `👤 ${split.userName}`;
+      ownerFilterSel.options[2].text = `👤 ${split.partnerName}`;
+      ownerFilterSel.value = memberView;
+    }
+  }
 
   const knownSources = Array.from(new Set(
     (data.transactions || []).map(t => (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο")
@@ -7282,21 +8617,26 @@ function renderTransactionsTable() {
   }
   const fSource = sourceSel?.value || "all";
 
-  const periodBaseTxs = (data.transactions || []).filter(t => {
-    if (scope === "selectedPeriod") {
-      const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
-      if (effDate < ctx.start || effDate > ctx.end) return false;
-    }
-    return true;
-  });
+  const periodBaseTxs = filterTransactionsByMemberView(
+    (data.transactions || []).filter(t => {
+      if (scope === "selectedPeriod") {
+        const effDate = (isCycle && t.cycleOverrideDate) ? t.cycleOverrideDate : t.date;
+        if (effDate < ctx.start || effDate > ctx.end) return false;
+      }
+      return true;
+    }),
+    memberView,
+    split
+  );
 
   if (sourceBreakdownEl) {
     const bySource = {};
     periodBaseTxs.forEach(t => {
       const sKey = (t.source && t.source.trim()) ? t.source.trim() : "Χειροκίνητο";
       if (!bySource[sKey]) bySource[sKey] = { inc: 0, exp: 0, count: 0 };
-      if (t.type === "income") bySource[sKey].inc += Number(t.amount) || 0;
-      if (t.type === "expense") bySource[sKey].exp += Number(t.amount) || 0;
+      const eff = getEffectiveTxAmountForMemberView(t, memberView, split);
+      if (t.type === "income") bySource[sKey].inc += eff;
+      if (t.type === "expense") bySource[sKey].exp += eff;
       bySource[sKey].count++;
     });
     const entries = Object.entries(bySource);
@@ -7331,7 +8671,7 @@ function renderTransactionsTable() {
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const ft = totals(filtered);
+  const ft = totals(filtered, memberView, split);
   if (summaryBar) {
     summaryBar.innerHTML = `
       <span>Εμφανίζονται <strong>${filtered.length}</strong> συναλλαγές</span>
@@ -7353,14 +8693,20 @@ function renderTransactionsTable() {
   };
 
   tbody.innerHTML = filtered.map(t => {
+    const effAmt = getEffectiveTxAmountForMemberView(t, memberView, split);
     const isScheduled = t.date > todayStr;
     const schedBadge = isScheduled ? `<span class="badge badge-scheduled">⏳ Προγραμματισμένο</span>` : "";
     const unexpBadge = t.unexpected ? `<span class="badge badge-unexpected">⚠️ Έκτακτο</span>` : "";
     const sharedBadge = t.isShared
-      ? `<span class="badge badge-shared">👫 Κοινό (${t.userSharePct || split.myPct}%)</span>`
+      ? `<span class="badge badge-shared">👫 Κοινό (${memberView === "shared" || memberView === "all" ? "100%" : (memberView === "partner" ? `${split.partnerPct}%` : `${t.userSharePct || split.myPct}%`)})</span>`
       : "";
     const settledBadge = (t.isShared && t.settled)
       ? `<span class="badge badge-settled">✓ Εξοφλ.</span>`
+      : "";
+    const ownerBadge = split.hasPartner
+      ? (t.owner === "partner"
+          ? `<span class="badge badge-owner-partner">👤 ${escapeHtml(split.partnerName)}</span>`
+          : `<span class="badge badge-owner-me">👤 ${escapeHtml(split.userName)}</span>`)
       : "";
     const sourceBadge = t.source
       ? `<span class="badge badge-source">${escapeHtml(t.source)}</span>`
@@ -7372,10 +8718,13 @@ function renderTransactionsTable() {
     const amountColor = t.type === "income" ? "green" : (t.type === "expense" ? "red" : "accent");
     const sign = (t.type === "expense" || t.type === "withdrawal") ? "-" : "+";
     const subBill = (t.isShared && t.totalBillAmount)
-      ? `<div class="small">Σύνολο απόδειξης: ${money(t.totalBillAmount)}</div>`
+      ? `<div class="small">Σύνολο απόδειξης: ${money(t.totalBillAmount)} ${t.paidBy === "partner" ? `(Πλήρωσε: ${escapeHtml(split.partnerName)})` : (t.paidBy === "me" ? `(Πλήρωσε: ${escapeHtml(split.userName)})` : "")}</div>`
       : "";
 
     const safeId = escapeHtml(t.id);
+    const salaryBtn = (t.type === "income" && t.category !== "Μισθός")
+      ? `<button type="button" class="secondary small-btn" onclick="markTransactionAsSalary('${safeId}')" title="Ορισμός ως Μισθός (Έναρξη Κύκλου)">📌</button>`
+      : "";
     const sharedActionBtn = (t.type === "expense" && (split.hasPartner || t.isShared))
       ? `<button type="button" class="secondary small-btn" onclick="toggleTransactionShared('${safeId}')" title="Εναλλαγή Κοινού/Ατομικού Εξόδου">👫</button>`
       : "";
@@ -7388,10 +8737,10 @@ function renderTransactionsTable() {
         <tr>
           <td class="col-desc">
             <span>${escapeHtml(t.description || t.category)}</span>
-            ${unexpBadge}${sharedBadge}${settledBadge}${sourceBadge}${shiftedBadge}
+            ${unexpBadge}${sharedBadge}${settledBadge}${ownerBadge}${sourceBadge}${shiftedBadge}
             ${subBill}
           </td>
-          <td class="col-amount amount-cell ${amountColor}" style="font-weight:800; white-space:nowrap;">${sign}${money(t.amount)}</td>
+          <td class="col-amount amount-cell ${amountColor}" style="font-weight:800; white-space:nowrap;">${sign}${money(effAmt)}</td>
           <td class="col-meta">
             <span>${escapeHtml(t.date)}</span>
             <span>•</span>
@@ -7400,6 +8749,7 @@ function renderTransactionsTable() {
             ${schedBadge}
           </td>
           <td class="col-actions">
+            ${salaryBtn}
             ${sharedActionBtn}
             ${shiftCycleBtn}
             <button type="button" class="secondary small-btn" onclick="editTransaction('${safeId}')" title="Επεξεργασία">✎</button>
@@ -7417,11 +8767,12 @@ function renderTransactionsTable() {
         <td>${escapeHtml(t.category)}</td>
         <td>
           <span>${escapeHtml(t.description || "-")}</span>
-          ${unexpBadge}${sharedBadge}${settledBadge}${sourceBadge}
+          ${unexpBadge}${sharedBadge}${settledBadge}${ownerBadge}${sourceBadge}
           ${subBill}
         </td>
-        <td class="amount-cell ${amountColor}" style="font-weight:700; white-space:nowrap;">${sign}${money(t.amount)}</td>
+        <td class="amount-cell ${amountColor}" style="font-weight:700; white-space:nowrap;">${sign}${money(effAmt)}</td>
         <td style="text-align:right; white-space:nowrap;">
+          ${salaryBtn}
           ${sharedActionBtn}
           ${shiftCycleBtn}
           <button type="button" class="secondary small-btn" onclick="editTransaction('${safeId}')" title="Επεξεργασία">✎</button>
@@ -7445,7 +8796,7 @@ function renderTransactionsTable() {
 }
 
 /* ==========================================================================
-10. ΡΥΘΜΙΣΕΙΣ, ΣΥΓΧΡΟΝΙΣΜΟΣ ΣΥΣΚΕΥΩΝ, ΕΞΑΓΩΓΗ / ΕΙΣΑΓΩΓΗ JSON & CSV
+10. ΡΥΘΜΙΣΕΙΣ, ΕΞΑΓΩΓΗ / ΕΙΣΑΓΩΓΗ JSON & CSV, DEMO & THEME
    ========================================================================== */
 function saveProfile() {
   const numericFields = ["typicalPayday", "monthlyIncome", "essentialExpenses", "savingGoal", "reserveGoal", "initialSavings", "partnerIncome", "customUserSharePct"];
@@ -7471,89 +8822,6 @@ function saveProfile() {
   showToast("Το προφίλ και οι ρυθμίσεις αποθηκεύτηκαν! ✓");
 }
 
-function openDeviceSyncModal() {
-  const pasteArea = document.getElementById("deviceSyncPasteArea");
-  if (pasteArea) pasteArea.value = "";
-  const modal = document.getElementById("deviceSyncModal");
-  if (modal) modal.style.display = "flex";
-}
-
-function closeDeviceSyncModal() {
-  const modal = document.getElementById("deviceSyncModal");
-  if (modal) modal.style.display = "none";
-}
-
-async function shareBackupFileNative() {
-  const jsonStr = buildExportPayloadString();
-  const safeUser = sanitizeFilenamePart(data.profile?.userName);
-  const userSegment = safeUser ? `${safeUser}-` : "";
-  const filename = `FinanceGR-Sync-${userSegment}${formatFriendlyDate()}.json`;
-
-  try {
-    const file = new File([jsonStr], filename, { type: "application/json" });
-    if (typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: "FinanceGR Sync Backup",
-        text: "Αντίγραφο συγχρονισμού FinanceGR",
-        files: [file]
-      });
-      return;
-    }
-  } catch (err) {
-    if (err && err.name === "AbortError") return;
-  }
-
-  exportJSON();
-}
-
-function copySyncPayloadToClipboard() {
-  const jsonStr = buildExportPayloadString();
-  const temp = document.createElement("textarea");
-  temp.value = jsonStr;
-  temp.style.position = "fixed";
-  temp.style.opacity = "0";
-  document.body.appendChild(temp);
-  temp.select();
-  let ok = false;
-  try {
-    ok = document.execCommand("copy");
-  } catch {
-    ok = false;
-  }
-  document.body.removeChild(temp);
-
-  if (ok) {
-    showToast("Ο κωδικός δεδομένων αντιγράφηκε! Στείλ' τον στην άλλη συσκευή. 📋");
-  } else {
-    showModal("Δεν ήταν δυνατή η αυτόματη αντιγραφή. Χρησιμοποίησε την «Αποστολή Αρχείου Backup».");
-  }
-}
-
-function importSyncPayloadFromText() {
-  const raw = (document.getElementById("deviceSyncPasteArea")?.value || "").trim();
-  if (!raw) {
-    showModal("Επικόλλησε πρώτα το κείμενο JSON που έστειλες από την άλλη συσκευή.");
-    return;
-  }
-  try {
-    const imported = JSON.parse(raw);
-    if (!imported.profile || !Array.isArray(imported.transactions)) {
-      throw new Error("Invalid");
-    }
-    data = normalizeLoadedState(imported, true);
-    data.settings.lastBackupAt = new Date().toISOString();
-    data.settings.unsavedChangesCount = 0;
-    data.settings.onboardingCompleted = true;
-    sessionHasUnsavedChanges = false;
-    persist(false);
-    closeDeviceSyncModal();
-    render();
-    showToast("Ο συγχρονισμός δεδομένων ολοκληρώθηκε! 📲");
-  } catch {
-    showModal("Το κείμενο που επικολλήθηκε δεν είναι έγκυρο JSON backup.");
-  }
-}
-
 function formatFriendlyDate() {
   const [y, m, d] = today().split("-");
   return `${d}-${m}-${y}`;
@@ -7576,15 +8844,16 @@ function exportJSON() {
   data.settings.lastBackupAt = new Date().toISOString();
   data.settings.unsavedChangesCount = 0;
   sessionHasUnsavedChanges = false;
-  persist(false);
+  persist(false, true);
   showToast(`Αποθηκεύτηκε: ${filename} 📥`);
 }
 
 function exportCSV() {
   const rows = [
-    ["Ημερομηνία", "Τύπος", "Κατηγορία", "Περιγραφή", "Ποσό", "Έκτακτο", "Κοινό", "Σύνολο Απόδειξης"],
+    ["Ημερομηνία", "Μέλος", "Τύπος", "Κατηγορία", "Περιγραφή", "Ποσό", "Έκτακτο", "Κοινό", "Σύνολο Απόδειξης"],
     ...data.transactions.map(t => [
       t.date,
+      t.owner === "partner" ? (data.profile?.partnerName || "Σύντροφος") : (data.profile?.userName || "Εσύ"),
       t.type,
       t.category,
       t.description || "",
@@ -7610,7 +8879,7 @@ function togglePrivacyMode() {
   document.body.classList.toggle("privacy-mode", data.settings.privacyMode);
   const btn = document.getElementById("privacyToggleBtn");
   if (btn) btn.textContent = data.settings.privacyMode ? "🙈" : "👁️";
-  persist(false);
+  persist(false, true);
 }
 
 function toggleTheme() {
@@ -7618,7 +8887,7 @@ function toggleTheme() {
   document.body.classList.toggle("light-theme", data.settings.lightTheme);
   const btn = document.getElementById("themeToggleBtn");
   if (btn) btn.textContent = data.settings.lightTheme ? "🌙" : "☀️";
-  persist(false);
+  persist(false, true);
 }
 
 function downloadFile(content, filename, type) {
@@ -7646,12 +8915,16 @@ function importJSON() {
       }
       showModal("Η εισαγωγή θα αντικαταστήσει τα τρέχοντα δεδομένα. Θέλεις να συνεχίσεις;", true, (ok) => {
         if (!ok) return;
+        const preservedDeviceId = data.settings?.deviceId || generateId("dev");
+        const preservedCloudSync = data.settings?.cloudSync || deepClone(defaults.settings.cloudSync);
         data = normalizeLoadedState(imported, true);
+        data.settings.deviceId = preservedDeviceId;
+        data.settings.cloudSync = preservedCloudSync;
         data.settings.lastBackupAt = new Date().toISOString();
         data.settings.unsavedChangesCount = 0;
         data.settings.onboardingCompleted = true;
         sessionHasUnsavedChanges = false;
-        persist(false);
+        persist(true);
         render();
         showToast("Η επαναφορά δεδομένων ολοκληρώθηκε! ✓");
       }, "Εισαγωγή Backup");
@@ -7674,6 +8947,7 @@ function importCSV() {
       const matrix = splitCsvLinesToMatrix(reader.result);
       if (matrix.length < 2) throw new Error("Κενό αρχείο");
       let importedCount = 0;
+      const nowTs = Date.now();
 
       for (let i = 1; i < matrix.length; i++) {
         const [date, rawType, category, description, rawAmt, unexp] = matrix[i];
@@ -7682,13 +8956,15 @@ function importCSV() {
         if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(amount) && amount > 0) {
           data.transactions.push({
             id: generateId("tx"),
+            owner: "me",
             type,
             amount,
             date,
             category: category || "Άλλο",
             description: description || "",
             unexpected: unexp === "Ναι" || unexp === "true",
-            isShared: false
+            isShared: false,
+            _updatedAt: nowTs
           });
           importedCount++;
         }
@@ -7730,17 +9006,24 @@ function loadDemoData() {
     const rentMy = split.hasPartner ? Number(((rentFull * split.myPct) / 100).toFixed(2)) : rentFull;
     const superFull = 92;
     const superMy = split.hasPartner ? Number(((superFull * split.myPct) / 100).toFixed(2)) : superFull;
+    const nowTs = Date.now();
 
     data.transactions = [
-      { id: generateId("tx"), type: "income", amount: data.profile.monthlyIncome || 1200, date: `${ym}-01`, category: "Μισθός", description: "Μηνιαία Μισθοδοσία", source: "Πειραιώς", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: rentMy, date: `${ym}-02`, category: "Στέγαση", description: "Ενοίκιο Σπιτιού", source: "Πειραιώς", unexpected: false, isShared: split.hasPartner, totalBillAmount: rentFull, userSharePct: split.myPct, paidBy: "me", settled: false },
-      { id: generateId("tx"), type: "expense", amount: superMy, date: `${ym}-05`, category: "Τρόφιμα", description: "Σκλαβενίτης Σούπερ Μάρκετ", source: "Revolut", unexpected: false, isShared: split.hasPartner, totalBillAmount: superFull, userSharePct: split.myPct, paidBy: "partner", settled: false },
-      { id: generateId("tx"), type: "expense", amount: 42, date: `${ym}-07`, category: "Μεταφορές", description: "Shell Καύσιμα", source: "Revolut", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 34, date: `${ym}-09`, category: "Διασκέδαση", description: "Wolt Delivery", source: "Revolut", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 13.99, date: `${ym}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 13.99, date: `${prevYm}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "expense", amount: 50, date: `${ym}-11`, category: "Ανάληψη", description: "Ανάληψη ATM Πειραιώς", source: "Πειραιώς", unexpected: false, isShared: false },
-      { id: generateId("tx"), type: "saving", amount: 150, date: `${ym}-12`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false }
+      { id: generateId("tx"), owner: "me", type: "income", amount: data.profile.monthlyIncome || 1200, date: `${ym}-01`, category: "Μισθός", description: "Μηνιαία Μισθοδοσία", source: "Πειραιώς", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: rentMy, date: `${ym}-02`, category: "Στέγαση", description: "Ενοίκιο Σπιτιού", source: "Πειραιώς", unexpected: false, isShared: split.hasPartner, totalBillAmount: rentFull, userSharePct: split.myPct, paidBy: "me", settled: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: split.hasPartner ? "partner" : "me", type: "expense", amount: superMy, date: `${ym}-05`, category: "Τρόφιμα", description: "Σκλαβενίτης Σούπερ Μάρκετ", source: "Revolut", unexpected: false, isShared: split.hasPartner, totalBillAmount: superFull, userSharePct: split.myPct, paidBy: "partner", settled: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: 42, date: `${ym}-07`, category: "Μεταφορές", description: "Shell Καύσιμα", source: "Revolut", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: 34, date: `${ym}-09`, category: "Διασκέδαση", description: "Wolt Delivery", source: "Revolut", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: 13.99, date: `${ym}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: 13.99, date: `${prevYm}-10`, category: "Διασκέδαση", description: "Netflix Subscription", source: "Revolut", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "expense", amount: 50, date: `${ym}-11`, category: "Ανάληψη", description: "Ανάληψη ATM Πειραιώς", source: "Πειραιώς", unexpected: false, isShared: false, _updatedAt: nowTs },
+      { id: generateId("tx"), owner: "me", type: "saving", amount: 150, date: `${ym}-12`, category: "Αποταμίευση", description: "Αποθεματικό Ασφαλείας", unexpected: false, isShared: false, _updatedAt: nowTs }
+    ];
+    data.portfolioAssets = [
+      { id: "asset-demo-1", name: "VUAA", assetType: "ETF", units: 2.8598, value: 378.01, cost: 371.90 }
+    ];
+    data.goals = [
+      { id: "goal-demo-1", title: "Καλοκαιρινές Διακοπές", target: 600, saved: 150, targetMonth: `${ym.slice(0, 4)}-08` }
     ];
     persist();
     render();
@@ -7760,11 +9043,15 @@ function installPWA() {
 function clearData() {
   showModal("ΠΡΟΣΟΧΗ: Θα διαγραφούν οριστικά όλα τα τοπικά δεδομένα και οι συναλλαγές σου. Συνέχεια;", true, (ok) => {
     if (!ok) return;
+    const preservedDeviceId = data.settings?.deviceId || generateId("dev");
+    clearInterval(cloudPollTimer);
     data = deepClone(defaults);
+    data.settings.deviceId = preservedDeviceId;
+    cloudSyncStatus = "local";
     sessionHasUnsavedChanges = false;
-    persist(false);
+    persist(false, true);
     render();
-    showToast("Όλα τα δεδομένα επαναφέρθηκαν στις αρχικές ρυθμίσεις.");
+    showToast("Όλα τα δεδομένα επαναφέρθηκαν σε καθαρή αρχική κατάσταση (€0).");
   }, "Οριστική Διαγραφή");
 }
 
@@ -7825,9 +9112,9 @@ function closeShareModal() {
 
 function onShareUrlInputChange() {
   const val = (document.getElementById("shareUrlInput")?.value || "").trim();
-  if (!data.settings) data.settings = { ...defaults.settings };
+  if (!data.settings) data.settings = deepClone(defaults.settings);
   data.settings.customShareUrl = (val && val !== DEFAULT_SHARE_URL) ? val : "";
-  persist(false);
+  persist(false, true);
   renderShareQrCode(val || DEFAULT_SHARE_URL);
 }
 
@@ -7942,7 +9229,7 @@ function dismissDiscreetShareNudge(markShown = true) {
   if (nudge) nudge.classList.remove("visible");
   if (markShown && data.settings && !data.settings.sharePromptShown) {
     data.settings.sharePromptShown = true;
-    persist(false);
+    persist(false, true);
   }
 }
 
@@ -7959,7 +9246,7 @@ function scheduleOneTimeShareNudge() {
     if (nudge) {
       nudge.classList.add("visible");
       data.settings.sharePromptShown = true;
-      persist(false);
+      persist(false, true);
 
       setTimeout(() => {
         nudge.classList.remove("visible");
@@ -7969,7 +9256,7 @@ function scheduleOneTimeShareNudge() {
 }
 
 /* ==========================================================================
-12. ΑΡΧΙΚΟΠΟΙΗΣΗ ΕΦΑΡΜΟΓΗΣ (DOMContentLoaded + WINDOW ONLOAD)
+12. ΑΡΧΙΚΟΠΟΙΗΣΗ ΕΦΑΡΜΟΓΗΣ (DOMContentLoaded + WINDOW ONLOAD + CLOUD SYNC)
    ========================================================================== */
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
@@ -7990,6 +9277,18 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", syncMobileBottomBarPosition);
   window.visualViewport.addEventListener("scroll", syncMobileBottomBarPosition);
 }
+
+window.addEventListener("online", () => {
+  if (data.settings?.cloudSync?.enabled) {
+    pullCloudSyncNow(true).then(() => pushCloudSyncNow(true));
+  }
+});
+
+window.addEventListener("focus", () => {
+  if (data.settings?.cloudSync?.enabled) {
+    pullCloudSyncNow(true);
+  }
+});
 
 function nudgeLockedBankModal() {
   const card = document.getElementById("bankImportModalCard");
@@ -8013,7 +9312,7 @@ window.addEventListener("click", (e) => {
 });
 
 window.addEventListener("beforeunload", (e) => {
-  if (!isPersistentStorageAvailable && sessionHasUnsavedChanges) {
+  if (!isPersistentStorageAvailable && !data.settings?.cloudSync?.enabled && sessionHasUnsavedChanges) {
     e.preventDefault();
     e.returnValue = "";
   }
@@ -8045,7 +9344,6 @@ async function initApp() {
   isPersistentStorageAvailable = checkPersistentStorage();
   await restoreFromIndexedDBIfNeeded();
 
-  const modePill = document.getElementById("storageModePill");
   const googleSitesCodeEmbed = (() => {
     try {
       const host = window.location.hostname.toLowerCase();
@@ -8055,24 +9353,8 @@ async function initApp() {
     }
   })();
 
-  if (modePill) {
-    if (googleSitesCodeEmbed) {
-      modePill.textContent = "⚠️ Google Sites Embed";
-      modePill.className = "badge badge-withdrawal";
-      modePill.title = "Το Google Sites περιορίζει τη μόνιμη μνήμη στο refresh. Αποθήκευσε Backup JSON ή κατέβασε την αυτόνομη εφαρμογή.";
-    } else if (isPersistentStorageAvailable || isIndexedDBAvailable) {
-      modePill.textContent = isPersistentStorageAvailable ? "💾 Τοπική αποθήκευση" : "💾 IndexedDB";
-      modePill.className = "badge badge-income";
-      modePill.title = "Τα δεδομένα αποθηκεύονται αυτόματα στον browser σου.";
-    } else {
-      modePill.textContent = "⚠️ Περιορισμένη αποθήκευση";
-      modePill.className = "badge badge-withdrawal";
-      modePill.title = "Ο browser δεν επιτρέπει μόνιμη τοπική αποθήκευση.";
-    }
-  }
-
   const storageBanner = document.getElementById("storageNoticeBanner");
-  if (storageBanner && ((!isPersistentStorageAvailable && !isIndexedDBAvailable) || googleSitesCodeEmbed)) {
+  if (storageBanner && !data.settings?.cloudSync?.enabled && ((!isPersistentStorageAvailable && !isIndexedDBAvailable) || googleSitesCodeEmbed)) {
     storageBanner.classList.add("visible");
   }
 
@@ -8101,6 +9383,11 @@ async function initApp() {
   syncSimulatorWithPortfolio();
   switchWorkspaceTab("overview");
   render();
+
+  if (data.settings?.cloudSync?.enabled && data.settings.cloudSync.roomCode && data.settings.cloudSync.roomPin) {
+    await pullCloudSyncNow(true);
+    startCloudSyncPolling();
+  }
 
   if (!data.settings?.onboardingCompleted) {
     setTimeout(() => {
