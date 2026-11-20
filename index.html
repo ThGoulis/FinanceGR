@@ -524,6 +524,34 @@
   .modal-content.wide {
     max-width: 960px;
   }
+  #bankImportModal {
+    overflow: hidden;
+  }
+  #bankImportModal .modal-content.wide {
+    max-width: 1060px;
+    height: 90vh;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px;
+  }
+  #bankImportModal .bank-preview-scroll {
+    flex: 1 1 auto;
+    min-height: 180px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  #bankImportModal #bankPreviewTable thead th {
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 2;
+    box-shadow: 0 1px 0 var(--border);
+  }
   .form-group {
     margin-bottom: 12px;
   }
@@ -600,6 +628,10 @@
       max-height: 92vh;
       overflow-y: auto;
       padding: 20px 16px calc(22px + env(safe-area-inset-bottom));
+    }
+    #bankImportModal .modal-content.wide {
+      height: 92vh;
+      overflow: hidden;
     }
 
     #transactionsTable thead { display: none; }
@@ -1336,12 +1368,12 @@
 <!-- 3. Bank & Revolut Import Modal -->
 <div id="bankImportModal" class="modal-backdrop">
   <div class="modal-content wide">
-    <div class="panel-header">
+    <div class="panel-header" style="flex-shrink:0;">
       <h3 class="panel-title">🏦 Εισαγωγή Κινήσεων Τράπεζας & Revolut (.xlsx / .csv)</h3>
       <button type="button" class="secondary small-btn" onclick="closeBankImportModal()">✕ Κλείσιμο</button>
     </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-soft); padding:12px; border-radius:12px; margin-bottom:12px;">
+    <div style="flex-shrink:0; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-soft); padding:12px; border-radius:12px; margin-bottom:10px;">
       <div>
         <label class="small">1. Επιλογή Αρχείου (.xlsx, .xls, .csv)</label>
         <input type="file" id="bankStatementFile" accept=".xlsx,.xls,.csv" onchange="handleBankFileUpload(event)" style="margin-top:4px; width:100%;" />
@@ -1359,7 +1391,7 @@
         </select>
       </div>
       <div>
-        <label class="small">3. Φίλτρο Προεπισκόπησης</label>
+        <label class="small">3. Φίλτρο Κατάστασης</label>
         <select id="bankPreviewFilter" onchange="renderBankPreviewTable()" style="margin-top:4px; width:100%;">
           <option value="all">Όλες οι γραμμές</option>
           <option value="selected">✅ Επιλεγμένες προς εισαγωγή</option>
@@ -1367,19 +1399,27 @@
           <option value="skipped">⚠️ Εξαιρέσεις / Διπλές</option>
         </select>
       </div>
-    </div>
-
-    <div id="bankImportSummaryBar" class="banner info" style="display:none; margin-bottom:10px;"></div>
-
-    <div id="bankBulkActionsBar" style="display:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
-      <div class="small" id="bankSelectedCountText">0 επιλεγμένες</div>
-      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-        <select id="bankBulkCategorySelect" style="font-size:12px;"></select>
-        <button type="button" class="secondary small-btn" onclick="applyBulkBankCategory()">Εφαρμογή στα Επιλεγμένα</button>
+      <div>
+        <label class="small">4. Γρήγορη Αναζήτηση Ιδίων</label>
+        <div style="display:flex; gap:4px; margin-top:4px;">
+          <input type="text" id="bankPreviewSearch" placeholder="🔍 π.χ. PRONTO, Σκλαβενίτης..." oninput="renderBankPreviewTable()" style="width:100%;" />
+          <button type="button" class="secondary small-btn" id="clearBankSearchBtn" onclick="clearBankPreviewSearch()" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
+        </div>
       </div>
     </div>
 
-    <div class="table-wrap" style="max-height:420px; overflow-y:auto; margin-bottom:12px;">
+    <div id="bankImportSummaryBar" class="banner info" style="flex-shrink:0; display:none; margin-bottom:10px; padding:10px 14px;"></div>
+
+    <div id="bankBulkActionsBar" style="flex-shrink:0; display:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+      <div class="small" id="bankSelectedCountText">0 επιλεγμένες</div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <button type="button" class="secondary small-btn" id="selectOnlyVisibleBankBtn" onclick="selectOnlyVisibleBankRows()" style="display:none;" title="Επιλογή μόνο των γραμμών που εμφανίζονται">☑️ Επιλογή Μόνο Αυτών</button>
+        <select id="bankBulkCategorySelect" style="font-size:12px;"></select>
+        <button type="button" class="secondary small-btn" id="applyBulkBankCatBtn" onclick="applyBulkBankCategory()">Εφαρμογή στα Επιλεγμένα</button>
+      </div>
+    </div>
+
+    <div class="table-wrap bank-preview-scroll">
       <table id="bankPreviewTable">
         <thead>
           <tr>
@@ -1398,7 +1438,7 @@
       </table>
     </div>
 
-    <div style="display:flex; justify-content:flex-end; gap:8px;">
+    <div style="flex-shrink:0; display:flex; justify-content:flex-end; gap:8px;">
       <button type="button" class="secondary" onclick="closeBankImportModal()">Ακύρωση</button>
       <button type="button" class="accent" id="confirmBankImportBtn" disabled onclick="confirmBankImport()">✅ Εισαγωγή Επιλεγμένων</button>
     </div>
@@ -3637,6 +3677,12 @@ function openBankImportModal() {
   bankPreviewRows = [];
   bankUploadAttempted = false;
   document.getElementById("bankStatementFile").value = "";
+  const searchInp = document.getElementById("bankPreviewSearch");
+  if (searchInp) searchInp.value = "";
+  const clearBtn = document.getElementById("clearBankSearchBtn");
+  if (clearBtn) clearBtn.style.display = "none";
+  const filterSel = document.getElementById("bankPreviewFilter");
+  if (filterSel) filterSel.value = "all";
   document.getElementById("bankImportSummaryBar").style.display = "none";
   document.getElementById("bankBulkActionsBar").style.display = "none";
   document.getElementById("confirmBankImportBtn").disabled = true;
@@ -3649,7 +3695,213 @@ function openBankImportModal() {
 }
 
 function closeBankImportModal() {
-  document.getElementById("bankImportModal").style.display = "none";
+  const modal = document.getElementById("bankImportModal");
+  if (modal) modal.style.display = "none";
+}
+
+function getVisibleBankPreviewRows() {
+  const filter = document.getElementById("bankPreviewFilter")?.value || "all";
+  const searchRaw = document.getElementById("bankPreviewSearch")?.value || "";
+  const searchNorm = normalizeText(searchRaw);
+
+  return bankPreviewRows.filter(r => {
+    if (filter === "selected" && !r.selected) return false;
+    if (filter === "review" && r.statusTag !== "review") return false;
+    if (filter === "skipped" && r.statusTag !== "skipped") return false;
+    if (searchNorm) {
+      const hay = normalizeText(`${r.description || ""} ${r.originalBankDesc || ""} ${r.category || ""} ${r.amount}`);
+      if (!hay.includes(searchNorm)) return false;
+    }
+    return true;
+  });
+}
+
+function clearBankPreviewSearch() {
+  const inp = document.getElementById("bankPreviewSearch");
+  if (inp) inp.value = "";
+  renderBankPreviewTable();
+}
+
+function filterSimilarBankRows(rowId) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (!row) return;
+  const key = extractMerchantKey(row.description) || row.description.trim().split(/\s+/).slice(0, 2).join(" ");
+  const inp = document.getElementById("bankPreviewSearch");
+  if (inp) {
+    inp.value = key;
+    renderBankPreviewTable();
+  }
+}
+
+function selectOnlyVisibleBankRows() {
+  const visibleIds = new Set(getVisibleBankPreviewRows().map(r => r.rowId));
+  bankPreviewRows.forEach(r => {
+    r.selected = visibleIds.has(r.rowId);
+  });
+  renderBankPreviewTable();
+  showToast(`Επιλέχθηκαν μόνο οι ${visibleIds.size} εμφανιζόμενες κινήσεις.`);
+}
+
+function renderBankPreviewTable() {
+  const tbody = document.getElementById("bankPreviewBody");
+  const filter = document.getElementById("bankPreviewFilter")?.value || "all";
+  const searchVal = (document.getElementById("bankPreviewSearch")?.value || "").trim();
+  const isFiltered = filter !== "all" || searchVal.length > 0;
+  const split = getCoupleSplit();
+
+  const clearBtn = document.getElementById("clearBankSearchBtn");
+  if (clearBtn) clearBtn.style.display = searchVal.length > 0 ? "inline-flex" : "none";
+
+  const sharedHeader = document.getElementById("bankSharedColHeader");
+  if (sharedHeader) sharedHeader.style.display = split.hasPartner ? "" : "none";
+
+  const visible = getVisibleBankPreviewRows();
+  const selectedCount = bankPreviewRows.filter(r => r.selected).length;
+
+  setTextSafe(
+    "bankSelectedCountText",
+    isFiltered
+      ? `Εμφανίζονται ${visible.length} από ${bankPreviewRows.length} • (${selectedCount} συνολικά επιλεγμένες)`
+      : `${selectedCount} από ${bankPreviewRows.length} επιλεγμένες`
+  );
+
+  const selectOnlyBtn = document.getElementById("selectOnlyVisibleBankBtn");
+  if (selectOnlyBtn) {
+    selectOnlyBtn.style.display = isFiltered && visible.length > 0 ? "inline-flex" : "none";
+  }
+
+  const bulkApplyBtn = document.getElementById("applyBulkBankCatBtn");
+  if (bulkApplyBtn) {
+    bulkApplyBtn.textContent = isFiltered
+      ? `Εφαρμογή στα Ορατά (${visible.length})`
+      : `Εφαρμογή στα Επιλεγμένα (${selectedCount})`;
+  }
+
+  const selectAllCb = document.getElementById("bankSelectAll");
+  if (selectAllCb) {
+    selectAllCb.checked = visible.length > 0 && visible.every(r => r.selected);
+  }
+
+  document.getElementById("confirmBankImportBtn").disabled = selectedCount === 0;
+
+  const summaryBar = document.getElementById("bankImportSummaryBar");
+  if (summaryBar) {
+    if (bankPreviewRows.length > 0) {
+      summaryBar.style.display = "flex";
+      summaryBar.className = "banner info";
+      const salariesFound = bankPreviewRows.filter(r => r.selected && r.type === "income" && r.category === "Μισθός");
+      summaryBar.innerHTML = `
+        <div>
+          <strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)
+          ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
+        </div>
+      `;
+    } else if (bankUploadAttempted) {
+      summaryBar.style.display = "flex";
+      summaryBar.className = "banner warn";
+      summaryBar.innerHTML = `<div><strong>⚠️ Δεν εντοπίστηκαν κινήσεις στο αρχείο</strong><div class="small">Βεβαιώσου ότι ανέβασες το αρχείο κινήσεων λογαριασμού/κάρτας (.xlsx, .xls ή .csv) με στήλες Ημερομηνίας και Ποσού.</div></div>`;
+    }
+  }
+
+  if (visible.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="small">Δεν υπάρχουν γραμμές που να ταιριάζουν στην αναζήτηση / φίλτρο.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visible.map(r => {
+    const catList = r.type === "income" ? INCOME_CATEGORIES : [...EXPENSE_CATEGORIES, ...SAVING_CATEGORIES];
+    const catOptions = catList.map(c => `<option value="${escapeHtml(c)}" ${c === r.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+
+    return `
+      <tr style="${r.selected ? "" : "opacity:0.65;"}">
+        <td><input type="checkbox" ${r.selected ? "checked" : ""} onchange="toggleBankRowSelection('${r.rowId}', this.checked)" /></td>
+        <td style="white-space:nowrap;">${escapeHtml(r.date)}</td>
+        <td>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <input type="text" value="${escapeHtml(r.description)}" onchange="updateBankRowDescription('${r.rowId}', this.value)" style="width:100%; min-width:160px; padding:5px 8px;" />
+            <button type="button" class="secondary small-btn" onclick="filterSimilarBankRows('${r.rowId}')" title="Αναζήτηση όλων των ίδιων συναλλαγών">🔍</button>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <select onchange="updateBankRowCategory('${r.rowId}', this.value)" style="padding:5px 7px;">${catOptions}</select>
+            ${r.type === "income" ? `<button type="button" class="secondary small-btn" onclick="markBankRowAsSalary('${r.rowId}')" title="Ορισμός ως Μισθός">📌 Μισθός</button>` : ""}
+          </div>
+        </td>
+        ${split.hasPartner ? `<td><input type="checkbox" ${r.isShared ? "checked" : ""} onchange="toggleBankRowShared('${r.rowId}', this.checked)" /></td>` : ""}
+        <td><span class="badge">${escapeHtml(r.statusReason)}</span></td>
+        <td style="text-align:right; font-weight:700; color:${r.type === "income" ? "var(--accent)" : "var(--danger)"};">${r.type === "income" ? "+" : "-"}${money(r.amount)}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function toggleBankRowSelection(rowId, checked) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (row) row.selected = checked;
+  renderBankPreviewTable();
+}
+
+function toggleAllBankRows(checked) {
+  const visibleIds = new Set(getVisibleBankPreviewRows().map(r => r.rowId));
+  bankPreviewRows.forEach(r => {
+    if (visibleIds.has(r.rowId)) r.selected = checked;
+  });
+  renderBankPreviewTable();
+}
+
+function updateBankRowDescription(rowId, newVal) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (row && newVal.trim()) row.description = newVal.trim();
+}
+
+function updateBankRowCategory(rowId, newCat) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (!row) return;
+  row.category = newCat;
+  if (SAVING_CATEGORIES.includes(newCat)) row.type = "saving";
+  else if (INCOME_CATEGORIES.includes(newCat)) row.type = "income";
+  else row.type = "expense";
+  if (row.statusTag === "review") {
+    row.statusTag = "new";
+    row.statusReason = "✅ Ελέγχθηκε";
+  }
+  renderBankPreviewTable();
+}
+
+function markBankRowAsSalary(rowId) {
+  updateBankRowCategory(rowId, "Μισθός");
+  showToast("💰 Ορίστηκε ως Μισθός (Έναρξη Κύκλου)");
+}
+
+function toggleBankRowShared(rowId, checked) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (row) row.isShared = checked;
+}
+
+function applyBulkBankCategory() {
+  const cat = document.getElementById("bankBulkCategorySelect")?.value;
+  if (!cat) return;
+
+  const filter = document.getElementById("bankPreviewFilter")?.value || "all";
+  const searchVal = (document.getElementById("bankPreviewSearch")?.value || "").trim();
+  const isFiltered = filter !== "all" || searchVal.length > 0;
+  const targetRows = isFiltered ? getVisibleBankPreviewRows() : bankPreviewRows.filter(r => r.selected);
+
+  targetRows.forEach(r => {
+    r.category = cat;
+    r.selected = true;
+    if (SAVING_CATEGORIES.includes(cat)) r.type = "saving";
+    else if (INCOME_CATEGORIES.includes(cat)) r.type = "income";
+    else r.type = "expense";
+    if (r.statusTag === "review" || r.statusTag === "skipped") {
+      r.statusTag = "new";
+      r.statusReason = "✅ Ελέγχθηκε";
+    }
+  });
+
+  renderBankPreviewTable();
+  showToast(`Εφαρμόστηκε η κατηγορία «${cat}» σε ${targetRows.length} συναλλαγές.`);
 }
 
 function onBankSourceOverrideChange() {
@@ -3874,129 +4126,6 @@ function parseBankMatrix(rows, fileName) {
   }
 
   return parsed;
-}
-
-function renderBankPreviewTable() {
-  const tbody = document.getElementById("bankPreviewBody");
-  const filter = document.getElementById("bankPreviewFilter")?.value || "all";
-  const split = getCoupleSplit();
-
-  const sharedHeader = document.getElementById("bankSharedColHeader");
-  if (sharedHeader) sharedHeader.style.display = split.hasPartner ? "" : "none";
-
-  const selectedCount = bankPreviewRows.filter(r => r.selected).length;
-  setTextSafe("bankSelectedCountText", `${selectedCount} από ${bankPreviewRows.length} επιλεγμένες`);
-  document.getElementById("confirmBankImportBtn").disabled = selectedCount === 0;
-
-  const summaryBar = document.getElementById("bankImportSummaryBar");
-  if (summaryBar) {
-    if (bankPreviewRows.length > 0) {
-      summaryBar.style.display = "flex";
-      summaryBar.className = "banner info";
-      const salariesFound = bankPreviewRows.filter(r => r.selected && r.type === "income" && r.category === "Μισθός");
-      summaryBar.innerHTML = `
-        <div>
-          <strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)
-          ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
-        </div>
-      `;
-    } else if (bankUploadAttempted) {
-      summaryBar.style.display = "flex";
-      summaryBar.className = "banner warn";
-      summaryBar.innerHTML = `<div><strong>⚠️ Δεν εντοπίστηκαν κινήσεις στο αρχείο</strong><div class="small">Βεβαιώσου ότι ανέβασες το αρχείο κινήσεων λογαριασμού/κάρτας (.xlsx, .xls ή .csv) με στήλες Ημερομηνίας και Ποσού.</div></div>`;
-    }
-  }
-
-  const visible = bankPreviewRows.filter(r => {
-    if (filter === "selected") return r.selected;
-    if (filter === "review") return r.statusTag === "review";
-    if (filter === "skipped") return r.statusTag === "skipped";
-    return true;
-  });
-
-  if (visible.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="small">Δεν υπάρχουν γραμμές σε αυτό το φίλτρο.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = visible.map(r => {
-    const catList = r.type === "income" ? INCOME_CATEGORIES : [...EXPENSE_CATEGORIES, ...SAVING_CATEGORIES];
-    const catOptions = catList.map(c => `<option value="${escapeHtml(c)}" ${c === r.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
-
-    return `
-      <tr style="${r.selected ? "" : "opacity:0.65;"}">
-        <td><input type="checkbox" ${r.selected ? "checked" : ""} onchange="toggleBankRowSelection('${r.rowId}', this.checked)" /></td>
-        <td style="white-space:nowrap;">${escapeHtml(r.date)}</td>
-        <td>
-          <input type="text" value="${escapeHtml(r.description)}" onchange="updateBankRowDescription('${r.rowId}', this.value)" style="width:100%; min-width:170px; padding:5px 8px;" />
-        </td>
-        <td>
-          <div style="display:flex; gap:4px; align-items:center;">
-            <select onchange="updateBankRowCategory('${r.rowId}', this.value)" style="padding:5px 7px;">${catOptions}</select>
-            ${r.type === "income" ? `<button type="button" class="secondary small-btn" onclick="markBankRowAsSalary('${r.rowId}')" title="Ορισμός ως Μισθός">📌 Μισθός</button>` : ""}
-          </div>
-        </td>
-        ${split.hasPartner ? `<td><input type="checkbox" ${r.isShared ? "checked" : ""} onchange="toggleBankRowShared('${r.rowId}', this.checked)" /></td>` : ""}
-        <td><span class="badge">${escapeHtml(r.statusReason)}</span></td>
-        <td style="text-align:right; font-weight:700; color:${r.type === "income" ? "var(--accent)" : "var(--danger)"};">${r.type === "income" ? "+" : "-"}${money(r.amount)}</td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function toggleBankRowSelection(rowId, checked) {
-  const row = bankPreviewRows.find(r => r.rowId === rowId);
-  if (row) row.selected = checked;
-  renderBankPreviewTable();
-}
-
-function toggleAllBankRows(checked) {
-  bankPreviewRows.forEach(r => { r.selected = checked; });
-  renderBankPreviewTable();
-}
-
-function updateBankRowDescription(rowId, newVal) {
-  const row = bankPreviewRows.find(r => r.rowId === rowId);
-  if (row && newVal.trim()) row.description = newVal.trim();
-}
-
-function updateBankRowCategory(rowId, newCat) {
-  const row = bankPreviewRows.find(r => r.rowId === rowId);
-  if (!row) return;
-  row.category = newCat;
-  if (SAVING_CATEGORIES.includes(newCat)) row.type = "saving";
-  else if (INCOME_CATEGORIES.includes(newCat)) row.type = "income";
-  else row.type = "expense";
-  if (row.statusTag === "review") {
-    row.statusTag = "new";
-    row.statusReason = "✅ Ελέγχθηκε";
-  }
-  renderBankPreviewTable();
-}
-
-function markBankRowAsSalary(rowId) {
-  updateBankRowCategory(rowId, "Μισθός");
-  showToast("💰 Ορίστηκε ως Μισθός (Έναρξη Κύκλου)");
-}
-
-function toggleBankRowShared(rowId, checked) {
-  const row = bankPreviewRows.find(r => r.rowId === rowId);
-  if (row) row.isShared = checked;
-}
-
-function applyBulkBankCategory() {
-  const cat = document.getElementById("bankBulkCategorySelect")?.value;
-  if (!cat) return;
-  bankPreviewRows.forEach(r => {
-    if (r.selected) {
-      r.category = cat;
-      if (SAVING_CATEGORIES.includes(cat)) r.type = "saving";
-      else if (INCOME_CATEGORIES.includes(cat)) r.type = "income";
-      else r.type = "expense";
-    }
-  });
-  renderBankPreviewTable();
-  showToast(`Εφαρμόστηκε η κατηγορία «${cat}» στις επιλεγμένες κινήσεις.`);
 }
 
 function confirmBankImport() {
