@@ -467,6 +467,143 @@
   }
   tr:hover td { background: var(--card-soft); }
 
+  /* Forms, Banners, Modals, FAB & Toast */
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .form-group input,
+  .form-group select {
+    width: 100%;
+  }
+
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+  }
+  .banner.info {
+    background: var(--primary-soft);
+    border-color: rgba(37, 99, 235, 0.25);
+  }
+  .banner.success {
+    background: var(--accent-soft);
+    border-color: rgba(16, 185, 129, 0.25);
+  }
+  .banner.warn {
+    background: var(--warn-soft);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  .drilldown-row {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s ease;
+  }
+  .drilldown-row:hover {
+    background: var(--card-soft);
+  }
+
+  .fab-add {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    font-size: 28px;
+    font-weight: 700;
+    padding: 0;
+    background: linear-gradient(135deg, #2563eb, #10b981);
+    color: #fff;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+    z-index: 90;
+  }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(4px);
+    z-index: 120;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .modal-content {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    margin: auto;
+  }
+  .modal-content.wide {
+    max-width: 960px;
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .bank-preview-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+
+  #toastContainer {
+    position: fixed;
+    right: 16px;
+    bottom: 84px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast-msg {
+    background: #0f172a;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
   /* Mobile Bottom Sheet, Clean Topbar & App-Style Bottom Nav */
   @media (max-width: 680px) {
     .app-shell {
@@ -1283,6 +1420,30 @@
             <div>
               <label class="small">Επαναφορά JSON Backup</label>
               <div style="display:flex; gap:6px; margin-top:4px;">
+                <input type="file" id="importJsonFile" accept=".json" style="width:100%;" />
+                <button type="button" class="secondary small-btn" onclick="importJSON()">⬆️ Εισαγωγή</button>
+              </div>
+            </div>
+            <div>
+              <label class="small">Εισαγωγή Συναλλαγών CSV</label>
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <input type="file" id="importCsvFile" accept=".csv" style="width:100%;" />
+                <button type="button" class="secondary small-btn" onclick="importCSV()">⬆️ CSV</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card" style="background:var(--card-soft);">
+          <div class="kpi-label"><span>🧠 Απομνημονευμένοι Κανόνες Εμπόρων (Auto-Learn)</span></div>
+          <div class="small" style="margin-bottom:8px;">Εφαρμόζονται αυτόματα κατά την εισαγωγή από Τράπεζα / Revolut.</div>
+          <div id="merchantRulesContainer" style="max-height:220px; overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- FLOATING ADD BUTTON (DESKTOP) -->
 <button type="button" class="fab-add" onclick="openTransactionModal()" title="Νέα Συναλλαγή">+</button>
 
