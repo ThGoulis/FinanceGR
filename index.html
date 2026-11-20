@@ -3524,11 +3524,14 @@ function parseFlexibleDate(val) {
   if (isoMatch) {
     return `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}`;
   }
-  const dmyMatch = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  const dmyMatch = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
   if (dmyMatch) {
     let p1 = Number(dmyMatch[1]);
     let p2 = Number(dmyMatch[2]);
-    const yyyy = dmyMatch[3];
+    let yyyy = dmyMatch[3];
+    if (yyyy.length === 2) {
+      yyyy = (Number(yyyy) >= 70 ? "19" : "20") + yyyy;
+    }
     if (p2 > 12 && p1 <= 12) {
       // MM/DD/YYYY
       return `${yyyy}-${String(p1).padStart(2, "0")}-${String(p2).padStart(2, "0")}`;
@@ -3539,36 +3542,267 @@ function parseFlexibleDate(val) {
 }
 
 function parseFlexibleAmount(raw) {
-  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
-  let s = String(raw || "").trim();
-  if (!s) return null;
-  let negative = false;
-  if (/^\(.*\)$/.test(s)) {
-    negative = true;
-    s = s.slice(1, -1).trim();
-  }
-  s = s.replace(/[€$£\s]/g, "");
-  if (s.startsWith("-")) {
-    negative = true;
-    s = s.slice(1);
-  } else if (s.startsWith("+")) {
-    s = s.slice(1);
-  }
-  if (!s || !/\d/.test(s)) return null;
+  return null;
+}
+let bankUploadAttempted = false;
 
-  // Handle Greek 1.250,50 vs US 1,250.50
-  if (s.includes(",") && s.includes(".")) {
-    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
-      s = s.replace(/\./g, "").replace(",", ".");
-    } else {
-      s = s.replace(/,/g, "");
+function openBankImportModal() {
+  bankPreviewRows = [];
+  bankUploadAttempted = false;
+  document.getElementById("bankStatementFile").value = "";
+  document.getElementById("bankImportSummaryBar").style.display = "none";
+  document.getElementById("bankBulkActionsBar").style.display = "none";
+  document.getElementById("confirmBankImportBtn").disabled = true;
+  const bulkSel = document.getElementById("bankBulkCategorySelect");
+  if (bulkSel) {
+    bulkSel.innerHTML = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  }
+  document.getElementById("bankPreviewBody").innerHTML = `<tr><td colspan="7" class="small">Επίλεξε ένα αρχείο κινήσεων (.xlsx, .xls, .csv) από Τράπεζα ή Revolut.</td></tr>`;
+  document.getElementById("bankImportModal").style.display = "flex";
+}
+
+function closeBankImportModal() {
+  document.getElementById("bankImportModal").style.display = "none";
+}
+
+function onBankSourceOverrideChange() {
+  const val = document.getElementById("bankSourceSelect")?.value || "auto";
+  const finalSrc = val === "auto" ? detectedBankSource : val;
+  bankPreviewRows.forEach(r => { r.source = finalSrc; });
+  renderBankPreviewTable();
+}
+
+function handleBankFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const arrayBuf = e.target.result;
+      let workbook;
+      if (file.name.toLowerCase().endsWith(".csv")) {
+        let text = new TextDecoder("utf-8").decode(arrayBuf);
+        if (text.includes("\uFFFD")) {
+          text = new TextDecoder("windows-1253").decode(arrayBuf);
+        }
+        workbook = XLSX.read(text, { type: "string", cellDates: false });
+      } else {
+        workbook = XLSX.read(arrayBuf, { type: "array", cellDates: false });
+      }
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+      parseBankMatrix(rows, file.name);
+    } catch (err) {
+      console.error("Bank import parse error:", err);
+      showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου. Βεβαιώσου ότι είναι έγκυρο .xlsx, .xls ή .csv.");
     }
-  } else if (s.includes(",")) {
-    const parts = s.split(",");
-    if (parts[1] && parts[1].length <= 2) {
-      s = s.replace(",", ".");
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseBankMatrix(rows, fileName) {
+  const flatText = normalizeText(rows.slice(0, 15).flat().join(" ") + " " + fileName);
+  if (flatText.includes("revolut") || flatText.includes("completed date")) detectedBankSource = "Revolut";
+  else if (flatText.includes("πειραιως") || flatText.includes("piraeus") || flatText.includes("winbank")) detectedBankSource = "Πειραιώς";
+  else if (flatText.includes("εθνικη") || flatText.includes("nbg")) detectedBankSource = "Εθνική";
+  else if (flatText.includes("alpha")) detectedBankSource = "Alpha Bank";
+  else if (flatText.includes("eurobank")) detectedBankSource = "Eurobank";
+  else detectedBankSource = "Τράπεζα";
+
+  const overrideSrc = document.getElementById("bankSourceSelect")?.value || "auto";
+  const activeSource = overrideSrc === "auto" ? detectedBankSource : overrideSrc;
+
+  // Find header row (supports "Ημ/νία Συναλλαγής" in Piraeus Bank as well as "Ημερομηνία" / "Date")
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(25, rows.length); i++) {
+    const lineNorm = normalizeText(rows[i].join(" "));
+    const hasDateHeader = lineNorm.includes("ημερομηνια") || lineNorm.includes("ημ/νια") || lineNorm.includes("date");
+    const hasDataHeader = lineNorm.includes("ποσο") || lineNorm.includes("amount") || lineNorm.includes("χρεωση") || lineNorm.includes("περιγραφη") || lineNorm.includes("description");
+    if (hasDateHeader && hasDataHeader) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) headerIdx = 0;
+
+  const headers = rows[headerIdx].map(h => normalizeText(h));
+  const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+
+  const completedDateCol = findCol(["completed date", "ημερομηνια εκκαθαρισης", "ημ/νια εκκαθαρισης", "valeur"]);
+  const dateCol = completedDateCol !== -1 ? completedDateCol : findCol(["ημερομηνια", "ημ/νια", "started date", "date"]);
+  const commentsCol = findCol(["σχολια", "κωδικος αναφορας", "reference", "αιτιολογια"]);
+  const descCol = findCol(["περιγραφη", "description", "λεπτομερειες"]);
+  const amountCol = findCol(["ποσο", "amount"]);
+  const debitCol = findCol(["χρεωση", "debit", "αναληψη"]);
+  const creditCol = findCol(["πιστωση", "credit", "καταθεση"]);
+  const dcFlagCol = findCol(["χ/π", "τυπος κινησης", "d/c", "type"]);
+  const stateCol = findCol(["state", "κατασταση"]);
+  const currencyCol = findCol(["currency", "νομισμα"]);
+
+  const parsed = [];
+
+  for (let r = headerIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || row.every(cell => String(cell).trim() === "")) continue;
+
+    const rowJoinedNorm = normalizeText(row.join(" "));
+    if (rowJoinedNorm.includes("συνολο χρεωσεων") || rowJoinedNorm.includes("συνολο πιστωσεων") || rowJoinedNorm.includes("μεταφορα υπολοιπου")) {
+      continue;
+    }
+
+    let dateIso = dateCol !== -1 ? parseFlexibleDate(row[dateCol]) : null;
+    if (!dateIso && dateCol === -1) {
+      for (let c = 0; c < Math.min(6, row.length); c++) {
+        const candidateDate = parseFlexibleDate(row[c]);
+        if (candidateDate) {
+          dateIso = candidateDate;
+          break;
+        }
+      }
+    }
+    if (!dateIso) continue;
+
+    // Revolut state filter
+    if (stateCol !== -1) {
+      const st = normalizeText(row[stateCol]);
+      if (st && st !== "completed" && st !== "ολοκληρωμενη") {
+        continue;
+      }
+    }
+
+    // Foreign currency warning/skip (supports EUR, ΕΥΡΩ, €)
+    let currencyCode = "EUR";
+    if (currencyCol !== -1 && row[currencyCol]) {
+      const rawCurr = String(row[currencyCol]).trim().toUpperCase();
+      currencyCode = (rawCurr === "ΕΥΡΩ" || rawCurr === "€") ? "EUR" : rawCurr;
+    }
+
+    const commText = commentsCol !== -1 ? String(row[commentsCol] || "").trim() : "";
+    const descText = descCol !== -1 ? String(row[descCol] || "").trim() : "";
+    let rawDesc = "";
+
+    if (commText && descText) {
+      const commIsOnlyRefCode = /^[0-9\s./-]+$/.test(commText);
+      const descHasSalary = /\b(μισθοδοσια|μισθος|salary|payroll)\b/.test(normalizeText(descText));
+      const commHasSalary = /\b(μισθοδοσια|μισθος|salary|payroll)\b/.test(normalizeText(commText));
+      if (commIsOnlyRefCode) {
+        rawDesc = descText;
+      } else if (descHasSalary && !commHasSalary) {
+        rawDesc = `${commText} (${descText})`;
+      } else {
+        rawDesc = commText;
+      }
+    } else if (commText) {
+      rawDesc = commText;
+    } else if (descText) {
+      rawDesc = descText;
     } else {
-      s = s.replace(/,/g, "");
+      rawDesc = row.filter((_, idx) => idx !== dateCol && idx !== amountCol).map(x => String(x).trim()).filter(Boolean).join(" ");
+    }
+    if (!rawDesc) rawDesc = "Τραπεζική Κίνηση";
+
+    const fullBankFingerprint = [descText, commText].filter(Boolean).join(" ") || rawDesc;
+
+    let signedAmt = null;
+    if (debitCol !== -1 && creditCol !== -1 && debitCol !== creditCol) {
+      const deb = parseFlexibleAmount(row[debitCol]);
+      const cred = parseFlexibleAmount(row[creditCol]);
+      if (deb && Math.abs(deb) > 0) signedAmt = -Math.abs(deb);
+      else if (cred && Math.abs(cred) > 0) signedAmt = Math.abs(cred);
+    } else if (amountCol !== -1) {
+      signedAmt = parseFlexibleAmount(row[amountCol]);
+      if (signedAmt !== null && dcFlagCol !== -1) {
+        const flag = normalizeText(row[dcFlagCol]);
+        if (flag === "χ" || flag.includes("χρεωσ") || flag === "d" || flag === "debit") {
+          signedAmt = -Math.abs(signedAmt);
+        } else if (flag === "π" || flag.includes("πιστωσ") || flag === "c" || flag === "credit") {
+          signedAmt = Math.abs(signedAmt);
+        }
+      }
+    }
+
+    if (signedAmt === null || Math.abs(signedAmt) < 0.005) continue;
+
+    const absAmt = Number(Math.abs(signedAmt).toFixed(2));
+    const txType = signedAmt >= 0 ? "income" : "expense";
+    const normDesc = normalizeText(rawDesc);
+
+    const isTopupOrInternal =
+      currencyCode !== "EUR" ||
+      /\b(top-up|topup|revolut\*\*|μεταφορα μεταξυ λογαριασμων|exchange)\b/.test(normDesc);
+
+    const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, rawDesc);
+    const autoCat = autoCategorizeDescription(rawDesc, signedAmt);
+
+    let statusTag = "new";
+    let statusReason = "✅ Νέα κίνηση";
+    let selected = true;
+
+    if (currencyCode !== "EUR") {
+      statusTag = "skipped";
+      statusReason = `⚠️ Ξένο νόμισμα (${currencyCode})`;
+      selected = false;
+    } else if (dupMatch) {
+      statusTag = "skipped";
+      statusReason = `⚠️ Διπλοεγγραφή (${dupMatch.date})`;
+      selected = false;
+    } else if (isTopupOrInternal) {
+      statusTag = "skipped";
+      statusReason = "🔄 Εσωτερική μεταφορά / Top-up";
+      selected = false;
+    } else if (autoCat.confidence === "low") {
+      statusTag = "review";
+      statusReason = "❓ Έλεγχος κατηγορίας";
+    }
+
+    parsed.push({
+      rowId: generateId("brow"),
+      selected,
+      date: dateIso,
+      description: rawDesc,
+      originalBankDesc: rawDesc,
+      type: txType,
+      category: autoCat.category,
+      isShared: autoCat.isShared,
+      amount: absAmt,
+      source: activeSource,
+      statusTag,
+      statusReason
+    });
+  }
+
+  return parsed;
+}
+
+function renderBankPreviewTable() {
+  const tbody = document.getElementById("bankPreviewBody");
+  const filter = document.getElementById("bankPreviewFilter")?.value || "all";
+  const split = getCoupleSplit();
+
+  const sharedHeader = document.getElementById("bankSharedColHeader");
+  if (sharedHeader) sharedHeader.style.display = split.hasPartner ? "" : "none";
+
+  const selectedCount = bankPreviewRows.filter(r => r.selected).length;
+  setTextSafe("bankSelectedCountText", `${selectedCount} από ${bankPreviewRows.length} επιλεγμένες`);
+  document.getElementById("confirmBankImportBtn").disabled = selectedCount === 0;
+
+  const summaryBar = document.getElementById("bankImportSummaryBar");
+  if (summaryBar) {
+    if (bankPreviewRows.length > 0) {
+      summaryBar.style.display = "flex";
+      summaryBar.className = "banner info";
+      const salariesFound = bankPreviewRows.filter(r => r.selected && r.type === "income" && r.category === "Μισθός");
+      summaryBar.innerHTML = `
+        <div>
+          <strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)
+          ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
+        </div>
+      `;
+    } else if (bankUploadAttempted) {
+      summaryBar.style.display = "flex";
+      summaryBar.className = "banner warn";
+      summaryBar.innerHTML = `<div><strong>⚠️ Δεν εντοπίστηκαν κινήσεις στο αρχείο</strong><div class="small">Βεβαιώσου ότι ανέβασες το αρχείο κινήσεων λογαριασμού/κάρτας (.xlsx, .xls ή .csv) με στήλες Ημερομηνίας και Ποσού.</div></div>`;
     }
   }
   const num = Number(s);
@@ -3746,8 +3980,8 @@ function parseBankMatrix(rows, fileName) {
       currencyCode !== "EUR" ||
       /\b(top-up|topup|revolut\*\*|μεταφορα μεταξυ λογαριασμων|exchange)\b/.test(normDesc);
 
-    const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, rawDesc);
-    const autoCat = autoCategorizeDescription(rawDesc, signedAmt);
+    const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, fullBankFingerprint);
+    const autoCat = autoCategorizeDescription(fullBankFingerprint, signedAmt);
 
     let statusTag = "new";
     let statusReason = "✅ Νέα κίνηση";
@@ -3775,7 +4009,7 @@ function parseBankMatrix(rows, fileName) {
       selected,
       date: dateIso,
       description: rawDesc,
-      originalBankDesc: rawDesc,
+      originalBankDesc: fullBankFingerprint,
       type: txType,
       category: autoCat.category,
       isShared: autoCat.isShared,
