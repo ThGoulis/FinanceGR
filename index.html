@@ -1244,39 +1244,41 @@
       <!-- Beginner-friendly Alpha Vantage Setup & Guide -->
       <div id="alphaVantageSetupBox" style="display:none; background:var(--card-soft); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-          <strong style="font-size:14px;">🔑 Αυτόματη Ενημέρωση Τιμών ETF / Μετοχών (Δωρεάν Alpha Vantage)</strong>
+          <strong style="font-size:14px;">🔑 Αυτόματη Ενημέρωση Τιμών ETF / Μετοχών (Χωρίς Κλειδί για Ευρωπαϊκά ETF + Προαιρετικό Alpha Vantage)</strong>
           <button type="button" class="secondary small-btn" onclick="toggleAlphaVantageGuide()">✕</button>
         </div>
 
+        <div class="small" style="background:var(--accent-soft); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px 12px; margin-bottom:10px; line-height:1.5;">
+          ✅ <strong>Νέο:</strong> Τα ευρωπαϊκά UCITS ETFs (όπως <code>VUAA.MIL</code> / <code>VUAA.MI</code> στο Μιλάνο, <code>VWCE.DE</code> στη Γερμανία, <code>CSPX.L</code> στο Λονδίνο, <code>XEON.DE</code>) ενημερώνονται <strong>αυτόματα & δωρεάν χωρίς κανένα API Key</strong>! Το παρακάτω κλειδί Alpha Vantage είναι πλέον προαιρετικό (ως εφεδρική πηγή για αμερικανικές μετοχές).
+        </div>
+
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <input type="text" id="alphaVantageKeyInput" placeholder="Επικόλλησε εδώ το προσωπικό σου API Key (π.χ. A1B2C3D4E5F6G7H8)" style="flex:1 1 240px;" />
+          <input type="text" id="alphaVantageKeyInput" placeholder="Προαιρετικό Alpha Vantage API Key (π.χ. A1B2C3D4E5F6G7H8)" style="flex:1 1 240px;" />
           <button type="button" class="accent small-btn" onclick="saveAlphaVantageApiKey()">💾 Αποθήκευση Κλειδιού</button>
         </div>
 
         <div class="small" style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; line-height:1.6;">
-          <strong style="color:var(--text);">📘 Οδηγός για Αρχάριους (Πώς αποκτάς δωρεάν προσωπικό κλειδί σε 30''):</strong>
+          <strong style="color:var(--text);">📘 Οδηγός Tickers & Προαιρετικού Alpha Vantage Key:</strong>
           <ol style="margin:6px 0 8px 18px; padding:0;">
-            <li>Πάτησε εδώ για να ανοίξει η επίσημη σελίδα: <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">alphavantage.co/support/#api-key ↗</a> (100% δωρεάν, δεν ζητά κάρτα).</li>
-            <li>Διάλεξε <strong>Investor</strong>, γράψε το <strong>Email</strong> σου και πάτησε <strong>GET FREE API KEY</strong>.</li>
-            <li>Θα εμφανιστεί αμέσως στην οθόνη ένας κωδικός 16 χαρακτήρων (π.χ. <code>K9X2M7...</code>). Αντέγραψέ τον, επικόλλησέ τον στο παραπάνω πεδίο και πάτησε <strong>Αποθήκευση Κλειδιού</strong>.</li>
-            <li>Όταν προσθέτεις ένα ETF, συμπλήρωσε προαιρετικά το <strong>Ticker</strong> (π.χ. <code>VWCE.DEX</code> για XETRA Γερμανίας, <code>CSPX.LON</code> για Λονδίνο, <code>VOO</code> ή <code>AAPL</code> για ΗΠΑ) και τα <strong>Μερίδια</strong> που κατέχεις.</li>
+            <li><strong>Χρησιμοποίησε το σωστό Ticker:</strong> Για Χρηματιστήριο Μιλάνου βάλε <code>VUAA.MIL</code> ή <code>VUAA.MI</code>, για XETRA Γερμανίας <code>VWCE.DE</code> ή <code>XEON.DE</code>, για Λονδίνο <code>CSPX.L</code> και για ΗΠΑ <code>VOO</code> ή <code>AAPL</code>.</li>
+            <li>Συμπλήρωσε τα <strong>Μερίδια</strong> σου (υποστηρίζονται έως 8 δεκαδικά ψηφία, π.χ. <code>12.458912</code>). Η <strong>Τρέχουσα Αξία (€)</strong> είναι προαιρετική — υπολογίζεται αυτόματα!</li>
+            <li><em>(Προαιρετικά)</em> Αν θέλεις και εφεδρικό κλειδί από Alpha Vantage: άνοιξε το <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">alphavantage.co/support/#api-key ↗</a>, βάλε το email σου, πάτησε <strong>GET FREE API KEY</strong> και επικόλλησε τον κωδικό παραπάνω.</li>
           </ol>
-          <div style="color:var(--muted);">💡 <em>Σημείωση: Το δωρεάν πλάνο επιτρέπει έως 25 ενημερώσεις την ημέρα. Το FinanceGR αποθηκεύει προσωρινά τις τιμές για 6 ώρες και μετατρέπει αυτόματα τα USD σε Ευρώ (€).</em></div>
         </div>
       </div>
 
       <form onsubmit="event.preventDefault(); addPortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
-        <input type="text" id="assetName" placeholder="Όνομα (π.χ. S&P 500)" required />
-        <input type="text" id="assetTicker" placeholder="Ticker (π.χ. VWCE.DEX)" title="Προαιρετικό σύμβολο χρηματιστηρίου για αυτόματη τιμή" />
+        <input type="text" id="assetName" placeholder="Όνομα (π.χ. VUAA S&P 500)" required />
+        <input type="text" id="assetTicker" placeholder="Ticker (π.χ. VUAA.MIL)" title="Σύμβολο χρηματιστηρίου για αυτόματη τιμή (π.χ. VUAA.MIL, VWCE.DE)" />
         <select id="assetType">
           <option value="ETF">📈 ETF</option>
           <option value="Μετοχή">🏢 Μετοχή</option>
           <option value="Κατάθεση / XEON">🏦 Προθεσμιακή / XEON</option>
           <option value="Crypto">🪙 Crypto</option>
         </select>
-        <input type="number" id="assetUnits" step="0.0001" min="0" placeholder="Μερίδια (προαιρ.)" title="Αριθμός τεμαχίων/μεριδίων για αυτόματο υπολογισμό αξίας" />
+        <input type="number" id="assetUnits" step="0.00000001" min="0" placeholder="Μερίδια (έως 8 δεκ.)" title="Αριθμός τεμαχίων/μεριδίων (έως 8 δεκαδικά ψηφία)" />
         <input type="number" id="assetInvested" step="0.01" min="0" placeholder="Κεφάλαιο Επένδυσης (€)" required />
-        <input type="number" id="assetCurrent" step="0.01" min="0" placeholder="Τρέχουσα Αξία (€)" required />
+        <input type="number" id="assetCurrent" step="0.01" min="0" placeholder="Τρέχουσα Αξία € (προαιρ.)" title="Προαιρετικό: υπολογίζεται αυτόματα αν βάλεις Ticker & Μερίδια" />
         <button type="submit">➕ Προσθήκη</button>
       </form>
 
@@ -3739,9 +3741,14 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     };
   }
 
-  const norm = normalizeText(desc);
+  const rawTrimmed = String(desc || "").trim();
+  const norm = normalizeText(rawTrimmed);
 
   if (amount > 0) {
+    // Εισερχόμενα από ιδιώτες / μεταφορές B/O στην Πειραιώς -> Επιστροφή Χρημάτων
+    if (/^b\s*\/\s*o\b/i.test(rawTrimmed) || /\bb\s*\/\s*o\b/.test(norm)) {
+      return { category: "Επιστροφή Χρημάτων", isShared: false, confidence: "high" };
+    }
     if (BONUS_KEYWORDS.some(k => norm.includes(k))) {
       return { category: "Bonus / Δώρο", isShared: false, confidence: "high" };
     }
@@ -3754,10 +3761,22 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     return { category: "Άλλο Έσοδο", isShared: false, confidence: "low" };
   }
 
+  // Μοτίβα Τράπεζας Πειραιώς στις χρεώσεις:
+  // 1) "ΥΠΕΡ ΟΝΟΜΑ..." -> Διασκέδαση
+  if (/^υπερ\b/.test(norm)) {
+    return { category: "Διασκέδαση", isShared: false, confidence: "high" };
+  }
+
+  // 2) Ξεκινάει με αριθμό λογαριασμού (π.χ. 5029120147486 ΔΑΝΕΙΟ...) ή κωδικό RF... -> Λογαριασμοί
+  if (/^(rf\d{2,}|\d{6,})/.test(norm)) {
+    return { category: "Λογαριασμοί", isShared: false, confidence: "high" };
+  }
+
+  // 3) Γνωστές εταιρείες / εφαρμογές
   const rules = [
     { re: /\b(σουπερ μαρκετ|σκλαβενιτης|sklavenitis|αβ βασιλοπουλος|ab vassilopoulos|lidl|μασουτης|masoutis|γαλαξιας|galaxias|market in|κριτικος|my market)\b/, cat: "Τρόφιμα", shared: true },
     { re: /\b(ενοικιο|κοινοχρηστα|rent)\b/, cat: "Στέγαση", shared: true },
-    { re: /\b(δεη|dei|ηρων|protergia|ελπεδισον|elpedison|nrg|φυσικο αεριο|ευδαπ|eydap|ευαθ|cosmote|vodafone|nova|wind|ιντερνετ|internet)\b/, cat: "Λογαριασμοί", shared: true },
+    { re: /\b(telekom|telco|δεη|dei|ηρων|heron|protergia|ελπεδισον|elpedison|nrg|zenith|ζενιθ|φυσικο αεριο|ευδαπ|eydap|ευαθ|cosmote|vodafone|nova|wind|ιντερνετ|internet|δανειο|loan)\b/, cat: "Λογαριασμοί", shared: true },
     { re: /\b(shell|eko|bp|avin|ελιν|βενζιν|καυσιμα|οασα|oasa|μετρο|διοδια|attiki odos|αττικη οδος|uber|freenow|taxi|ταξι|aegean|ryanair|sky express)\b/, cat: "Μεταφορές", shared: false },
     { re: /\b(φαρμακειο|pharmacy|ιατρ|διαγνωστικ|βιοιατρικ|οδοντιατρ|νοσοκομ)\b/, cat: "Υγεία", shared: false },
     { re: /\b(καφε|coffee|everest|γρηγορης|gregorys|veneti|βενετης|goodys|wolt|efood|box|netflix|spotify|cinema|σινεμα|εστιατορ|ταβερνα|bar|μπαρ)\b/, cat: "Διασκέδαση", shared: false },
@@ -4584,16 +4603,17 @@ function renderSubscriptionDetector() {
     <div class="kpi-card" style="background:var(--card-soft);">
       <div class="kpi-label">
         <strong>${escapeHtml(c.title)}</strong>
-        <button type="button" class="secondary small-btn" onclick="ignoreDetectedSubscription('${escapeHtml(c.key)}')" title="Αγνόηση">✕</button>
+        <button type="button" class="secondary small-btn" data-subkey="${escapeHtml(c.key)}" onclick="ignoreDetectedSubscription(this.dataset.subkey)" title="Αγνόηση">✕</button>
       </div>
       <div class="metric primary" style="font-size:18px;">${money(c.amount)} <span class="small">/ μήνα</span></div>
       <div class="small" style="margin:4px 0 8px;">Κατηγορία: ${escapeHtml(c.category)} • ${c.count} χρεώσεις</div>
-      <button type="button" class="small-btn" onclick="promoteSubToRecurring('${escapeHtml(c.title)}', '${escapeHtml(c.category)}', ${c.amount})">➕ Προσθήκη στα Πάγια</button>
+      <button type="button" class="small-btn" data-subtitle="${escapeHtml(c.title)}" data-subcat="${escapeHtml(c.category)}" data-subamt="${c.amount}" onclick="promoteSubToRecurring(this.dataset.subtitle, this.dataset.subcat, Number(this.dataset.subamt))">➕ Προσθήκη στα Πάγια</button>
     </div>
   `).join("")}</div>`;
 }
 
 function ignoreDetectedSubscription(key) {
+  if (!key) return;
   if (!data.ignoredSubscriptions) data.ignoredSubscriptions = {};
   data.ignoredSubscriptions[key] = true;
   data.settings.stateUpdatedAt = Date.now();
@@ -4602,12 +4622,18 @@ function ignoreDetectedSubscription(key) {
 }
 
 function promoteSubToRecurring(title, category, amount) {
+  const cleanTitle = String(title || "").trim();
+  const cleanCat = String(category || "Λογαριασμοί").trim();
+  const cleanAmt = Number(amount) || 0;
+  if (!cleanTitle || cleanAmt <= 0) return;
+
+  if (!Array.isArray(data.recurring)) data.recurring = [];
   data.recurring.push({
     id: generateId("rec"),
-    title,
+    title: cleanTitle,
     type: "expense",
-    category,
-    amount,
+    category: cleanCat,
+    amount: cleanAmt,
     day: 1,
     isShared: false,
     skippedMonths: {}
@@ -4615,7 +4641,11 @@ function promoteSubToRecurring(title, category, amount) {
   data.settings.stateUpdatedAt = Date.now();
   persist();
   render();
-  showToast(`🔁 Το «${title}» προστέθηκε στα Πάγια!`);
+  const recPanel = document.getElementById("recurringPanel");
+  if (recPanel) {
+    recPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  showToast(`🔁 Το «${cleanTitle}» (${money(cleanAmt)}/μήνα) προστέθηκε στα Πάγια!`);
 }
 
 function syncRecCategoryOptions() {
@@ -5009,9 +5039,9 @@ function renderAnnualBills() {
         </div>
         <div class="metric privacy-sensitive" style="font-size:18px;">${money(b.saved)} <span class="small">/ ${money(b.amount)}</span></div>
         <div class="progress"><div style="width:${pct}%; background:var(--warn);"></div></div>
-        <div class="small" style="margin:6px 0 10px;">Λήξη: ${escapeHtml(b.dueDate)} • Απαιτούνται ~${money(monthlyNeed)}/μήνα</div>
+        <div class="small" style="margin:6px 0 10px;">Λήξη: ${escapeHtml(b.dueDate)} • ~${money(monthlyNeed)}/μήνα</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="secondary small-btn" onclick="reserveForAnnualBill('${escapeHtml(b.id)}', 25)">+€25 Άκρη</button>
+          <button type="button" class="secondary small-btn" onclick="reserveForAnnualBill('${escapeHtml(b.id)}', 25)">+€25</button>
           <button type="button" class="accent small-btn" onclick="payAnnualBill('${escapeHtml(b.id)}')">✅ Πληρώθηκε</button>
         </div>
       </div>
@@ -5020,12 +5050,12 @@ function renderAnnualBills() {
 }
 
 /* ==========================================================================
-   9. PORTFOLIO (WITH ALPHA VANTAGE LIVE QUOTES), SIMULATOR & E-RECEIPTS
+   9. PORTFOLIO (YAHOO FINANCE / ALPHA VANTAGE), WEALTH SIMULATOR & E-RECEIPTS
    ========================================================================== */
 function toggleAlphaVantageGuide() {
   const box = document.getElementById("alphaVantageSetupBox");
   if (!box) return;
-  const isHidden = box.style.display === "none";
+  const isHidden = box.style.display === "none" || !box.style.display;
   box.style.display = isHidden ? "block" : "none";
   if (isHidden) {
     const inp = document.getElementById("alphaVantageKeyInput");
@@ -5034,16 +5064,60 @@ function toggleAlphaVantageGuide() {
 }
 
 function saveAlphaVantageApiKey() {
-  const key = (document.getElementById("alphaVantageKeyInput")?.value || "").trim();
-  data.settings.alphaVantageApiKey = key;
+  const inp = document.getElementById("alphaVantageKeyInput");
+  if (!inp) return;
+  data.settings.alphaVantageApiKey = inp.value.trim();
   data.settings.stateUpdatedAt = Date.now();
   persist();
-  if (key) {
-    showToast("🔑 Το προσωπικό API Key αποθηκεύτηκε!");
-    refreshPortfolioMarketPrices(true);
-  } else {
-    showToast("Το API Key αφαιρέθηκε.");
+  showToast("🔑 Το προαιρετικό API Key αποθηκεύτηκε!");
+  refreshPortfolioMarketPrices(true);
+}
+
+function normalizeYahooTicker(rawTicker) {
+  let sym = String(rawTicker || "").trim().toUpperCase();
+  // Yahoo Finance uses .MI for Borsa Italiana (Milan) instead of .MIL
+  if (sym.endsWith(".MIL")) {
+    sym = sym.slice(0, -4) + ".MI";
   }
+  // Yahoo Finance uses .L for London instead of .LON
+  if (sym.endsWith(".LON")) {
+    sym = sym.slice(0, -4) + ".L";
+  }
+  // Yahoo Finance uses .DE for XETRA Germany instead of .DEX
+  if (sym.endsWith(".DEX")) {
+    sym = sym.slice(0, -4) + ".DE";
+  }
+  return sym;
+}
+
+async function fetchYahooQuoteInEur(rawTicker, usdToEurFallback = 0.92) {
+  const yahooSym = normalizeYahooTicker(rawTicker);
+  const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=5d`;
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const meta = json?.chart?.result?.[0]?.meta;
+      const rawPrice = Number(meta?.regularMarketPrice || meta?.previousClose);
+      if (!(rawPrice > 0)) continue;
+
+      const currency = String(meta?.currency || "EUR").toUpperCase();
+      if (currency === "EUR") return rawPrice;
+      if (currency === "USD") return rawPrice * usdToEurFallback;
+      if (currency === "GBP") return rawPrice * 1.19;
+      if (currency === "GBX" || currency === "GBPENCE") return (rawPrice / 100) * 1.19;
+      return rawPrice;
+    } catch {
+      // Try next proxy
+    }
+  }
+  return null;
 }
 
 async function fetchAlphaVantageUsdToEurRate(apiKey) {
@@ -5053,15 +5127,20 @@ async function fetchAlphaVantageUsdToEurRate(apiKey) {
   if (cachedFx && (Date.now() - cachedFx.fetchedAt) < SIX_HOURS_MS && cachedFx.rate > 0) {
     return cachedFx.rate;
   }
-  const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(url);
-  const json = await res.json();
-  const rateStr = json?.["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"];
-  const rate = Number(rateStr);
-  if (rate > 0) {
-    data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
-    data.settings.etfQuotesCache.__FX_USDEUR = { rate, fetchedAt: Date.now() };
-    return rate;
+  if (!apiKey) return 0.92;
+  try {
+    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    const rateStr = json?.["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"];
+    const rate = Number(rateStr);
+    if (rate > 0) {
+      data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
+      data.settings.etfQuotesCache.__FX_USDEUR = { rate, fetchedAt: Date.now() };
+      return rate;
+    }
+  } catch {
+    // Fallback rate
   }
   return 0.92;
 }
@@ -5070,18 +5149,9 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
   const apiKey = (data.settings?.alphaVantageApiKey || "").trim();
   const trackedAssets = (data.portfolioAssets || []).filter(a => a.ticker && Number(a.units) > 0);
 
-  if (!apiKey) {
-    if (forceManual) {
-      const box = document.getElementById("alphaVantageSetupBox");
-      if (box) box.style.display = "block";
-      showModal("Για αυτόματη ενημέρωση τιμών ETF/μετοχών, καταχώρισε πρώτα το δωρεάν προσωπικό σου Alpha Vantage API Key στον οδηγό που άνοιξε παραπάνω.");
-    }
-    return;
-  }
-
   if (trackedAssets.length === 0) {
     if (forceManual) {
-      showModal("Δεν βρέθηκαν θέσεις με συμπληρωμένο «Ticker» και «Μερίδια». Πρόσθεσε ή συμπλήρωσε τα μερίδια σε μια θέση ETF για να ενημερωθεί αυτόματα.");
+      showModal("Δεν βρέθηκαν θέσεις με συμπληρωμένο «Ticker» (π.χ. VUAA.MIL) και «Μερίδια». Πρόσθεσε μια θέση ETF με Ticker & Μερίδια για αυτόματη ενημέρωση.");
     }
     return;
   }
@@ -5095,9 +5165,10 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
   const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
   data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
   let updatedCount = 0;
-  let rateLimited = false;
 
   try {
+    const usdToEur = await fetchAlphaVantageUsdToEurRate(apiKey);
+
     for (const asset of trackedAssets) {
       const symbol = String(asset.ticker).trim().toUpperCase();
       const cached = data.settings.etfQuotesCache[symbol];
@@ -5106,37 +5177,33 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
       if (!forceManual && cached && (Date.now() - cached.fetchedAt) < SIX_HOURS_MS && cached.priceEur > 0) {
         unitPriceEur = cached.priceEur;
       } else {
-        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(apiKey)}`;
-        const res = await fetch(url);
-        const json = await res.json();
+        // 1. Try Yahoo Finance first (supports VUAA.MIL, VWCE.DE, CSPX.L, US tickers without API key)
+        unitPriceEur = await fetchYahooQuoteInEur(symbol, usdToEur);
 
-        if (json?.Note || json?.Information) {
-          rateLimited = true;
-          break;
+        // 2. Fallback to Alpha Vantage if user provided an API key
+        if (!(unitPriceEur > 0) && apiKey) {
+          const avSym = symbol.endsWith(".MI") ? symbol.slice(0, -3) + ".MIL" : symbol;
+          const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(avSym)}&apikey=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url);
+          const json = await res.json();
+          const quote = json?.["Global Quote"];
+          const rawPrice = Number(quote?.["05. price"]);
+          if (rawPrice > 0) {
+            const isEuropeanSuffix = /\.(DEX|DE|FRK|LON|L|MIL|MI|AMS|PAR|BRU|MAD)$/i.test(avSym);
+            unitPriceEur = isEuropeanSuffix ? rawPrice : rawPrice * usdToEur;
+          }
         }
 
-        const quote = json?.["Global Quote"];
-        const rawPrice = Number(quote?.["05. price"]);
-        if (rawPrice > 0) {
-          const isEuropeanSuffix = /\.(DEX|FRK|LON|MIL|AMS|PAR|BRU|MAD)$/i.test(symbol);
-          if (symbol.endsWith(".LON")) {
-            // London Stock Exchange often quotes in GBX (pence) or USD
-            unitPriceEur = rawPrice;
-          } else if (isEuropeanSuffix) {
-            unitPriceEur = rawPrice;
-          } else {
-            const usdToEur = await fetchAlphaVantageUsdToEurRate(apiKey);
-            unitPriceEur = rawPrice * usdToEur;
-          }
+        if (unitPriceEur && unitPriceEur > 0) {
           data.settings.etfQuotesCache[symbol] = {
-            priceEur: Number(unitPriceEur.toFixed(4)),
+            priceEur: Number(unitPriceEur.toFixed(6)),
             fetchedAt: Date.now()
           };
         }
       }
 
       if (unitPriceEur && unitPriceEur > 0) {
-        asset.lastUnitPriceEur = Number(unitPriceEur.toFixed(2));
+        asset.lastUnitPriceEur = Number(unitPriceEur.toFixed(4));
         asset.lastPriceUpdatedAt = Date.now();
         asset.current = Number((unitPriceEur * Number(asset.units)).toFixed(2));
         updatedCount++;
@@ -5151,16 +5218,12 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
         showToast(`📈 Ενημερώθηκαν ${updatedCount} θέσεις χαρτοφυλακίου!`);
       }
     } else if (forceManual) {
-      showModal(
-        rateLimited
-          ? "Το δωρεάν όριο αιτημάτων του Alpha Vantage (5/λεπτό ή 25/ημέρα) εξαντλήθηκε προσωρινά. Δοκίμασε ξανά αργότερα."
-          : "Δεν βρέθηκε τιμή για τα συγκεκριμένα tickers. Βεβαιώσου ότι το σύμβολο χρηματιστηρίου είναι σωστό (π.χ. VWCE.DEX ή VOO)."
-      );
+      showModal("Δεν βρέθηκε τιμή για τα συγκεκριμένα tickers. Δοκίμασε μορφή χρηματιστηρίου όπως VUAA.MIL (Μιλάνο), VWCE.DE (Γερμανία) ή VOO (ΗΠΑ).");
     }
   } catch (err) {
-    console.error("Alpha Vantage quote error:", err);
+    console.error("Portfolio quote error:", err);
     if (forceManual) {
-      showToast("⚠️ Αποτυχία σύνδεσης με Alpha Vantage.");
+      showToast("⚠️ Αποτυχία σύνδεσης για ενημέρωση τιμών.");
     }
   } finally {
     if (btn) {
@@ -5174,9 +5237,22 @@ function addPortfolioAsset() {
   const name = document.getElementById("assetName").value.trim();
   const ticker = (document.getElementById("assetTicker")?.value || "").trim().toUpperCase();
   const type = document.getElementById("assetType").value;
-  const units = Math.max(0, Number(document.getElementById("assetUnits")?.value) || 0);
+  const unitsRaw = document.getElementById("assetUnits")?.value;
+  const units = unitsRaw !== "" && unitsRaw !== null ? Math.max(0, Number(unitsRaw) || 0) : 0;
   const invested = Math.max(0, Number(document.getElementById("assetInvested").value) || 0);
-  const current = Math.max(0, Number(document.getElementById("assetCurrent").value) || 0);
+  const currentRaw = document.getElementById("assetCurrent").value;
+  const hasExplicitCurrent = currentRaw !== "" && currentRaw !== null && Number(currentRaw) > 0;
+  const cachedPrice = ticker ? Number(data.settings?.etfQuotesCache?.[ticker]?.priceEur) : 0;
+
+  let current = 0;
+  if (hasExplicitCurrent) {
+    current = Math.max(0, Number(currentRaw) || 0);
+  } else if (units > 0 && cachedPrice > 0) {
+    current = Number((units * cachedPrice).toFixed(2));
+  } else {
+    current = invested;
+  }
+
   if (!name) return;
 
   data.portfolioAssets.push({
@@ -5186,7 +5262,8 @@ function addPortfolioAsset() {
     type,
     units,
     invested,
-    current
+    current,
+    lastUnitPriceEur: cachedPrice > 0 ? cachedPrice : undefined
   });
   data.settings.stateUpdatedAt = Date.now();
   document.getElementById("assetName").value = "";
@@ -5197,7 +5274,7 @@ function addPortfolioAsset() {
   persist();
   render();
   showToast(`📈 Η θέση «${name}» προστέθηκε στο χαρτοφυλάκιο!`);
-  if (ticker && units > 0 && data.settings?.alphaVantageApiKey) {
+  if (ticker && units > 0) {
     refreshPortfolioMarketPrices(false);
   }
 }
@@ -5379,10 +5456,9 @@ function renderEReceiptsTracker() {
    10. CHARTS, 50/30/20 RULE, TOP MERCHANTS & OVERVIEW RENDER
    ========================================================================== */
 function renderCharts(totals, split, memberView) {
-  // 1. Category Pie/Doughnut Chart
+  // 1. Category Pie/Doughnut Chart (update in-place if already initialized to avoid flickering)
   const catCanvas = document.getElementById("categoryChart");
   if (catCanvas && typeof Chart !== "undefined") {
-    if (categoryChartInstance) categoryChartInstance.destroy();
     const entries = Object.entries(totals.byCategory).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
     const labels = entries.length > 0 ? entries.map(e => e[0]) : ["Χωρίς έξοδα"];
     const values = entries.length > 0 ? entries.map(e => Number(e[1].toFixed(2))) : [1];
@@ -5390,30 +5466,38 @@ function renderCharts(totals, split, memberView) {
       ? ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#64748b"]
       : ["#cbd5e1"];
 
-    categoryChartInstance = new Chart(catCanvas, {
-      type: "doughnut",
-      data: {
-        labels,
-        datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        onClick: (_, elements) => {
-          if (!elements.length || entries.length === 0) return;
-          const idx = elements[0].index;
-          const chosenCat = labels[idx];
-          drillDownToTransactions({ category: chosenCat, type: "expense" });
+    if (categoryChartInstance) {
+      categoryChartInstance.data.labels = labels;
+      categoryChartInstance.data.datasets[0].data = values;
+      categoryChartInstance.data.datasets[0].backgroundColor = colors;
+      categoryChartInstance.update("none");
+    } else {
+      categoryChartInstance = new Chart(catCanvas, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }]
         },
-        plugins: { legend: { position: "right" } }
-      }
-    });
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (_, elements) => {
+            if (!elements.length) return;
+            const idx = elements[0].index;
+            const chosenCat = categoryChartInstance.data.labels[idx];
+            if (chosenCat && chosenCat !== "Χωρίς έξοδα") {
+              drillDownToTransactions({ category: chosenCat, type: "expense" });
+            }
+          },
+          plugins: { legend: { position: "right" } }
+        }
+      });
+    }
   }
 
-  // 2. Last 6 Months Trend Bar Chart
+  // 2. Last 6 Months Trend Bar Chart (update in-place to avoid continuous reload)
   const trendCanvas = document.getElementById("trendChart");
   if (trendCanvas && typeof Chart !== "undefined") {
-    if (trendChartInstance) trendChartInstance.destroy();
     const months = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
@@ -5431,21 +5515,28 @@ function renderCharts(totals, split, memberView) {
       expSeries.push(Number(t.expense.toFixed(2)));
     });
 
-    trendChartInstance = new Chart(trendCanvas, {
-      type: "bar",
-      data: {
-        labels: months,
-        datasets: [
-          { label: "Έσοδα", data: incSeries, backgroundColor: "#10b981", borderRadius: 6 },
-          { label: "Έξοδα", data: expSeries, backgroundColor: "#ef4444", borderRadius: 6 }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" } }
-      }
-    });
+    if (trendChartInstance) {
+      trendChartInstance.data.labels = months;
+      trendChartInstance.data.datasets[0].data = incSeries;
+      trendChartInstance.data.datasets[1].data = expSeries;
+      trendChartInstance.update("none");
+    } else {
+      trendChartInstance = new Chart(trendCanvas, {
+        type: "bar",
+        data: {
+          labels: months,
+          datasets: [
+            { label: "Έσοδα", data: incSeries, backgroundColor: "#10b981", borderRadius: 6 },
+            { label: "Έξοδα", data: expSeries, backgroundColor: "#ef4444", borderRadius: 6 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+    }
   }
 }
 
@@ -6096,7 +6187,7 @@ window.onload = async function () {
     await pullCloudSyncNow(true);
   }
 
-  if (data.settings?.alphaVantageApiKey) {
+  if ((data.portfolioAssets || []).some(a => a.ticker && Number(a.units) > 0)) {
     refreshPortfolioMarketPrices(false);
   }
 
@@ -6104,7 +6195,7 @@ window.onload = async function () {
     if (data.settings?.cloudSync?.enabled && !document.hidden) {
       pullCloudSyncNow(true);
     }
-  }, 12000);
+  }, 15000);
 };
 </script>
 </body>
