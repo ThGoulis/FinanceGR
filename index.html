@@ -574,9 +574,19 @@
     flex-direction: column;
     overflow: hidden;
   }
+  .bank-filters-grid {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    background: var(--card-soft);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+  }
   .bank-preview-scroll {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 180px;
     overflow-y: auto;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -786,8 +796,39 @@
       padding: 20px 16px calc(22px + env(safe-area-inset-bottom));
     }
     #bankImportModal .modal-content.wide {
-      height: 92vh;
+      height: 94vh;
+      padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
       overflow: hidden;
+    }
+    #bankImportModal .panel-header {
+      margin-bottom: 8px;
+    }
+    #bankImportModal .panel-title {
+      font-size: 14px;
+    }
+    .bank-filters-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 8px;
+      margin-bottom: 6px;
+    }
+    .bank-filters-grid label.small {
+      font-size: 10px;
+    }
+    .bank-filters-grid input,
+    .bank-filters-grid select {
+      padding: 5px 7px;
+      font-size: 11px;
+      margin-top: 2px !important;
+    }
+    #bankImportSummaryBar {
+      padding: 6px 10px !important;
+      margin-bottom: 6px !important;
+      font-size: 11px;
+    }
+    #bankBulkActionsBar {
+      margin-bottom: 6px !important;
+      gap: 4px !important;
     }
 
     #transactionsTable thead { display: none; }
@@ -881,43 +922,6 @@
     </div>
   </header>
 
-  <!-- FIRST USE GUIDE PANEL -->
-  <section class="panel" id="firstUseGuidePanel" style="border-left: 4px solid var(--primary);">
-    <div class="panel-header" style="margin-bottom:8px;">
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <h2 class="panel-title">🚀 ΠΡΩΤΗ ΧΡΗΣΗ — Ξεκίνα σε 3 Απλά Βήματα</h2>
-        <span class="badge income" id="firstUseProgressBadge">0/3 ολοκληρώθηκαν</span>
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button type="button" class="secondary small-btn" id="toggleFirstUseBtn" onclick="toggleFirstUseCollapse()">▲ Σύμπτυξη</button>
-        <button type="button" class="secondary small-btn" onclick="dismissFirstUseGuide()" title="Κλείσιμο οδηγού">✕</button>
-      </div>
-    </div>
-    <div id="firstUseGuideBody">
-      <div class="grid-3" style="margin-bottom:10px;">
-        <div class="kpi-card" style="background:var(--card-soft);">
-          <div class="kpi-label"><span>1. Προφίλ & Αναλογία Σπιτιού</span><span id="step1Check">⬜</span></div>
-          <div class="small" style="margin-bottom:8px;">Όρισε το καθαρό σου εισόδημα, την ημέρα πληρωμής (για τον Κύκλο Μισθοδοσίας) και προαιρετικά τον/την σύντροφό σου.</div>
-          <button type="button" class="secondary small-btn" onclick="switchTab('settings')">⚙️ Ρύθμιση Προφίλ</button>
-        </div>
-        <div class="kpi-card" style="background:var(--card-soft);">
-          <div class="kpi-label"><span>2. Κινήσεις ή Αρχείο Τράπεζας/Revolut</span><span id="step2Check">⬜</span></div>
-          <div class="small" style="margin-bottom:8px;">Καταχώρισε μια κίνηση ή ανέβασε το <code>.xlsx</code> Πειραιώς / <code>.csv</code> Revolut με αυτόματη κατηγοριοποίηση.</div>
-          <button type="button" class="secondary small-btn" onclick="openBankImportModal()">🏦 Εισαγωγή Αρχείου</button>
-        </div>
-        <div class="kpi-card" style="background:var(--card-soft);">
-          <div class="kpi-label"><span>3. Live Cloud Sync & Εφαρμογή Κινητού</span><span id="step3Check">⬜</span></div>
-          <div class="small" style="margin-bottom:8px;">Σύνδεσε δωμάτιο με PIN (AES-256) για αυτόματο συγχρονισμό Laptop ↔ Κινητό και αποθήκευσε το site στην Αρχική Οθόνη.</div>
-          <button type="button" class="secondary small-btn" onclick="openCloudSyncModal()">☁️ Σύνδεση Cloud</button>
-        </div>
-      </div>
-      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
-        <span class="small">💡 Θέλεις απλώς να εξερευνήσεις πώς φαίνεται γεμάτο;</span>
-        <button type="button" class="secondary small-btn" onclick="loadDemoData()">🧪 Φόρτωση Ενδεικτικών Δεδομένων (Demo)</button>
-      </div>
-    </div>
-  </section>
-
   <!-- NAVIGATION TABS -->
   <nav class="nav-tabs" role="tablist">
     <button type="button" class="nav-tab active" data-tab="overview" onclick="switchTab('overview')">📊 Επισκόπηση</button>
@@ -929,6 +933,43 @@
 
   <!-- TAB 1: OVERVIEW -->
   <div id="tab-overview" class="tab-panel active">
+    <!-- FIRST USE GUIDE PANEL (SHOWN ONLY IN OVERVIEW) -->
+    <section class="panel" id="firstUseGuidePanel" style="border-left: 4px solid var(--primary);">
+      <div class="panel-header" style="margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <h2 class="panel-title">🚀 ΠΡΩΤΗ ΧΡΗΣΗ — Ξεκίνα σε 3 Απλά Βήματα</h2>
+          <span class="badge income" id="firstUseProgressBadge">0/3 ολοκληρώθηκαν</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="secondary small-btn" id="toggleFirstUseBtn" onclick="toggleFirstUseCollapse()">▲ Σύμπτυξη</button>
+          <button type="button" class="secondary small-btn" onclick="dismissFirstUseGuide()" title="Κλείσιμο οδηγού">✕</button>
+        </div>
+      </div>
+      <div id="firstUseGuideBody">
+        <div class="grid-3" style="margin-bottom:10px;">
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>1. Προφίλ & Αναλογία Σπιτιού</span><span id="step1Check">⬜</span></div>
+            <div class="small" style="margin-bottom:8px;">Όρισε το καθαρό σου εισόδημα, την ημέρα πληρωμής (για τον Κύκλο Μισθοδοσίας) και προαιρετικά τον/την σύντροφό σου.</div>
+            <button type="button" class="secondary small-btn" onclick="switchTab('settings')">⚙️ Ρύθμιση Προφίλ</button>
+          </div>
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>2. Κινήσεις ή Αρχείο Τράπεζας/Revolut</span><span id="step2Check">⬜</span></div>
+            <div class="small" style="margin-bottom:8px;">Καταχώρισε μια κίνηση ή ανέβασε το <code>.xlsx</code> Πειραιώς / <code>.csv</code> Revolut με αυτόματη κατηγοριοποίηση.</div>
+            <button type="button" class="secondary small-btn" onclick="openBankImportModal()">🏦 Εισαγωγή Αρχείου</button>
+          </div>
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>3. Live Cloud Sync & Εφαρμογή Κινητού</span><span id="step3Check">⬜</span></div>
+            <div class="small" style="margin-bottom:8px;">Σύνδεσε δωμάτιο με PIN (AES-256) για αυτόματο συγχρονισμό Laptop ↔ Κινητό και αποθήκευσε το site στην Αρχική Οθόνη.</div>
+            <button type="button" class="secondary small-btn" onclick="openCloudSyncModal()">☁️ Σύνδεση Cloud</button>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
+          <span class="small">💡 Θέλεις απλώς να εξερευνήσεις πώς φαίνεται γεμάτο;</span>
+          <button type="button" class="secondary small-btn" onclick="loadDemoData()">🧪 Φόρτωση Ενδεικτικών Δεδομένων (Demo)</button>
+        </div>
+      </div>
+    </section>
+
     <div id="smartSalaryBanner" class="banner info" style="display:none;">
       <div>
         <strong>💸 Ώρα Μισθοδοσίας!</strong>
@@ -960,7 +1001,7 @@
     <section class="hero-nw">
       <div class="hero-nw-top">
         <div>
-          <div class="hero-nw-title">💎 Συνολική Καθαρή Θέση (Net Worth)</div>
+          <div class="hero-nw-title" id="netWorthTitleLabel">💎 Συνολική Καθαρή Θέση (Net Worth)</div>
           <div class="hero-nw-val privacy-sensitive" id="netWorthMetric">€0,00</div>
           <div class="small" id="netWorthPeriodSubtitle" style="color:#cbd5e1; margin-top:4px;">Περίοδος: —</div>
         </div>
@@ -1241,15 +1282,16 @@
         </div>
       </div>
 
-      <!-- Beginner-friendly Alpha Vantage Setup & Guide -->
+      <!-- Beginner-friendly Market API Setup & Guide -->
       <div id="alphaVantageSetupBox" style="display:none; background:var(--card-soft); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-          <strong style="font-size:14px;">🔑 Αυτόματη Ενημέρωση Τιμών ETF / Μετοχών (Χωρίς Κλειδί για Ευρωπαϊκά ETF + Προαιρετικό Alpha Vantage)</strong>
+          <strong style="font-size:14px;">🔑 Αυτόματη Ενημέρωση Τιμών ETF / Μετοχών (Χωρίς Κλειδί + Προαιρετικό Twelve Data / Alpha Vantage Key)</strong>
           <button type="button" class="secondary small-btn" onclick="toggleAlphaVantageGuide()">✕</button>
         </div>
 
         <div class="small" style="background:var(--accent-soft); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px 12px; margin-bottom:10px; line-height:1.5;">
-          ✅ <strong>Νέο:</strong> Τα ευρωπαϊκά UCITS ETFs (όπως <code>VUAA.MIL</code> / <code>VUAA.MI</code> στο Μιλάνο, <code>VWCE.DE</code> στη Γερμανία, <code>CSPX.L</code> στο Λονδίνο, <code>XEON.DE</code>) ενημερώνονται <strong>αυτόματα & δωρεάν χωρίς κανένα API Key</strong> (μέσω Yahoo Finance & Stooq + ισοτιμίες ΕΚΤ)! Το παρακάτω κλειδί είναι προαιρετικό (ως εφεδρικό για αμερικανικές μετοχές).
+          ✅ <strong>Αυτόματη λειτουργία χωρίς API Key:</strong> Τα ευρωπαϊκά UCITS ETFs (όπως <code>VUAA.MIL</code> / <code>VUAA.MI</code> στο Μιλάνο, <code>VWCE.DE</code> στη Γερμανία, <code>CSPX.L</code> στο Λονδίνο, <code>XEON.DE</code>) ενημερώνονται <strong>δωρεάν χωρίς κανένα API Key</strong> (μέσω Yahoo Finance & Stooq + ισοτιμίες ΕΚΤ).<br/>
+          💡 <strong>Για 100% σταθερή κάλυψη Μιλάνου/Ευρώπης (800 δωρεάν κλήσεις/ημέρα):</strong> Μπορείς προαιρετικά να βάλεις ένα δωρεάν κλειδί από <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">Twelve Data ↗</a> (υποστηρίζει <code>VUAA.MIL</code> & <code>VUAA:MI</code>) ή από <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">Alpha Vantage ↗</a>.
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
@@ -1259,21 +1301,22 @@
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <input type="text" id="alphaVantageKeyInput" placeholder="Προαιρετικό Alpha Vantage / Twelve Data API Key" style="flex:1 1 240px;" />
+          <input type="text" id="alphaVantageKeyInput" placeholder="Προαιρετικό Twelve Data ή Alpha Vantage API Key" style="flex:1 1 240px;" />
           <button type="button" class="accent small-btn" onclick="saveAlphaVantageApiKey()">💾 Αποθήκευση Κλειδιού</button>
         </div>
 
         <div class="small" style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; line-height:1.6;">
-          <strong style="color:var(--text);">📘 Οδηγός Tickers & Προαιρετικού Alpha Vantage Key:</strong>
+          <strong style="color:var(--text);">📘 Οδηγός Tickers & Προαιρετικού API Key:</strong>
           <ol style="margin:6px 0 8px 18px; padding:0;">
             <li><strong>Χρησιμοποίησε το σωστό Ticker:</strong> Για Χρηματιστήριο Μιλάνου βάλε <code>VUAA.MIL</code> ή <code>VUAA.MI</code>, για XETRA Γερμανίας <code>VWCE.DE</code> ή <code>XEON.DE</code>, για Λονδίνο <code>CSPX.L</code> και για ΗΠΑ <code>VOO</code> ή <code>AAPL</code>.</li>
             <li>Συμπλήρωσε τα <strong>Μερίδια</strong> σου (υποστηρίζονται έως 8 δεκαδικά ψηφία, π.χ. <code>12.458912</code>). Η <strong>Τρέχουσα Αξία (€)</strong> είναι προαιρετική — υπολογίζεται αυτόματα!</li>
-            <li><em>(Προαιρετικά)</em> Αν θέλεις και εφεδρικό κλειδί από Alpha Vantage: άνοιξε το <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">alphavantage.co/support/#api-key ↗</a>, βάλε το email σου, πάτησε <strong>GET FREE API KEY</strong> και επικόλλησε τον κωδικό παραπάνω.</li>
+            <li><em>(Προαιρετικά)</em> Για δωρεάν κλειδί Twelve Data: μπες στο <a href="https://twelvedata.com/register" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">twelvedata.com/register ↗</a>, πάρε το δωρεάν API Key από το Dashboard και επικόλλησέ το παραπάνω.</li>
           </ol>
         </div>
       </div>
 
-      <form onsubmit="event.preventDefault(); addPortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+      <form onsubmit="event.preventDefault(); savePortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+        <input type="hidden" id="editingAssetId" value="" />
         <input type="text" id="assetName" placeholder="Όνομα (π.χ. VUAA S&P 500)" required />
         <input type="text" id="assetTicker" placeholder="Ticker (π.χ. VUAA.MIL)" title="Σύμβολο χρηματιστηρίου για αυτόματη τιμή (π.χ. VUAA.MIL, VWCE.DE)" />
         <select id="assetType">
@@ -1285,7 +1328,10 @@
         <input type="number" id="assetUnits" step="0.00000001" min="0" placeholder="Μερίδια (έως 8 δεκ.)" title="Αριθμός τεμαχίων/μεριδίων (έως 8 δεκαδικά ψηφία)" />
         <input type="number" id="assetInvested" step="0.01" min="0" placeholder="Κεφάλαιο Επένδυσης (€)" required />
         <input type="number" id="assetCurrent" step="0.01" min="0" placeholder="Τρέχουσα Αξία € (προαιρ.)" title="Προαιρετικό: υπολογίζεται αυτόματα αν βάλεις Ticker & Μερίδια" />
-        <button type="submit">➕ Προσθήκη</button>
+        <div style="display:flex; gap:6px;">
+          <button type="submit" id="saveAssetBtn" style="flex:1;">➕ Προσθήκη</button>
+          <button type="button" class="secondary" id="cancelAssetEditBtn" style="display:none;" onclick="cancelPortfolioAssetEditor()">✕</button>
+        </div>
       </form>
 
       <div id="portfolioAssetsGrid" class="grid-3"></div>
@@ -1596,7 +1642,7 @@
       <button type="button" class="secondary small-btn" onclick="closeBankImportModal()">✕ Κλείσιμο</button>
     </div>
 
-    <div style="flex-shrink:0; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-soft); padding:12px; border-radius:12px; margin-bottom:10px;">
+    <div class="bank-filters-grid">
       <div>
         <label class="small">1. Επιλογή Αρχείου (.xlsx, .xls, .csv)</label>
         <input type="file" id="bankStatementFile" accept=".xlsx,.xls,.csv" onchange="handleBankFileUpload(event)" style="margin-top:4px; width:100%;" />
@@ -2778,6 +2824,7 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
         }
 
         const mergedTx = { ...tx };
+        delete mergedTx._settlementPatch;
         if (isRemoteOwner) {
           mergedTx.owner = "partner";
           if (mergedTx.paidBy === "me") mergedTx.paidBy = "partner";
@@ -2956,6 +3003,13 @@ async function pushCloudSyncNow() {
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
+
+    // Clear one-time settlement patches after successful sync
+    (data.transactions || []).forEach(tx => {
+      if (tx && tx._settlementPatch) {
+        delete tx._settlementPatch;
+      }
+    });
 
     cfg.resolvedRoomPath = roomHash;
     cfg.lastSyncedAt = nowTs;
@@ -3545,6 +3599,15 @@ function deleteTransaction(txId) {
   if (!tx) return;
   showModal(`Διαγραφή συναλλαγής «${tx.description}» (${money(tx.amount)});`, true, (ok) => {
     if (!ok) return;
+    // Prevent deleted recurring transaction from re-appearing on refresh
+    if (tx.recurringId && tx.date && tx.date.length >= 7) {
+      const rec = (data.recurring || []).find(r => r.id === tx.recurringId);
+      if (rec) {
+        if (!rec.skippedMonths || typeof rec.skippedMonths !== "object") rec.skippedMonths = {};
+        rec.skippedMonths[tx.date.slice(0, 7)] = true;
+        data.settings.stateUpdatedAt = Date.now();
+      }
+    }
     // Revert linked goal or annual bill balance if applicable
     if (tx.linkedGoalId) {
       const g = (data.goals || []).find(item => item.id === tx.linkedGoalId);
@@ -5240,24 +5303,36 @@ async function fetchMarketQuoteInEur(rawTicker, fxRates, apiKey) {
 
   // 3. Optional API Key (Twelve Data or Alpha Vantage)
   if (apiKey) {
-    try {
-      const tdSym = normalizeYahooTicker(symbol);
-      const tdRes = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdSym)}&apikey=${encodeURIComponent(apiKey)}`);
-      if (tdRes.ok) {
-        const tdJson = await tdRes.json();
-        const tdPrice = Number(tdJson?.price);
-        if (tdPrice > 0) {
-          const isEur = /\.(MI|MIL|DE|DEX|AMS|PAR|BRU|MAD)$/i.test(symbol);
-          return {
-            priceEur: isEur ? tdPrice : tdPrice * (fxRates.USD || 0.92),
-            rawPrice: tdPrice,
-            currency: isEur ? "EUR" : "USD",
-            provider: "Twelve Data"
-          };
+    const tdCandidates = [];
+    const baseSym = symbol.replace(/:(MI|MIL|DE|DEX|L|LON)$/i, ".$1");
+    tdCandidates.push(normalizeYahooTicker(baseSym));
+    if (/\.(MI|MIL)$/i.test(baseSym)) {
+      const root = baseSym.replace(/\.(MI|MIL)$/i, "");
+      tdCandidates.push(`${root}:MI`, `${root}.MIL`);
+    } else if (/\.(DE|DEX)$/i.test(baseSym)) {
+      const root = baseSym.replace(/\.(DE|DEX)$/i, "");
+      tdCandidates.push(`${root}:XETR`, `${root}.DEX`);
+    }
+
+    for (const tdSym of Array.from(new Set(tdCandidates))) {
+      try {
+        const tdRes = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdSym)}&apikey=${encodeURIComponent(apiKey)}`);
+        if (tdRes.ok) {
+          const tdJson = await tdRes.json();
+          const tdPrice = Number(tdJson?.price);
+          if (tdPrice > 0) {
+            const isEur = /(\.| :)(MI|MIL|DE|DEX|XETR|AMS|PAR|BRU|MAD)$/i.test(tdSym) || /:(MI|XETR)$/i.test(tdSym);
+            return {
+              priceEur: isEur ? tdPrice : tdPrice * (fxRates.USD || 0.92),
+              rawPrice: tdPrice,
+              currency: isEur ? "EUR" : "USD",
+              provider: `Twelve Data (${tdSym})`
+            };
+          }
         }
+      } catch {
+        // Try next candidate
       }
-    } catch {
-      // Ignore and try Alpha Vantage
     }
 
     try {
@@ -5387,7 +5462,8 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
   }
 }
 
-function addPortfolioAsset() {
+function savePortfolioAsset() {
+  const editId = document.getElementById("editingAssetId")?.value || "";
   const name = document.getElementById("assetName").value.trim();
   const ticker = (document.getElementById("assetTicker")?.value || "").trim().toUpperCase();
   const type = document.getElementById("assetType").value;
@@ -5409,28 +5485,75 @@ function addPortfolioAsset() {
 
   if (!name) return;
 
-  data.portfolioAssets.push({
-    id: generateId("asset"),
-    name,
-    ticker,
-    type,
-    units,
-    invested,
-    current,
-    lastUnitPriceEur: cachedPrice > 0 ? cachedPrice : undefined
-  });
+  if (editId) {
+    const idx = data.portfolioAssets.findIndex(a => a.id === editId);
+    if (idx !== -1) {
+      const existing = data.portfolioAssets[idx];
+      const unitPrice = cachedPrice > 0 ? cachedPrice : Number(existing.lastUnitPriceEur || 0);
+      if (!hasExplicitCurrent && units > 0 && unitPrice > 0) {
+        current = Number((units * unitPrice).toFixed(2));
+      }
+      data.portfolioAssets[idx] = {
+        ...existing,
+        name,
+        ticker,
+        type,
+        units,
+        invested,
+        current,
+        lastUnitPriceEur: unitPrice > 0 ? unitPrice : undefined
+      };
+    }
+    showToast(`✅ Η θέση «${name}» ενημερώθηκε!`);
+  } else {
+    data.portfolioAssets.push({
+      id: generateId("asset"),
+      name,
+      ticker,
+      type,
+      units,
+      invested,
+      current,
+      lastUnitPriceEur: cachedPrice > 0 ? cachedPrice : undefined
+    });
+    showToast(`📈 Η θέση «${name}» προστέθηκε στο χαρτοφυλάκιο!`);
+  }
+
   data.settings.stateUpdatedAt = Date.now();
+  cancelPortfolioAssetEditor();
+  persist();
+  render();
+  if (ticker && units > 0) {
+    refreshPortfolioMarketPrices(false);
+  }
+}
+
+function editPortfolioAsset(id) {
+  const a = (data.portfolioAssets || []).find(item => item.id === id);
+  if (!a) return;
+  document.getElementById("editingAssetId").value = a.id;
+  document.getElementById("assetName").value = a.name || "";
+  if (document.getElementById("assetTicker")) document.getElementById("assetTicker").value = a.ticker || "";
+  document.getElementById("assetType").value = a.type || "ETF";
+  if (document.getElementById("assetUnits")) document.getElementById("assetUnits").value = Number(a.units) > 0 ? a.units : "";
+  document.getElementById("assetInvested").value = Number(a.invested) > 0 ? a.invested : "";
+  document.getElementById("assetCurrent").value = Number(a.current) > 0 ? a.current : "";
+  setTextSafe("saveAssetBtn", "💾 Αποθήκευση");
+  const cancelBtn = document.getElementById("cancelAssetEditBtn");
+  if (cancelBtn) cancelBtn.style.display = "inline-flex";
+  document.getElementById("assetName").focus();
+}
+
+function cancelPortfolioAssetEditor() {
+  if (document.getElementById("editingAssetId")) document.getElementById("editingAssetId").value = "";
   document.getElementById("assetName").value = "";
   if (document.getElementById("assetTicker")) document.getElementById("assetTicker").value = "";
   if (document.getElementById("assetUnits")) document.getElementById("assetUnits").value = "";
   document.getElementById("assetInvested").value = "";
   document.getElementById("assetCurrent").value = "";
-  persist();
-  render();
-  showToast(`📈 Η θέση «${name}» προστέθηκε στο χαρτοφυλάκιο!`);
-  if (ticker && units > 0) {
-    refreshPortfolioMarketPrices(false);
-  }
+  setTextSafe("saveAssetBtn", "➕ Προσθήκη");
+  const cancelBtn = document.getElementById("cancelAssetEditBtn");
+  if (cancelBtn) cancelBtn.style.display = "none";
 }
 
 function updatePortfolioAssetValue(id, newVal) {
@@ -5485,7 +5608,10 @@ function renderPortfolio() {
       <div class="kpi-card">
         <div class="kpi-label">
           <strong>${escapeHtml(a.name)} ${tickerBadge} <span class="badge">${escapeHtml(a.type)}</span></strong>
-          <button type="button" class="danger small-btn" onclick="deletePortfolioAsset('${escapeHtml(a.id)}')">🗑️</button>
+          <div style="display:flex; gap:4px; flex-shrink:0;">
+            <button type="button" class="secondary small-btn" onclick="editPortfolioAsset('${escapeHtml(a.id)}')" title="Επεξεργασία μεριδίων / κεφαλαίου">✏️</button>
+            <button type="button" class="danger small-btn" onclick="deletePortfolioAsset('${escapeHtml(a.id)}')" title="Διαγραφή">🗑️</button>
+          </div>
         </div>
         <div class="metric privacy-sensitive" style="font-size:19px;">${money(a.current)}</div>
         ${unitsLine}
@@ -5753,6 +5879,52 @@ function renderTopMerchants(ctx, split, memberView) {
       <div class="privacy-sensitive" style="font-weight:700; color:var(--danger);">${money(item.total)}</div>
     </div>
   `).join("");
+}
+
+function renderAnomalyAlert(totals, split, memberView) {
+  const banner = document.getElementById("anomalyAlertBanner");
+  if (!banner) return;
+
+  const now = new Date();
+  const prevTotalsList = [];
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const lastD = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    prevTotalsList.push(getPeriodTotals(`${ym}-01`, `${ym}-${String(lastD).padStart(2, "0")}`, memberView, split));
+  }
+
+  const activeMonths = prevTotalsList.filter(t => t.expense > 0);
+  if (activeMonths.length < 2) {
+    banner.style.display = "none";
+    return;
+  }
+
+  const spikes = [];
+  for (const [cat, curAmt] of Object.entries(totals.byCategory || {})) {
+    if (curAmt < 30 || cat === "Στέγαση") continue;
+    const avgPrev = activeMonths.reduce((s, t) => s + (t.byCategory[cat] || 0), 0) / activeMonths.length;
+    if (avgPrev >= 20 && curAmt > avgPrev * 1.35) {
+      const pctOver = Math.round(((curAmt - avgPrev) / avgPrev) * 100);
+      spikes.push({ cat, curAmt, avgPrev, pctOver });
+    }
+  }
+
+  if (spikes.length === 0) {
+    banner.style.display = "none";
+    return;
+  }
+
+  spikes.sort((a, b) => b.pctOver - a.pctOver);
+  const top = spikes[0];
+  banner.style.display = "flex";
+  banner.innerHTML = `
+    <div>
+      <strong>⚡ Ασυνήθιστη Αύξηση στη «${escapeHtml(top.cat)}» (+${top.pctOver}%)</strong>
+      <div class="small">Έχεις δαπανήσει <strong>${money(top.curAmt)}</strong> έναντι μέσου όρου <strong>${money(top.avgPrev)}</strong> τους προηγούμενους μήνες.</div>
+    </div>
+    <button type="button" class="secondary small-btn" data-cat="${escapeHtml(top.cat)}" onclick="drillDownToTransactions({ category: this.dataset.cat, type: 'expense' })">🔍 Προβολή</button>
+  `;
 }
 
 function renderCoupleSettlement(ctx, split) {
@@ -6195,15 +6367,28 @@ function render() {
 
   const totals = getPeriodTotals(ctx.start, ctx.end, memberView, split);
 
-  // Net Worth Calculation
-  const cashReserve = computeCashReserveBalance();
-  const goalsTotal = (data.goals || []).reduce((s, g) => s + (Number(g.saved) || 0), 0);
-  const portfolioTotal = (data.portfolioAssets || []).reduce((s, a) => s + (Number(a.current) || 0), 0);
+  // Net Worth Calculation (adapts cleanly when viewing Partner or Shared only)
+  const isPartnerOnlyView = split.hasPartner && memberView === "partner";
+  const isSharedOnlyView = split.hasPartner && memberView === "shared";
+  const cashReserve = (isPartnerOnlyView || isSharedOnlyView) ? 0 : computeCashReserveBalance();
+  const goalsTotal = (isPartnerOnlyView || isSharedOnlyView) ? 0 : (data.goals || []).reduce((s, g) => s + (Number(g.saved) || 0), 0);
+  const portfolioTotal = (isPartnerOnlyView || isSharedOnlyView) ? 0 : (data.portfolioAssets || []).reduce((s, a) => s + (Number(a.current) || 0), 0);
   const periodCashFlow = totals.income - totals.expense - totals.cashSaving + totals.withdrawal;
   const netWorth = cashReserve + goalsTotal + portfolioTotal + Math.max(0, periodCashFlow);
 
+  setTextSafe(
+    "netWorthTitleLabel",
+    isPartnerOnlyView
+      ? `💎 Ταμείο & Ροή (${split.partnerName})`
+      : (isSharedOnlyView ? "💎 Ισοζύγιο Κοινών Νοικοκυριού" : "💎 Συνολική Καθαρή Θέση (Net Worth)")
+  );
   setTextSafe("netWorthMetric", money(netWorth));
-  setTextSafe("netWorthPeriodSubtitle", `Ενεργή περίοδος: ${ctx.label}`);
+  setTextSafe(
+    "netWorthPeriodSubtitle",
+    isPartnerOnlyView
+      ? `Περίοδος: ${ctx.label} • Προσωπικά αποθεματικά & ETFs αφορούν τον κύριο χρήστη`
+      : `Ενεργή περίοδος: ${ctx.label}`
+  );
   setTextSafe("nwReserve", money(cashReserve));
   setTextSafe("nwGoalsTotal", money(goalsTotal));
   setTextSafe("nwPortfolio", money(portfolioTotal));
@@ -6264,6 +6449,7 @@ function render() {
     previewProfileSplit();
   }
 
+  renderAnomalyAlert(totals, split, memberView);
   renderCoupleSettlement(ctx, split);
   renderCharts(totals, split, memberView);
   render503020(totals);
