@@ -37,7 +37,7 @@
     --bg: #0b1120;
     --card: #111827;
     --card-soft: #1e293b;
-    --text: #f1f5f9;
+    --text: #f1f9ff;
     --muted: #94a3b8;
     --border: #1f2937;
     --primary: #3b82f6;
@@ -1745,7 +1745,7 @@
       <div class="form-group">
         <label>Κωδικός Δωματίου</label>
         <div style="display:flex; gap:6px;">
-          <input type="text" id="syncRoomCodeInput" placeholder="π.χ. FG-8492-KLMN" />
+          <input type="text" id="syncRoomCodeInput" placeholder="π.χ. FG-8492-KLMN" autocapitalize="characters" autocorrect="off" spellcheck="false" />
           <button type="button" class="secondary small-btn" onclick="generateNewSyncRoomCode()">🎲 Νέος</button>
         </div>
       </div>
@@ -1753,7 +1753,7 @@
       <div class="form-group">
         <label>Μυστικό PIN Κρυπτογράφησης (4+ χαρακτήρες)</label>
         <div style="display:flex; gap:6px;">
-          <input type="password" id="syncRoomPinInput" placeholder="π.χ. 482910" />
+          <input type="password" id="syncRoomPinInput" placeholder="π.χ. 482910" autocomplete="off" autocorrect="off" spellcheck="false" />
           <button type="button" class="secondary small-btn" onclick="toggleSyncPinVisibility('syncRoomPinInput', this)" title="Εμφάνιση/Απόκρυψη PIN">👁️</button>
         </div>
       </div>
@@ -2589,16 +2589,29 @@ function closeCloudSyncModal() {
 }
 
 async function connectCloudSyncRoom(forceCreateNew = false) {
+  if (!window.crypto || !window.crypto.subtle) {
+    showModal("Ο συγχρονισμός κρυπτογράφησης απαιτεί ασφαλή σύνδεση HTTPS. Άνοιξε την εφαρμογή από τον επίσημο σύνδεσμο https://thgoulis.github.io/FinanceGR/.");
+    return;
+  }
+
   const codeInp = document.getElementById("syncRoomCodeInput");
   const pinInp = document.getElementById("syncRoomPinInput");
   const modeSel = document.getElementById("syncRoomModeSelect");
   const scopeSel = document.getElementById("syncPrivacyScopeSelect");
 
-  const rawRoomCode = (codeInp?.value || "").trim();
+  // Normalize mobile smart-punctuation dashes (– / —) and accidental spaces in room code
+  const rawRoomCode = (codeInp?.value || "")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, "")
+    .trim();
   const roomCode = rawRoomCode.toUpperCase();
   const pin = (pinInp?.value || "").trim();
   const mode = modeSel?.value || "solo";
   const privacyScope = scopeSel?.value || "fullHousehold";
+
+  if (codeInp && codeInp.value !== roomCode) {
+    codeInp.value = roomCode;
+  }
 
   if (roomCode.length < 4) {
     showModal("Πληκτρολόγησε έναν έγκυρο Κωδικό Δωματίου (τουλάχιστον 4 χαρακτήρες) ή πάτησε «🎲 Νέος».");
@@ -2613,7 +2626,7 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
   data.settings.cloudSync = {
     enabled: true,
     roomCode,
-    rawRoomCode,
+    rawRoomCode: roomCode,
     pin,
     roomPin: pin,
     mode,
@@ -2630,7 +2643,7 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
   if (pullOutcome === "decrypt_error") {
     data.settings.cloudSync = prevCfg;
     persist(true, true);
-    showModal("Το δωμάτιο βρέθηκε στο cloud, αλλά το PIN που εισήγαγες δεν μπόρεσε να αποκρυπτογραφήσει τα δεδομένα. Έλεγξε το PIN και προσπάθησε ξανά.", false, null, "Λάθος PIN");
+    showModal("Το δωμάτιο βρέθηκε στο cloud, αλλά το PIN που εισήγαγες δεν μπόρεσε να αποκρυπτογραφήσει τα δεδομένα. Έλεγξε το PIN (κεφαλαία/πεζά ή κενά) και προσπάθησε ξανά.", false, null, "Λάθος PIN");
     return;
   }
 
@@ -2638,7 +2651,7 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
     data.settings.cloudSync = prevCfg;
     persist(true, true);
     showModal(
-      `Δεν βρέθηκε υπάρχον δωμάτιο με κωδικό «${roomCode}» και αυτό το PIN.\n\nΘέλεις να δημιουργηθεί τώρα ως νέο δωμάτιο συγχρονισμού;`,
+      `Δεν βρέθηκε υπάρχον δωμάτιο με κωδικό «${roomCode}» και αυτό το PIN.\n\n• Αν θέλεις να συνδεθείς σε υπάρχον δωμάτιο, έλεγξε τον κωδικό δωματίου και το PIN.\n• Αν θέλεις να το δημιουργήσεις τώρα ως νέο δωμάτιο, πάτησε «Εντάξει».`,
       true,
       (ok) => {
         if (ok) {
@@ -2688,6 +2701,7 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
   const myDeviceId = data.settings.deviceId;
   const isCouple = cfg.mode === "couple";
   let changed = false;
+  let decryptedCount = 0;
   let decryptErrors = 0;
 
   // 1. Merge deletedTxIds & deletedEntityIds
@@ -2699,24 +2713,28 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
     data.deletedEntityIds = { ...(data.deletedEntityIds || {}), ...remoteRoom.deletedEntityIds };
   }
 
-  // 1b. Original members/{devId} node in couple mode
-  if (remoteRoom.members && typeof remoteRoom.members === "object" && isCouple) {
+  // 1b. Original members/{devId} node
+  if (remoteRoom.members && typeof remoteRoom.members === "object") {
     const myNameNorm = (data.profile.userName || "Εγώ").trim().toLowerCase();
     for (const [devId, env] of Object.entries(remoteRoom.members)) {
-      if (devId === myDeviceId || !isEncryptedPacket(env)) continue;
+      if (!isEncryptedPacket(env)) continue;
       try {
         const memberInfo = await decryptRoomPayload(env, cfg.roomCode, cfg.pin);
         if (memberInfo && typeof memberInfo === "object") {
-          const mNameNorm = String(memberInfo.name || "").trim().toLowerCase();
-          const isMyOwnSecondDevice = myNameNorm && myNameNorm !== "εγώ" && myNameNorm !== "εσύ" && mNameNorm === myNameNorm;
-          if (isMyOwnSecondDevice) continue;
-          if (memberInfo.name && memberInfo.name !== "Εσύ" && memberInfo.name !== "Εγώ" && data.profile.partnerName !== memberInfo.name) {
-            data.profile.partnerName = memberInfo.name;
-            changed = true;
-          }
-          if (Number(memberInfo.income) > 0 && Number(data.profile.partnerIncome) !== Number(memberInfo.income)) {
-            data.profile.partnerIncome = Number(memberInfo.income);
-            changed = true;
+          decryptedCount++;
+          if (isCouple && devId !== myDeviceId) {
+            const mNameNorm = String(memberInfo.name || "").trim().toLowerCase();
+            const isMyOwnSecondDevice = myNameNorm && myNameNorm !== "εγώ" && myNameNorm !== "εσύ" && mNameNorm === myNameNorm;
+            if (!isMyOwnSecondDevice) {
+              if (memberInfo.name && memberInfo.name !== "Εσύ" && memberInfo.name !== "Εγώ" && data.profile.partnerName !== memberInfo.name) {
+                data.profile.partnerName = memberInfo.name;
+                changed = true;
+              }
+              if (Number(memberInfo.income) > 0 && Number(data.profile.partnerIncome) !== Number(memberInfo.income)) {
+                data.profile.partnerIncome = Number(memberInfo.income);
+                changed = true;
+              }
+            }
           }
         }
       } catch {
@@ -2731,6 +2749,7 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
     try {
       const remoteState = await decryptRoomPayload(statePacket, cfg.roomCode, cfg.pin);
       if (remoteState && typeof remoteState === "object") {
+        decryptedCount++;
         const remoteTs = Number(remoteState.stateUpdatedAt || remoteState.updatedAt) || 0;
         const localTs = Number(data.settings.stateUpdatedAt) || 0;
         const isFirstLoad = data.transactions.length === 0 && !data.profile.userName && Number(data.profile.monthlyIncome) === 0;
@@ -2804,6 +2823,7 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
       if (isEncryptedPacket(packet)) {
         try {
           tx = await decryptRoomPayload(packet, cfg.roomCode, cfg.pin);
+          if (tx) decryptedCount++;
         } catch {
           decryptErrors++;
           continue;
@@ -2880,7 +2900,8 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
     data.transactions = Array.from(localMap.values());
   }
 
-  if (!changed && decryptErrors > 0) {
+  // Only treat as wrong PIN if ZERO packets succeeded decryption while at least one failed
+  if (decryptedCount === 0 && decryptErrors > 0) {
     return "decrypt_error";
   }
 
