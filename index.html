@@ -108,6 +108,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
   .brand h1 {
     margin: 0;
@@ -120,11 +121,28 @@
     color: var(--muted);
   }
 
+  .topbar-main-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .topbar-quick-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   .topbar-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+  }
+
+  .mobile-bottom-nav {
+    display: none;
   }
 
   .period-switch {
@@ -449,156 +467,157 @@
   }
   tr:hover td { background: var(--card-soft); }
 
-  .drilldown-row {
-    padding: 10px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, transform 0.1s ease;
-  }
-  .drilldown-row:hover {
-    border-color: var(--primary);
-    transform: translateY(-1px);
+  /* Mobile Bottom Sheet, Clean Topbar & App-Style Bottom Nav */
+  @media (max-width: 680px) {
+    .app-shell {
+      padding: 10px 10px calc(86px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .topbar-main-row {
+      width: 100%;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+    .brand h1 {
+      font-size: 16px;
+    }
+    .brand-sub {
+      font-size: 11px;
+    }
+    .desktop-only-topbar-btn {
+      display: none !important;
+    }
+    .topbar-controls {
+      width: 100%;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .period-switch button {
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+    #activeMonth, #activeCycleSelect, #activeYearSelect {
+      flex: 1 1 auto;
+      min-width: 120px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+    #memberViewSelect {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+    /* Hide top tabs & corner FAB on mobile; use bottom app navigation bar */
+    .nav-tabs {
+      display: none;
+    }
+    .fab-add {
+      display: none;
+    }
+    .mobile-bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+      z-index: 95;
+      box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+    }
+    .mob-nav-item {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 4px 2px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+    }
+    .mob-nav-item .mob-ico {
+      font-size: 17px;
+      line-height: 1.1;
+    }
+    .mob-nav-item.active {
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .mob-nav-center-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mob-nav-plus {
+      width: 48px;
+      height: 48px;
+      margin-top: -22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #2563eb, #10b981);
+      color: #fff;
+      font-size: 26px;
+      font-weight: 700;
+      padding: 0;
+      border: 3px solid var(--card);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Compact glanceable overview on mobile */
+    .hero-nw {
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .hero-nw-top {
+      margin-bottom: 10px;
+    }
+    .hero-nw-val {
+      font-size: 25px;
+    }
+    .hero-nw-pill {
+      padding: 8px 10px;
+    }
+    .hero-nw-pill strong {
+      font-size: 13px;
+    }
+    .grid-4 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .kpi-card {
+      padding: 11px 12px;
+    }
+    .kpi-card .metric {
+      font-size: 17px;
+    }
+    .kpi-label {
+      font-size: 11px;
+    }
+    .panel {
+      padding: 14px;
+      margin-bottom: 12px;
+    }
   }
 
-  /* Banners */
-  .banner {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: 14px;
-    margin-bottom: 14px;
-    border: 1px solid var(--border);
-    background: var(--card);
-  }
-  .banner.info { background: var(--primary-soft); border-color: rgba(37, 99, 235, 0.25); }
-  .banner.warn { background: var(--warn-soft); border-color: rgba(245, 158, 11, 0.3); }
-  .banner.success { background: var(--accent-soft); border-color: rgba(16, 185, 129, 0.3); }
-
-  /* Floating Quick Add Button */
-  .fab-add {
-    position: fixed;
-    right: 20px;
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    width: 56px;
-    height: 56px;
-    border-radius: 999px;
-    font-size: 26px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #2563eb, #10b981);
-    color: #fff;
-    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.38);
-    z-index: 90;
-    padding: 0;
-  }
-
-  /* Modals */
-  .modal-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.62);
-    backdrop-filter: blur(3px);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    overflow-y: auto;
-  }
-  .modal-content {
-    background: var(--card);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 540px;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 22px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
-  }
-  .modal-content.wide {
-    max-width: 960px;
-  }
-  #bankImportModal {
-    overflow: hidden;
-  }
-  #bankImportModal .modal-content.wide {
-    max-width: 1060px;
-    height: 90vh;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 18px 20px;
-  }
-  #bankImportModal .bank-preview-scroll {
-    flex: 1 1 auto;
-    min-height: 180px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 12px;
-  }
-  #bankImportModal #bankPreviewTable thead th {
-    position: sticky;
-    top: 0;
-    background: var(--card);
-    z-index: 2;
-    box-shadow: 0 1px 0 var(--border);
-  }
-  .form-group {
-    margin-bottom: 12px;
-  }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    margin-bottom: 5px;
-    color: var(--muted);
-  }
-  .form-group input, .form-group select {
-    width: 100%;
-  }
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  /* Toast */
-  #toastContainer {
-    position: fixed;
-    bottom: calc(86px + env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-  }
-  .toast-msg {
-    background: #0f172a;
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-    animation: fadeInUp 0.2s ease;
-  }
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Mobile Bottom Sheet & Responsive Cards */
   @media (max-width: 640px) {
     .form-row { grid-template-columns: 1fr; }
     #transactionModal,
@@ -686,11 +705,22 @@
 <div class="app-shell">
   <!-- TOPBAR -->
   <header class="topbar">
-    <div class="brand">
-      <div class="brand-logo">€</div>
-      <div>
-        <h1>FinanceGR</h1>
-        <div class="brand-sub" id="activePeriodBadge">Προσωπικός & Οικογενειακός Έλεγχος</div>
+    <div class="topbar-main-row">
+      <div class="brand">
+        <div class="brand-logo">€</div>
+        <div>
+          <h1>FinanceGR</h1>
+          <div class="brand-sub" id="activePeriodBadge">Προσωπικός & Οικογενειακός Έλεγχος</div>
+        </div>
+      </div>
+
+      <div class="topbar-quick-icons">
+        <button type="button" class="secondary small-btn" id="cloudSyncStatusBtn" onclick="openCloudSyncModal()" title="Κατάσταση Αποθήκευσης & Live Cloud Sync">💾</button>
+        <button type="button" class="secondary small-btn desktop-only-topbar-btn" onclick="openBankImportModal()" title="Εισαγωγή από Τράπεζα ή Revolut">🏦 Τράπεζα / Revolut</button>
+        <button type="button" class="secondary small-btn desktop-only-topbar-btn" onclick="openShareModal()" title="Μοίρασέ το & QR Code">📤 Μοίρασέ το</button>
+        <button type="button" class="secondary small-btn" id="privacyBtn" onclick="togglePrivacyMode()" title="Απόκρυψη Ποσών">👁️</button>
+        <button type="button" class="secondary small-btn" id="darkBtn" onclick="toggleDarkMode()" title="Σκούρο / Φωτεινό Θέμα">🌙</button>
+        <button type="button" class="secondary small-btn" onclick="switchTab('settings')" title="Ρυθμίσεις & Sync">⚙️</button>
       </div>
     </div>
 
@@ -711,12 +741,6 @@
         <option value="partner">👤 Σύντροφος</option>
         <option value="shared">👫 Μόνο Κοινά</option>
       </select>
-
-      <button type="button" class="secondary small-btn" id="cloudSyncStatusBtn" onclick="openCloudSyncModal()" title="Κατάσταση Αποθήκευσης & Live Cloud Sync">💾 Τοπικό</button>
-      <button type="button" class="secondary small-btn" onclick="openBankImportModal()" title="Εισαγωγή από Τράπεζα ή Revolut">🏦 Τράπεζα / Revolut</button>
-      <button type="button" class="secondary small-btn" onclick="openShareModal()" title="Μοίρασέ το & QR Code">📤 Μοίρασέ το</button>
-      <button type="button" class="secondary small-btn" id="privacyBtn" onclick="togglePrivacyMode()" title="Απόκρυψη Ποσών">👁️</button>
-      <button type="button" class="secondary small-btn" id="darkBtn" onclick="toggleDarkMode()" title="Σκούρο / Φωτεινό Θέμα">🌙</button>
     </div>
   </header>
 
@@ -781,9 +805,9 @@
     <div class="banner" id="profileSummaryBar">
       <div id="profileSummaryText" class="small" style="font-size:13px;"></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button type="button" class="secondary small-btn" onclick="openTransactionModal()">➕ Νέα Κίνηση</button>
+        <button type="button" class="secondary small-btn" onclick="openBankImportModal()">🏦 Αρχείο Τράπεζας</button>
+        <button type="button" class="secondary small-btn" onclick="openShareModal()">📤 Μοίρασέ το</button>
         <button type="button" class="secondary small-btn" onclick="openCoupleMergeModal()">🤝 Ενοποίηση Ζευγαριού</button>
-        <button type="button" class="secondary small-btn" onclick="switchTab('settings')">⚙️ Προφίλ</button>
       </div>
     </div>
 
@@ -1074,19 +1098,49 @@
           <h3 class="panel-title">📊 Χαρτοφυλάκιο Επενδύσεων (ETFs, Μετοχές, Καταθέσεις)</h3>
           <div class="small" id="portfolioSummaryLine">Συνολική αξία: €0,00</div>
         </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="secondary small-btn" id="refreshEtfsBtn" onclick="refreshPortfolioMarketPrices(true)">🔄 Ενημέρωση Τιμών Αγοράς</button>
+          <button type="button" class="secondary small-btn" onclick="toggleAlphaVantageGuide()">🔑 Ρύθμιση API Key (Οδηγός)</button>
+        </div>
       </div>
 
-      <form onsubmit="event.preventDefault(); addPortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
-        <input type="text" id="assetName" placeholder="Τίτλος / Ticker (π.χ. VUAA)" required />
+      <!-- Beginner-friendly Alpha Vantage Setup & Guide -->
+      <div id="alphaVantageSetupBox" style="display:none; background:var(--card-soft); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+          <strong style="font-size:14px;">🔑 Αυτόματη Ενημέρωση Τιμών ETF / Μετοχών (Δωρεάν Alpha Vantage)</strong>
+          <button type="button" class="secondary small-btn" onclick="toggleAlphaVantageGuide()">✕</button>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <input type="text" id="alphaVantageKeyInput" placeholder="Επικόλλησε εδώ το προσωπικό σου API Key (π.χ. A1B2C3D4E5F6G7H8)" style="flex:1 1 240px;" />
+          <button type="button" class="accent small-btn" onclick="saveAlphaVantageApiKey()">💾 Αποθήκευση Κλειδιού</button>
+        </div>
+
+        <div class="small" style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; line-height:1.6;">
+          <strong style="color:var(--text);">📘 Οδηγός για Αρχάριους (Πώς αποκτάς δωρεάν προσωπικό κλειδί σε 30''):</strong>
+          <ol style="margin:6px 0 8px 18px; padding:0;">
+            <li>Πάτησε εδώ για να ανοίξει η επίσημη σελίδα: <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700;">alphavantage.co/support/#api-key ↗</a> (100% δωρεάν, δεν ζητά κάρτα).</li>
+            <li>Διάλεξε <strong>Investor</strong>, γράψε το <strong>Email</strong> σου και πάτησε <strong>GET FREE API KEY</strong>.</li>
+            <li>Θα εμφανιστεί αμέσως στην οθόνη ένας κωδικός 16 χαρακτήρων (π.χ. <code>K9X2M7...</code>). Αντέγραψέ τον, επικόλλησέ τον στο παραπάνω πεδίο και πάτησε <strong>Αποθήκευση Κλειδιού</strong>.</li>
+            <li>Όταν προσθέτεις ένα ETF, συμπλήρωσε προαιρετικά το <strong>Ticker</strong> (π.χ. <code>VWCE.DEX</code> για XETRA Γερμανίας, <code>CSPX.LON</code> για Λονδίνο, <code>VOO</code> ή <code>AAPL</code> για ΗΠΑ) και τα <strong>Μερίδια</strong> που κατέχεις.</li>
+          </ol>
+          <div style="color:var(--muted);">💡 <em>Σημείωση: Το δωρεάν πλάνο επιτρέπει έως 25 ενημερώσεις την ημέρα. Το FinanceGR αποθηκεύει προσωρινά τις τιμές για 6 ώρες και μετατρέπει αυτόματα τα USD σε Ευρώ (€).</em></div>
+        </div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); addPortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+        <input type="text" id="assetName" placeholder="Όνομα (π.χ. S&P 500)" required />
+        <input type="text" id="assetTicker" placeholder="Ticker (π.χ. VWCE.DEX)" title="Προαιρετικό σύμβολο χρηματιστηρίου για αυτόματη τιμή" />
         <select id="assetType">
           <option value="ETF">📈 ETF</option>
           <option value="Μετοχή">🏢 Μετοχή</option>
           <option value="Κατάθεση / XEON">🏦 Προθεσμιακή / XEON</option>
           <option value="Crypto">🪙 Crypto</option>
         </select>
+        <input type="number" id="assetUnits" step="0.0001" min="0" placeholder="Μερίδια (προαιρ.)" title="Αριθμός τεμαχίων/μεριδίων για αυτόματο υπολογισμό αξίας" />
         <input type="number" id="assetInvested" step="0.01" min="0" placeholder="Κεφάλαιο Επένδυσης (€)" required />
         <input type="number" id="assetCurrent" step="0.01" min="0" placeholder="Τρέχουσα Αξία (€)" required />
-        <button type="submit">➕ Προσθήκη Θέσης</button>
+        <button type="submit">➕ Προσθήκη</button>
       </form>
 
       <div id="portfolioAssetsGrid" class="grid-3"></div>
@@ -1229,31 +1283,31 @@
             <div>
               <label class="small">Επαναφορά JSON Backup</label>
               <div style="display:flex; gap:6px; margin-top:4px;">
-                <input type="file" id="importJsonFile" accept=".json" style="font-size:11px;" />
-                <button type="button" class="secondary small-btn" onclick="importJSON()">⬆️ Εισαγωγή</button>
-              </div>
-            </div>
-            <div>
-              <label class="small">Εισαγωγή CSV Συναλλαγών</label>
-              <div style="display:flex; gap:6px; margin-top:4px;">
-                <input type="file" id="importCsvFile" accept=".csv" style="font-size:11px;" />
-                <button type="button" class="secondary small-btn" onclick="importCSV()">⬆️ Εισαγωγή</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <strong style="font-size:13px;">🧠 Απομνημονευμένοι Κανόνες Εμπόρων (Auto-Learn)</strong>
-          <div id="merchantRulesContainer" style="margin-top:8px; max-height:220px; overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- FLOATING ADD BUTTON -->
+<!-- FLOATING ADD BUTTON (DESKTOP) -->
 <button type="button" class="fab-add" onclick="openTransactionModal()" title="Νέα Συναλλαγή">+</button>
+
+<!-- MOBILE BOTTOM NAVIGATION BAR WITH CENTER '+' -->
+<nav class="mobile-bottom-nav" aria-label="Κύρια Πλοήγηση Κινητού">
+  <button type="button" class="mob-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+    <span class="mob-ico">📊</span>
+    <span>Επισκόπηση</span>
+  </button>
+  <button type="button" class="mob-nav-item" data-tab="transactions" onclick="switchTab('transactions')">
+    <span class="mob-ico">💳</span>
+    <span>Κινήσεις</span>
+  </button>
+  <div class="mob-nav-center-wrap">
+    <button type="button" class="mob-nav-plus" onclick="openTransactionModal()" title="Νέα Συναλλαγή">+</button>
+  </div>
+  <button type="button" class="mob-nav-item" data-tab="planning" onclick="switchTab('planning')">
+    <span class="mob-ico">🎯</span>
+    <span>Πλάνο</span>
+  </button>
+  <button type="button" class="mob-nav-item" data-tab="wealth" onclick="switchTab('wealth')">
+    <span class="mob-ico">📈</span>
+    <span>Πλούτος</span>
+  </button>
+</nav>
 
 <!-- TOAST CONTAINER -->
 <div id="toastContainer"></div>
@@ -1729,7 +1783,9 @@ function createDefaultState() {
         resolvedRecipeId: "orig_salt_v1_sha256",
         resolvedSaltPrefix: "",
         lastSyncedAt: 0
-      }
+      },
+      alphaVantageApiKey: "",
+      etfQuotesCache: {}
     }
   };
 }
@@ -3005,6 +3061,9 @@ function computeCashReserveBalance() {
    ========================================================================== */
 function switchTab(tabName) {
   document.querySelectorAll(".nav-tab").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
+  });
+  document.querySelectorAll(".mob-nav-item").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tabName);
   });
   document.querySelectorAll(".tab-panel").forEach(p => {
@@ -4800,11 +4859,161 @@ function renderAnnualBills() {
 }
 
 /* ==========================================================================
-   9. PORTFOLIO, WEALTH SIMULATOR & GREEK E-RECEIPTS (30% E1)
+   9. PORTFOLIO (WITH ALPHA VANTAGE LIVE QUOTES), SIMULATOR & E-RECEIPTS
    ========================================================================== */
+function toggleAlphaVantageGuide() {
+  const box = document.getElementById("alphaVantageSetupBox");
+  if (!box) return;
+  const isHidden = box.style.display === "none";
+  box.style.display = isHidden ? "block" : "none";
+  if (isHidden) {
+    const inp = document.getElementById("alphaVantageKeyInput");
+    if (inp) inp.value = data.settings?.alphaVantageApiKey || "";
+  }
+}
+
+function saveAlphaVantageApiKey() {
+  const key = (document.getElementById("alphaVantageKeyInput")?.value || "").trim();
+  data.settings.alphaVantageApiKey = key;
+  data.settings.stateUpdatedAt = Date.now();
+  persist();
+  if (key) {
+    showToast("🔑 Το προσωπικό API Key αποθηκεύτηκε!");
+    refreshPortfolioMarketPrices(true);
+  } else {
+    showToast("Το API Key αφαιρέθηκε.");
+  }
+}
+
+async function fetchAlphaVantageUsdToEurRate(apiKey) {
+  const cache = data.settings.etfQuotesCache || {};
+  const cachedFx = cache.__FX_USDEUR;
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  if (cachedFx && (Date.now() - cachedFx.fetchedAt) < SIX_HOURS_MS && cachedFx.rate > 0) {
+    return cachedFx.rate;
+  }
+  const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  const rateStr = json?.["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"];
+  const rate = Number(rateStr);
+  if (rate > 0) {
+    data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
+    data.settings.etfQuotesCache.__FX_USDEUR = { rate, fetchedAt: Date.now() };
+    return rate;
+  }
+  return 0.92;
+}
+
+async function refreshPortfolioMarketPrices(forceManual = false) {
+  const apiKey = (data.settings?.alphaVantageApiKey || "").trim();
+  const trackedAssets = (data.portfolioAssets || []).filter(a => a.ticker && Number(a.units) > 0);
+
+  if (!apiKey) {
+    if (forceManual) {
+      const box = document.getElementById("alphaVantageSetupBox");
+      if (box) box.style.display = "block";
+      showModal("Για αυτόματη ενημέρωση τιμών ETF/μετοχών, καταχώρισε πρώτα το δωρεάν προσωπικό σου Alpha Vantage API Key στον οδηγό που άνοιξε παραπάνω.");
+    }
+    return;
+  }
+
+  if (trackedAssets.length === 0) {
+    if (forceManual) {
+      showModal("Δεν βρέθηκαν θέσεις με συμπληρωμένο «Ticker» και «Μερίδια». Πρόσθεσε ή συμπλήρωσε τα μερίδια σε μια θέση ETF για να ενημερωθεί αυτόματα.");
+    }
+    return;
+  }
+
+  const btn = document.getElementById("refreshEtfsBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "⏳ Ενημέρωση...";
+  }
+
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
+  let updatedCount = 0;
+  let rateLimited = false;
+
+  try {
+    for (const asset of trackedAssets) {
+      const symbol = String(asset.ticker).trim().toUpperCase();
+      const cached = data.settings.etfQuotesCache[symbol];
+      let unitPriceEur = null;
+
+      if (!forceManual && cached && (Date.now() - cached.fetchedAt) < SIX_HOURS_MS && cached.priceEur > 0) {
+        unitPriceEur = cached.priceEur;
+      } else {
+        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(apiKey)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (json?.Note || json?.Information) {
+          rateLimited = true;
+          break;
+        }
+
+        const quote = json?.["Global Quote"];
+        const rawPrice = Number(quote?.["05. price"]);
+        if (rawPrice > 0) {
+          const isEuropeanSuffix = /\.(DEX|FRK|LON|MIL|AMS|PAR|BRU|MAD)$/i.test(symbol);
+          if (symbol.endsWith(".LON")) {
+            // London Stock Exchange often quotes in GBX (pence) or USD
+            unitPriceEur = rawPrice;
+          } else if (isEuropeanSuffix) {
+            unitPriceEur = rawPrice;
+          } else {
+            const usdToEur = await fetchAlphaVantageUsdToEurRate(apiKey);
+            unitPriceEur = rawPrice * usdToEur;
+          }
+          data.settings.etfQuotesCache[symbol] = {
+            priceEur: Number(unitPriceEur.toFixed(4)),
+            fetchedAt: Date.now()
+          };
+        }
+      }
+
+      if (unitPriceEur && unitPriceEur > 0) {
+        asset.lastUnitPriceEur = Number(unitPriceEur.toFixed(2));
+        asset.lastPriceUpdatedAt = Date.now();
+        asset.current = Number((unitPriceEur * Number(asset.units)).toFixed(2));
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      data.settings.stateUpdatedAt = Date.now();
+      persist();
+      render();
+      if (forceManual) {
+        showToast(`📈 Ενημερώθηκαν ${updatedCount} θέσεις χαρτοφυλακίου!`);
+      }
+    } else if (forceManual) {
+      showModal(
+        rateLimited
+          ? "Το δωρεάν όριο αιτημάτων του Alpha Vantage (5/λεπτό ή 25/ημέρα) εξαντλήθηκε προσωρινά. Δοκίμασε ξανά αργότερα."
+          : "Δεν βρέθηκε τιμή για τα συγκεκριμένα tickers. Βεβαιώσου ότι το σύμβολο χρηματιστηρίου είναι σωστό (π.χ. VWCE.DEX ή VOO)."
+      );
+    }
+  } catch (err) {
+    console.error("Alpha Vantage quote error:", err);
+    if (forceManual) {
+      showToast("⚠️ Αποτυχία σύνδεσης με Alpha Vantage.");
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔄 Ενημέρωση Τιμών Αγοράς";
+    }
+  }
+}
+
 function addPortfolioAsset() {
   const name = document.getElementById("assetName").value.trim();
+  const ticker = (document.getElementById("assetTicker")?.value || "").trim().toUpperCase();
   const type = document.getElementById("assetType").value;
+  const units = Math.max(0, Number(document.getElementById("assetUnits")?.value) || 0);
   const invested = Math.max(0, Number(document.getElementById("assetInvested").value) || 0);
   const current = Math.max(0, Number(document.getElementById("assetCurrent").value) || 0);
   if (!name) return;
@@ -4812,17 +5021,24 @@ function addPortfolioAsset() {
   data.portfolioAssets.push({
     id: generateId("asset"),
     name,
+    ticker,
     type,
+    units,
     invested,
     current
   });
   data.settings.stateUpdatedAt = Date.now();
   document.getElementById("assetName").value = "";
+  if (document.getElementById("assetTicker")) document.getElementById("assetTicker").value = "";
+  if (document.getElementById("assetUnits")) document.getElementById("assetUnits").value = "";
   document.getElementById("assetInvested").value = "";
   document.getElementById("assetCurrent").value = "";
   persist();
   render();
   showToast(`📈 Η θέση «${name}» προστέθηκε στο χαρτοφυλάκιο!`);
+  if (ticker && units > 0 && data.settings?.alphaVantageApiKey) {
+    refreshPortfolioMarketPrices(false);
+  }
 }
 
 function updatePortfolioAssetValue(id, newVal) {
@@ -4868,19 +5084,24 @@ function renderPortfolio() {
     const diff = (Number(a.current) || 0) - (Number(a.invested) || 0);
     const pct = (Number(a.invested) || 0) > 0 ? (diff / Number(a.invested)) * 100 : 0;
     const weight = totalCurrent > 0 ? ((Number(a.current) || 0) / totalCurrent) * 100 : 0;
+    const tickerBadge = a.ticker ? `<span class="badge saving">${escapeHtml(a.ticker)}</span>` : "";
+    const unitsLine = Number(a.units) > 0
+      ? `<div class="small" style="margin-top:2px;">Μερίδια: <strong>${Number(a.units)}</strong>${a.lastUnitPriceEur ? ` × ${money(a.lastUnitPriceEur)}` : ""}</div>`
+      : "";
 
     return `
       <div class="kpi-card">
         <div class="kpi-label">
-          <strong>${escapeHtml(a.name)} <span class="badge">${escapeHtml(a.type)}</span></strong>
+          <strong>${escapeHtml(a.name)} ${tickerBadge} <span class="badge">${escapeHtml(a.type)}</span></strong>
           <button type="button" class="danger small-btn" onclick="deletePortfolioAsset('${escapeHtml(a.id)}')">🗑️</button>
         </div>
         <div class="metric privacy-sensitive" style="font-size:19px;">${money(a.current)}</div>
-        <div class="small" style="color:${diff >= 0 ? "var(--accent)" : "var(--danger)"}; font-weight:600;">
+        ${unitsLine}
+        <div class="small" style="color:${diff >= 0 ? "var(--accent)" : "var(--danger)"}; font-weight:600; margin-top:2px;">
           ${diff >= 0 ? "+" : ""}${money(diff)} (${pct.toFixed(1)}%) • Βαρύτητα: ${weight.toFixed(1)}%
         </div>
         <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
-          <span class="small">Νέα Αξία (€):</span>
+          <span class="small">Αξία (€):</span>
           <input type="number" step="0.01" min="0" value="${a.current}" onchange="updatePortfolioAssetValue('${escapeHtml(a.id)}', this.value)" style="width:100px; padding:4px 8px;" />
         </div>
       </div>
@@ -5712,6 +5933,10 @@ window.onload = async function () {
 
   if (data.settings?.cloudSync?.enabled) {
     await pullCloudSyncNow(true);
+  }
+
+  if (data.settings?.alphaVantageApiKey) {
+    refreshPortfolioMarketPrices(false);
   }
 
   setInterval(() => {
