@@ -1249,11 +1249,17 @@
         </div>
 
         <div class="small" style="background:var(--accent-soft); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px 12px; margin-bottom:10px; line-height:1.5;">
-          ✅ <strong>Νέο:</strong> Τα ευρωπαϊκά UCITS ETFs (όπως <code>VUAA.MIL</code> / <code>VUAA.MI</code> στο Μιλάνο, <code>VWCE.DE</code> στη Γερμανία, <code>CSPX.L</code> στο Λονδίνο, <code>XEON.DE</code>) ενημερώνονται <strong>αυτόματα & δωρεάν χωρίς κανένα API Key</strong>! Το παρακάτω κλειδί Alpha Vantage είναι πλέον προαιρετικό (ως εφεδρική πηγή για αμερικανικές μετοχές).
+          ✅ <strong>Νέο:</strong> Τα ευρωπαϊκά UCITS ETFs (όπως <code>VUAA.MIL</code> / <code>VUAA.MI</code> στο Μιλάνο, <code>VWCE.DE</code> στη Γερμανία, <code>CSPX.L</code> στο Λονδίνο, <code>XEON.DE</code>) ενημερώνονται <strong>αυτόματα & δωρεάν χωρίς κανένα API Key</strong> (μέσω Yahoo Finance & Stooq + ισοτιμίες ΕΚΤ)! Το παρακάτω κλειδί είναι προαιρετικό (ως εφεδρικό για αμερικανικές μετοχές).
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
+          <input type="text" id="testTickerInput" value="VUAA.MIL" placeholder="Δοκιμή Ticker (π.χ. VUAA.MIL)" style="flex:1 1 160px;" />
+          <button type="button" class="secondary small-btn" id="testTickerBtn" onclick="runLiveTickerTest()">🧪 Δοκιμή Τιμής</button>
+          <span class="small" id="testTickerResultText" style="font-weight:600;"></span>
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <input type="text" id="alphaVantageKeyInput" placeholder="Προαιρετικό Alpha Vantage API Key (π.χ. A1B2C3D4E5F6G7H8)" style="flex:1 1 240px;" />
+          <input type="text" id="alphaVantageKeyInput" placeholder="Προαιρετικό Alpha Vantage / Twelve Data API Key" style="flex:1 1 240px;" />
           <button type="button" class="accent small-btn" onclick="saveAlphaVantageApiKey()">💾 Αποθήκευση Κλειδιού</button>
         </div>
 
@@ -5090,29 +5096,72 @@ function normalizeYahooTicker(rawTicker) {
   return sym;
 }
 
-async function fetchYahooQuoteInEur(rawTicker, usdToEurFallback = 0.92) {
-  const yahooSym = normalizeYahooTicker(rawTicker);
-  const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=5d`;
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+function normalizeStooqTicker(rawTicker) {
+  const sym = String(rawTicker || "").trim().toLowerCase();
+  if (sym.endsWith(".mil")) return sym.slice(0, -4) + ".it";
+  if (sym.endsWith(".mi")) return sym.slice(0, -3) + ".it";
+  if (sym.endsWith(".dex")) return sym.slice(0, -4) + ".de";
+  if (sym.endsWith(".lon") || sym.endsWith(".l")) return sym.replace(/\.(lon|l)$/, ".uk");
+  if (!sym.includes(".")) return sym + ".us";
+  return sym;
+}
+
+async function fetchLiveFxRatesToEur() {
+  const cache = data.settings.etfQuotesCache || {};
+  const cachedFx = cache.__FX_RATES;
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  if (cachedFx && (Date.now() - cachedFx.fetchedAt) < SIX_HOURS_MS && cachedFx.USD > 0) {
+    return cachedFx;
+  }
+  try {
+    // Official free ECB rates via Frankfurter API (no API key needed)
+    const res = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD,GBP,CHF");
+    if (res.ok) {
+      const json = await res.json();
+      const r = json?.rates || {};
+      if (r.USD > 0) {
+        const fxObj = {
+          USD: 1 / Number(r.USD),
+          GBP: r.GBP > 0 ? 1 / Number(r.GBP) : 1.19,
+          CHF: r.CHF > 0 ? 1 / Number(r.CHF) : 1.06,
+          fetchedAt: Date.now()
+        };
+        data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
+        data.settings.etfQuotesCache.__FX_RATES = fxObj;
+        return fxObj;
+      }
+    }
+  } catch {
+    // Fallback to default approximate rates
+  }
+  return { USD: 0.92, GBP: 1.19, CHF: 1.06, fetchedAt: 0 };
+}
+
+async function fetchViaCorsProxies(targetUrl) {
+  const proxyConfigs = [
+    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, wrapped: true },
+    { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, wrapped: false },
+    { url: `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`, wrapped: false },
+    { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, wrapped: false }
   ];
 
-  for (const proxyUrl of proxies) {
+  for (const cfg of proxyConfigs) {
     try {
-      const res = await fetch(proxyUrl);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(cfg.url, { signal: controller.signal });
+      clearTimeout(timer);
       if (!res.ok) continue;
-      const json = await res.json();
-      const meta = json?.chart?.result?.[0]?.meta;
-      const rawPrice = Number(meta?.regularMarketPrice || meta?.previousClose);
-      if (!(rawPrice > 0)) continue;
 
-      const currency = String(meta?.currency || "EUR").toUpperCase();
-      if (currency === "EUR") return rawPrice;
-      if (currency === "USD") return rawPrice * usdToEurFallback;
-      if (currency === "GBP") return rawPrice * 1.19;
-      if (currency === "GBX" || currency === "GBPENCE") return (rawPrice / 100) * 1.19;
-      return rawPrice;
+      if (cfg.wrapped) {
+        const wrapper = await res.json();
+        if (wrapper && typeof wrapper.contents === "string" && wrapper.contents.trim()) {
+          return wrapper.contents;
+        }
+      } else {
+        const text = await res.text();
+        if (text && text.trim()) return text;
+      }
     } catch {
       // Try next proxy
     }
@@ -5120,29 +5169,149 @@ async function fetchYahooQuoteInEur(rawTicker, usdToEurFallback = 0.92) {
   return null;
 }
 
-async function fetchAlphaVantageUsdToEurRate(apiKey) {
-  const cache = data.settings.etfQuotesCache || {};
-  const cachedFx = cache.__FX_USDEUR;
-  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-  if (cachedFx && (Date.now() - cachedFx.fetchedAt) < SIX_HOURS_MS && cachedFx.rate > 0) {
-    return cachedFx.rate;
-  }
-  if (!apiKey) return 0.92;
-  try {
-    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    const rateStr = json?.["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"];
-    const rate = Number(rateStr);
-    if (rate > 0) {
-      data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
-      data.settings.etfQuotesCache.__FX_USDEUR = { rate, fetchedAt: Date.now() };
-      return rate;
+async function fetchYahooQuoteInEur(rawTicker, fxRates) {
+  const yahooSym = normalizeYahooTicker(rawTicker);
+  const endpoints = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=5d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=5d`
+  ];
+
+  for (const targetUrl of endpoints) {
+    const rawText = await fetchViaCorsProxies(targetUrl);
+    if (!rawText) continue;
+    try {
+      const json = JSON.parse(rawText);
+      const meta = json?.chart?.result?.[0]?.meta;
+      const rawPrice = Number(meta?.regularMarketPrice || meta?.previousClose);
+      if (!(rawPrice > 0)) continue;
+
+      const currency = String(meta?.currency || "EUR").toUpperCase();
+      let priceEur = rawPrice;
+      if (currency === "USD") priceEur = rawPrice * (fxRates.USD || 0.92);
+      else if (currency === "GBP") priceEur = rawPrice * (fxRates.GBP || 1.19);
+      else if (currency === "GBX" || currency === "GBPENCE") priceEur = (rawPrice / 100) * (fxRates.GBP || 1.19);
+      else if (currency === "CHF") priceEur = rawPrice * (fxRates.CHF || 1.06);
+
+      return { priceEur, rawPrice, currency, provider: `Yahoo Finance (${yahooSym})` };
+    } catch {
+      // Try next endpoint
     }
-  } catch {
-    // Fallback rate
   }
-  return 0.92;
+  return null;
+}
+
+async function fetchStooqQuoteInEur(rawTicker, fxRates) {
+  const stooqSym = normalizeStooqTicker(rawTicker);
+  const targetUrl = `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=csv`;
+  const csvText = await fetchViaCorsProxies(targetUrl);
+  if (!csvText) return null;
+
+  const lines = csvText.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  const cols = lines[1].split(",");
+  if (cols.length < 7) return null;
+
+  const closePrice = Number(cols[6]);
+  if (!(closePrice > 0)) return null;
+
+  let priceEur = closePrice;
+  let currency = "EUR";
+  if (stooqSym.endsWith(".us")) {
+    currency = "USD";
+    priceEur = closePrice * (fxRates.USD || 0.92);
+  } else if (stooqSym.endsWith(".uk")) {
+    currency = "GBP";
+    priceEur = closePrice * (fxRates.GBP || 1.19);
+  }
+  return { priceEur, rawPrice: closePrice, currency, provider: `Stooq (${stooqSym})` };
+}
+
+async function fetchMarketQuoteInEur(rawTicker, fxRates, apiKey) {
+  const symbol = String(rawTicker || "").trim().toUpperCase();
+  if (!symbol) return null;
+
+  // 1. Yahoo Finance (multi-proxy, query1 + query2)
+  const yQuote = await fetchYahooQuoteInEur(symbol, fxRates);
+  if (yQuote && yQuote.priceEur > 0) return yQuote;
+
+  // 2. Stooq Market Data (VUAA.MIL -> vuaa.it, VWCE.DE -> vwce.de)
+  const sQuote = await fetchStooqQuoteInEur(symbol, fxRates);
+  if (sQuote && sQuote.priceEur > 0) return sQuote;
+
+  // 3. Optional API Key (Twelve Data or Alpha Vantage)
+  if (apiKey) {
+    try {
+      const tdSym = normalizeYahooTicker(symbol);
+      const tdRes = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdSym)}&apikey=${encodeURIComponent(apiKey)}`);
+      if (tdRes.ok) {
+        const tdJson = await tdRes.json();
+        const tdPrice = Number(tdJson?.price);
+        if (tdPrice > 0) {
+          const isEur = /\.(MI|MIL|DE|DEX|AMS|PAR|BRU|MAD)$/i.test(symbol);
+          return {
+            priceEur: isEur ? tdPrice : tdPrice * (fxRates.USD || 0.92),
+            rawPrice: tdPrice,
+            currency: isEur ? "EUR" : "USD",
+            provider: "Twelve Data"
+          };
+        }
+      }
+    } catch {
+      // Ignore and try Alpha Vantage
+    }
+
+    try {
+      const avSym = symbol.endsWith(".MI") ? symbol.slice(0, -3) + ".MIL" : symbol;
+      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(avSym)}&apikey=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const rawPrice = Number(json?.["Global Quote"]?.["05. price"]);
+      if (rawPrice > 0) {
+        const isEur = /\.(DEX|DE|FRK|MIL|MI|AMS|PAR|BRU|MAD)$/i.test(avSym);
+        return {
+          priceEur: isEur ? rawPrice : rawPrice * (fxRates.USD || 0.92),
+          rawPrice,
+          currency: isEur ? "EUR" : "USD",
+          provider: "Alpha Vantage"
+        };
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return null;
+}
+
+async function runLiveTickerTest() {
+  const inp = document.getElementById("testTickerInput");
+  const out = document.getElementById("testTickerResultText");
+  const btn = document.getElementById("testTickerBtn");
+  const ticker = (inp?.value || "").trim().toUpperCase();
+  if (!ticker) return;
+
+  if (btn) btn.disabled = true;
+  if (out) {
+    out.style.color = "var(--muted)";
+    out.textContent = `⏳ Αναζήτηση τιμής για ${ticker}...`;
+  }
+
+  try {
+    const fxRates = await fetchLiveFxRatesToEur();
+    const apiKey = (data.settings?.alphaVantageApiKey || "").trim();
+    const quote = await fetchMarketQuoteInEur(ticker, fxRates, apiKey);
+    if (quote && quote.priceEur > 0) {
+      if (out) {
+        out.style.color = "var(--accent)";
+        out.textContent = `✅ ${ticker}: ${money(quote.priceEur)} / μερίδιο (${quote.rawPrice} ${quote.currency} • Πηγή: ${quote.provider})`;
+      }
+    } else if (out) {
+      out.style.color = "var(--danger)";
+      out.textContent = `❌ Δεν επιστράφηκε τιμή για ${ticker}. Δοκίμασε VUAA.MI, VWCE.DE ή VOO.`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function refreshPortfolioMarketPrices(forceManual = false) {
@@ -5167,7 +5336,7 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
   let updatedCount = 0;
 
   try {
-    const usdToEur = await fetchAlphaVantageUsdToEurRate(apiKey);
+    const fxRates = await fetchLiveFxRatesToEur();
 
     for (const asset of trackedAssets) {
       const symbol = String(asset.ticker).trim().toUpperCase();
@@ -5177,24 +5346,9 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
       if (!forceManual && cached && (Date.now() - cached.fetchedAt) < SIX_HOURS_MS && cached.priceEur > 0) {
         unitPriceEur = cached.priceEur;
       } else {
-        // 1. Try Yahoo Finance first (supports VUAA.MIL, VWCE.DE, CSPX.L, US tickers without API key)
-        unitPriceEur = await fetchYahooQuoteInEur(symbol, usdToEur);
-
-        // 2. Fallback to Alpha Vantage if user provided an API key
-        if (!(unitPriceEur > 0) && apiKey) {
-          const avSym = symbol.endsWith(".MI") ? symbol.slice(0, -3) + ".MIL" : symbol;
-          const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(avSym)}&apikey=${encodeURIComponent(apiKey)}`;
-          const res = await fetch(url);
-          const json = await res.json();
-          const quote = json?.["Global Quote"];
-          const rawPrice = Number(quote?.["05. price"]);
-          if (rawPrice > 0) {
-            const isEuropeanSuffix = /\.(DEX|DE|FRK|LON|L|MIL|MI|AMS|PAR|BRU|MAD)$/i.test(avSym);
-            unitPriceEur = isEuropeanSuffix ? rawPrice : rawPrice * usdToEur;
-          }
-        }
-
-        if (unitPriceEur && unitPriceEur > 0) {
+        const quote = await fetchMarketQuoteInEur(symbol, fxRates, apiKey);
+        if (quote && quote.priceEur > 0) {
+          unitPriceEur = quote.priceEur;
           data.settings.etfQuotesCache[symbol] = {
             priceEur: Number(unitPriceEur.toFixed(6)),
             fetchedAt: Date.now()
