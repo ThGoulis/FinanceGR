@@ -8,9 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
   :root {
     --bg: #f1f5f9;
@@ -57,6 +57,7 @@
   html, body {
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -134,6 +135,10 @@
     gap: 6px;
   }
 
+  .mobile-only-topbar-btn {
+    display: none;
+  }
+
   .topbar-controls {
     display: flex;
     flex-wrap: wrap;
@@ -187,6 +192,7 @@
   button {
     font-family: inherit;
     cursor: pointer;
+    touch-action: manipulation;
     border-radius: 10px;
     border: 1px solid transparent;
     padding: 8px 13px;
@@ -645,6 +651,9 @@
     .desktop-only-topbar-btn {
       display: none !important;
     }
+    .mobile-only-topbar-btn {
+      display: inline-flex !important;
+    }
     .topbar-controls {
       width: 100%;
       justify-content: space-between;
@@ -696,6 +705,7 @@
       align-items: center;
       justify-content: center;
       gap: 2px;
+      min-height: 44px;
       padding: 4px 2px;
       font-size: 10px;
       font-weight: 700;
@@ -894,11 +904,12 @@
 
       <div class="topbar-quick-icons">
         <button type="button" class="secondary small-btn" id="cloudSyncStatusBtn" onclick="openCloudSyncModal()" title="Κατάσταση Αποθήκευσης & Live Cloud Sync">💾</button>
+        <button type="button" class="secondary small-btn mobile-only-topbar-btn" onclick="openBankImportModal()" title="Εισαγωγή Αρχείου Τράπεζας / Revolut">🏦</button>
         <button type="button" class="secondary small-btn desktop-only-topbar-btn" onclick="openBankImportModal()" title="Εισαγωγή από Τράπεζα ή Revolut">🏦 Τράπεζα / Revolut</button>
         <button type="button" class="secondary small-btn desktop-only-topbar-btn" onclick="openShareModal()" title="Μοίρασέ το & QR Code">📤 Μοίρασέ το</button>
         <button type="button" class="secondary small-btn" id="privacyBtn" onclick="togglePrivacyMode()" title="Απόκρυψη Ποσών">👁️</button>
         <button type="button" class="secondary small-btn" id="darkBtn" onclick="toggleDarkMode()" title="Σκούρο / Φωτεινό Θέμα">🌙</button>
-        <button type="button" class="secondary small-btn" onclick="switchTab('settings')" title="Ρυθμίσεις & Sync">⚙️</button>
+        <button type="button" class="secondary small-btn" id="topSettingsBtn" onclick="switchTab('settings')" title="Ρυθμίσεις & Sync">⚙️</button>
       </div>
     </div>
 
@@ -906,7 +917,7 @@
       <div class="period-switch" title="Τρόπος υπολογισμού περιόδου">
         <button type="button" id="modeMonthBtn" class="active" onclick="setPeriodMode('month')">📅 Μήνας</button>
         <button type="button" id="modeCycleBtn" onclick="setPeriodMode('cycle')">💰 Κύκλος</button>
-        <button type="button" id="modeYearBtn" onclick="setPeriodMode('year')">📆 Έτος</button>
+        <button type="button" id="modeYearBtn" class="active" onclick="setPeriodMode('year')">📆 Έτος</button>
       </div>
 
       <input type="month" id="activeMonth" onchange="onPeriodSelectorChange()" title="Επιλογή Μήνα" />
@@ -1107,7 +1118,7 @@
       <div id="sourcesBreakdownChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:12px;">
-        <input type="text" id="filterSearch" placeholder="🔍 Αναζήτηση περιγραφής..." oninput="renderTransactionsTable()" />
+        <input type="text" id="filterSearch" placeholder="🔍 Αναζήτηση περιγραφής..." oninput="debouncedRenderTransactionsTable()" />
         <select id="filterScope" onchange="renderTransactionsTable()">
           <option value="selectedPeriod">Επιλεγμένη Περίοδος</option>
           <option value="allHistory">Όλο το Ιστορικό</option>
@@ -1486,6 +1497,12 @@
               </div>
             </div>
           </div>
+
+          <hr style="border:none; border-top:1px solid var(--border); margin:12px 0;" />
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span class="small">Επαναφορά εφαρμογής σε καθαρό μηδέν (€0)</span>
+            <button type="button" class="danger small-btn" onclick="confirmResetAllData()">🗑️ Διαγραφή Όλων των Δεδομένων</button>
+          </div>
         </div>
 
         <div class="kpi-card" style="background:var(--card-soft);">
@@ -1671,7 +1688,7 @@
       <div>
         <label class="small">4. Γρήγορη Αναζήτηση Ιδίων</label>
         <div style="display:flex; gap:4px; margin-top:4px;">
-          <input type="text" id="bankPreviewSearch" placeholder="🔍 π.χ. PRONTO, Σκλαβενίτης..." oninput="renderBankPreviewTable()" style="width:100%;" />
+          <input type="text" id="bankPreviewSearch" placeholder="🔍 π.χ. PRONTO, Σκλαβενίτης..." oninput="debouncedRenderBankPreviewTable()" style="width:100%;" />
           <button type="button" class="secondary small-btn" id="clearBankSearchBtn" onclick="clearBankPreviewSearch()" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
         </div>
       </div>
@@ -1937,7 +1954,9 @@ const BONUS_KEYWORDS = [
 const GENERIC_BANK_WORDS = new Set([
   "αγορα", "καρτα", "καρτας", "πληρωμη", "pos", "iris", "μεταφορα",
   "χρεωση", "πιστωση", "απο", "προς", "eur", "gr", "card", "payment",
-  "purchase", "transfer", "fee", "εμβασμα", "αναληψη", "atm", "web", "banking"
+  "purchase", "transfer", "fee", "εμβασμα", "αναληψη", "atm", "web", "banking",
+  "google", "pay", "apple", "contactless", "athina", "athens", "thessaloniki",
+  "θεσσαλονικη", "αθηνα", "greece", "ελλας", "grc", "ae", "sa", "ltd", "oe", "ee", "ike", "ικε", "επε", "οε", "εε"
 ]);
 
 function generateId(prefix = "id") {
@@ -2101,11 +2120,24 @@ function loadStateFromStorage() {
 let data = loadStateFromStorage();
 let sessionHasUnsavedChanges = false;
 let cloudSyncStatus = "idle"; // idle | syncing | synced | error
+let isCloudSyncInFlight = false;
 let bankPreviewRows = [];
 let detectedBankSource = "Τράπεζα";
 let categoryChartInstance = null;
 let trendChartInstance = null;
 let wealthChartInstance = null;
+let txSearchDebounceTimer = null;
+let bankSearchDebounceTimer = null;
+
+function debouncedRenderTransactionsTable() {
+  clearTimeout(txSearchDebounceTimer);
+  txSearchDebounceTimer = setTimeout(() => renderTransactionsTable(), 150);
+}
+
+function debouncedRenderBankPreviewTable() {
+  clearTimeout(bankSearchDebounceTimer);
+  bankSearchDebounceTimer = setTimeout(() => renderBankPreviewTable(), 150);
+}
 
 function persist(skipRemotePush = false, skipSessionDirty = false) {
   try {
@@ -2703,7 +2735,7 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
         const localTs = Number(data.settings.stateUpdatedAt) || 0;
         const isFirstLoad = data.transactions.length === 0 && !data.profile.userName && Number(data.profile.monthlyIncome) === 0;
 
-        if (remoteTs >= localTs || isFirstLoad) {
+        if (remoteTs > localTs || isFirstLoad) {
           if (remoteState.profile && typeof remoteState.profile === "object") {
             const isSamePerson = !isCouple || !remoteState.deviceId || remoteState.deviceId === myDeviceId ||
               ((remoteState.profile.userName || "").trim().toLowerCase() === (data.profile.userName || "").trim().toLowerCase());
@@ -2879,6 +2911,8 @@ async function pullCloudSyncNow(silent = true) {
   const cfg = data.settings?.cloudSync;
   const activePin = cfg?.pin || cfg?.roomPin;
   if (!cfg?.enabled || !cfg.roomCode || !activePin) return "disabled";
+  if (isCloudSyncInFlight) return "busy";
+  isCloudSyncInFlight = true;
 
   if (!silent) {
     cloudSyncStatus = "syncing";
@@ -2919,6 +2953,8 @@ async function pullCloudSyncNow(silent = true) {
     cloudSyncStatus = "error";
     updateBackupStatusUI();
     return "error";
+  } finally {
+    isCloudSyncInFlight = false;
   }
 }
 
@@ -3289,6 +3325,11 @@ function switchTab(tabName) {
   document.querySelectorAll(".mob-nav-item").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tabName);
   });
+  const topSettingsBtn = document.getElementById("topSettingsBtn");
+  if (topSettingsBtn) {
+    topSettingsBtn.style.borderColor = tabName === "settings" ? "var(--primary)" : "";
+    topSettingsBtn.style.background = tabName === "settings" ? "var(--primary-soft)" : "";
+  }
   document.querySelectorAll(".tab-panel").forEach(p => {
     p.classList.toggle("active", p.id === `tab-${tabName}`);
   });
@@ -3785,12 +3826,100 @@ function drillDownToTransactions(opts = {}) {
 }
 
 /* ==========================================================================
-   7. BANK & REVOLUT STATEMENT IMPORTER (.XLSX / .XLS / .CSV)
+   7. BANK & REVOLUT STATEMENT IMPORTER (.XLSX / .XLS / .CSV) & ISO 18245 MCC
    ========================================================================== */
 let bankUploadAttempted = false;
 
+function extractMccCode(rawDesc) {
+  const s = String(rawDesc || "");
+  // Pattern 1: Masked card (441029xxxxxx0295) followed by 4-digit MCC (5441)
+  const afterCard = s.match(/(?:x{4,}|\*{4,})\d{2,4}\s+(\d{4})\b/i);
+  if (afterCard) return afterCard[1];
+
+  // Pattern 2: 4-digit MCC right before GOOGLE-PAY / APPLE-PAY / CONTACTLESS / POS / PO26...
+  const beforeWallet = s.match(/\b(\d{4})\s+(?:google[\s-]*pay|apple[\s-]*pay|samsung[\s-]*pay|garmin[\s-]*pay|contactless|pos\b|po\d{6,})/i);
+  if (beforeWallet) return beforeWallet[1];
+
+  // Pattern 3: Explicit MCC label
+  const explicitMcc = s.match(/\bmcc[:\s#-]*(\d{4})\b/i);
+  if (explicitMcc) return explicitMcc[1];
+
+  return null;
+}
+
+function categorizeByMcc(mccStr) {
+  const code = Number(mccStr);
+  if (!Number.isFinite(code) || code <= 0) return null;
+
+  // Τρόφιμα (Supermarkets, Butcher, Bakeries, Confectionery/Nuts like 5441, Dairy, Misc Food)
+  if ([5411, 5422, 5441, 5451, 5462, 5499].includes(code)) {
+    return { category: "Τρόφιμα", isShared: code === 5411 || code === 5422 || code === 5499, confidence: "high" };
+  }
+
+  // Υγεία (Pharmacies, Doctors, Dentists, Opticians, Labs, Hospitals, Vets)
+  if (code === 5912 || code === 5975 || code === 5976 || code === 742 || (code >= 8011 && code <= 8099)) {
+    return { category: "Υγεία", isShared: false, confidence: "high" };
+  }
+
+  // Μεταφορές (Fuel/Gas stations, Public transit, Taxi, Tolls, Parking, Airlines, Auto Service/Parts)
+  if (
+    [5541, 5542, 4784, 7523, 4511, 4411].includes(code) ||
+    (code >= 4111 && code <= 4131) ||
+    (code >= 3000 && code <= 3350) ||
+    (code >= 3351 && code <= 3500) ||
+    (code >= 5511 && code <= 5533) ||
+    (code >= 7531 && code <= 7549)
+  ) {
+    return { category: "Μεταφορές", isShared: false, confidence: "high" };
+  }
+
+  // Λογαριασμοί (Telecom, Utilities, Insurance, Government/Taxes, Courier)
+  if (
+    [4812, 4813, 4814, 4816, 4899, 4900, 4215, 5960].includes(code) ||
+    (code >= 6300 && code <= 6399) ||
+    (code >= 9211 && code <= 9399)
+  ) {
+    return { category: "Λογαριασμοί", isShared: code === 4900 || code === 4814 || code === 4816, confidence: "high" };
+  }
+
+  // Στέγαση (Hardware/DIY, Furniture, Home Appliances, Real Estate/Rent)
+  if (
+    [5200, 5211, 5231, 5251, 5261, 5712, 5713, 5714, 5719, 5722, 6513].includes(code)
+  ) {
+    return { category: "Στέγαση", isShared: true, confidence: "high" };
+  }
+
+  // Ανάληψη (ATM / Financial Cash Disbursements)
+  if ([6010, 6011].includes(code)) {
+    return { category: "Ανάληψη", isShared: false, confidence: "high" };
+  }
+
+  // Διασκέδαση (Restaurants, Cafes, Bars, Fast Food, Cinema, Sports/Gyms, Apparel, Books, Electronics, Hotels)
+  if (
+    [5811, 5812, 5813, 5814, 7832, 7841, 5941, 5942, 5945, 5947, 5992, 5995, 5732, 5733, 5734, 5735, 7230, 7298].includes(code) ||
+    (code >= 7911 && code <= 7999) ||
+    (code >= 5611 && code <= 5699) ||
+    (code >= 3501 && code <= 3999) ||
+    code === 7011
+  ) {
+    return { category: "Διασκέδαση", isShared: false, confidence: "high" };
+  }
+
+  return null;
+}
+
 function extractMerchantKey(rawDesc) {
-  const norm = normalizeText(rawDesc)
+  let cleaned = String(rawDesc || "")
+    // Strip masked card numbers (e.g. 441029xxxxxx0295)
+    .replace(/\b\d{4,6}[x*]{4,}\d{2,4}\b/gi, " ")
+    // Strip amounts + currency (e.g. 18,28 EUR or 59.00 EUR)
+    .replace(/\b\d+[.,]\d{2}\s*(?:eur|€|usd|gbp)?\b/gi, " ")
+    // Strip POS reference codes (e.g. PO26319000610554, RF12345...)
+    .replace(/\b(?:po|rf|ref|id)\d{5,}\b/gi, " ")
+    // Strip wallet / terminal markers
+    .replace(/\b(?:google[\s-]*pay|apple[\s-]*pay|samsung[\s-]*pay|contactless)\b/gi, " ");
+
+  const norm = normalizeText(cleaned)
     .replace(/\b\d{4,}\b/g, " ")
     .replace(/[^a-zα-ω0-9\s]/g, " ")
     .replace(/\s+/g, " ")
@@ -3858,7 +3987,16 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     }
   }
 
-  // Fallback hint from Piraeus Bank's own "Κατηγορία" column if available
+  // 4) ISO 18245 MCC (Merchant Category Code, e.g., 5441 before GOOGLE-PAY)
+  const mcc = extractMccCode(rawTrimmed);
+  if (mcc) {
+    const mccRes = categorizeByMcc(mcc);
+    if (mccRes) {
+      return { ...mccRes, mcc };
+    }
+  }
+
+  // 5) Fallback hint from Piraeus Bank's own "Κατηγορία" column if available
   const hintNorm = normalizeText(bankHintCat);
   if (hintNorm) {
     if (hintNorm.includes("σουπερ") || hintNorm.includes("τροφιμ")) return { category: "Τρόφιμα", isShared: true, confidence: "high" };
@@ -4030,6 +4168,14 @@ function clearBankPreviewSearch() {
   renderBankPreviewTable();
 }
 
+function filterBankRowsByStatus(filterVal) {
+  const sel = document.getElementById("bankPreviewFilter");
+  if (sel) {
+    sel.value = filterVal;
+    renderBankPreviewTable();
+  }
+}
+
 function filterSimilarBankRows(rowId) {
   const row = bankPreviewRows.find(r => r.rowId === rowId);
   if (!row) return;
@@ -4098,10 +4244,18 @@ function renderBankPreviewTable() {
       summaryBar.style.display = "flex";
       summaryBar.className = "banner info";
       const salariesFound = bankPreviewRows.filter(r => r.selected && r.type === "income" && r.category === "Μισθός");
+      const autoCategorizedCount = bankPreviewRows.filter(r => r.statusTag === "new").length;
+      const reviewCount = bankPreviewRows.filter(r => r.statusTag === "review").length;
       summaryBar.innerHTML = `
-        <div>
-          <strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)
-          ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
+        <div style="width:100%;">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px;">
+            <span><strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)</span>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="badge income" style="cursor:pointer;" onclick="filterBankRowsByStatus('selected')" title="Προβολή επιλεγμένων">✅ Αυτόματες: ${autoCategorizedCount}</span>
+              ${reviewCount > 0 ? `<span class="badge withdrawal" style="cursor:pointer;" onclick="filterBankRowsByStatus('review')" title="Κλικ για εμφάνιση μόνο όσων θέλουν έλεγχο">❓ Θέλουν έλεγχο: ${reviewCount}</span>` : ""}
+            </div>
+          </div>
+          ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700; margin-top:4px;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
         </div>
       `;
     } else if (bankUploadAttempted) {
@@ -4397,7 +4551,7 @@ function parseBankMatrix(rows, fileName) {
     const autoCat = autoCategorizeDescription(fullBankFingerprint, signedAmt, bankHintCat);
 
     let statusTag = "new";
-    let statusReason = "✅ Νέα κίνηση";
+    let statusReason = autoCat.mcc ? `✅ MCC ${autoCat.mcc}` : "✅ Νέα κίνηση";
     let selected = true;
 
     if (currencyCode !== "EUR") {
@@ -5670,7 +5824,14 @@ function renderWealthSimulator() {
 
   const canvas = document.getElementById("wealthChart");
   if (!canvas || typeof Chart === "undefined") return;
-  if (wealthChartInstance) wealthChartInstance.destroy();
+
+  if (wealthChartInstance) {
+    wealthChartInstance.data.labels = labels;
+    wealthChartInstance.data.datasets[0].data = totalSeries;
+    wealthChartInstance.data.datasets[1].data = contribSeries;
+    wealthChartInstance.update("none");
+    return;
+  }
 
   wealthChartInstance = new Chart(canvas, {
     type: "line",
@@ -6339,6 +6500,35 @@ function skipWelcomeSetup() {
   render();
 }
 
+function confirmResetAllData() {
+  const hasSync = Boolean(data.settings?.cloudSync?.enabled);
+  const warningMsg =
+    "Είσαι σίγουρος/η ότι θέλεις να διαγράψεις ΟΛΑ τα δεδομένα σου (συναλλαγές, προφίλ, προϋπολογισμούς, πάγια, κουμπαράδες, χαρτοφυλάκιο και κανόνες εμπόρων);\n\n" +
+    "Η ενέργεια αυτή δεν αναιρείται (εκτός αν έχεις αποθηκεύσει αρχείο JSON Backup)." +
+    (hasSync ? "\n\nℹ️ Το Live Cloud Sync θα αποσυνδεθεί τοπικά ώστε να μην επαναφορτωθούν τα παλιά δεδομένα." : "");
+
+  showModal(warningMsg, true, (ok) => {
+    if (!ok) return;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch (e) {
+      console.error("Error clearing localStorage:", e);
+    }
+    const fresh = createDefaultState();
+    fresh.settings.onboardingCompleted = true;
+    fresh.settings.darkMode = Boolean(data.settings?.darkMode);
+    fresh.settings.privacyMode = Boolean(data.settings?.privacyMode);
+    data = fresh;
+    sessionHasUnsavedChanges = false;
+    cloudSyncStatus = "idle";
+    persist(true, true);
+    switchTab("overview");
+    render();
+    showToast("🗑️ Όλα τα τοπικά δεδομένα διαγράφηκαν. Επαναφορά σε €0.");
+  }, "⚠️ Διαγραφή Όλων των Δεδομένων");
+}
+
 /* ==========================================================================
    12. MASTER RENDER LOOP
    ========================================================================== */
@@ -6498,7 +6688,7 @@ window.onload = async function () {
         customModal.style.display = "none";
         return;
       }
-      ["transactionModal", "paydayModal", "cloudSyncModal", "coupleMergeModal", "shareModal"].forEach(id => {
+      ["transactionModal", "paydayModal", "bankImportModal", "cloudSyncModal", "coupleMergeModal", "shareModal"].forEach(id => {
         const el = document.getElementById(id);
         if (el && el.style.display === "flex") el.style.display = "none";
       });
