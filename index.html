@@ -1157,7 +1157,7 @@
         <div>
           <div class="hero-nw-title" id="netWorthTitleLabel">💎 Συνολική Καθαρή Θέση (Net Worth)</div>
           <div class="hero-nw-val privacy-sensitive" id="netWorthMetric">€0,00</div>
-          <div class="small" id="netWorthPeriodSubtitle" style="color:#cbd5e1; margin-top:4px;">Περίοδος: —</div>
+          <div class="small" id="netWorthPeriodSubtitle" style="color:#cbd5e1; margin-top:4px;">Έως —</div>
           <div class="hero-nw-badges">
             <span class="hero-stat-chip" id="heroSavingsRateChip">📈 Ποσοστό Αποταμίευσης: 0%</span>
             <span class="hero-stat-chip" id="heroRunwayChip">🛡️ Μαξιλάρι Ασφαλείας: —</span>
@@ -1182,7 +1182,7 @@
           <strong class="privacy-sensitive" id="nwPortfolio">€0,00</strong>
         </div>
         <div class="hero-nw-pill">
-          <span id="nwCashLabel">💵 Ταμείο Μήνα</span>
+          <span id="nwCashLabel">💵 Σωρευτική Ταμειακή Ροή</span>
           <strong class="privacy-sensitive" id="nwMonthCash">€0,00</strong>
         </div>
       </div>
@@ -1245,7 +1245,7 @@
       <div class="panel">
         <div class="panel-header">
           <h3 class="panel-title">⚖️ Κανόνας 50 / 30 / 20</h3>
-          <span class="small">Ανάγκες • Επιθυμίες • Αποταμίευση</span>
+          <span class="small" id="rule503020TotalBadge">Ανάγκες • Επιθυμίες • Αποταμίευση</span>
         </div>
         <div id="rule503020Container"></div>
       </div>
@@ -1539,19 +1539,19 @@
       <div class="grid-4">
         <div class="form-group">
           <label for="simInitial">Αρχικό Κεφάλαιο (€)</label>
-          <input type="number" id="simInitial" value="1000" min="0" oninput="renderWealthSimulator()" />
+          <input type="number" id="simInitial" value="500" min="0" oninput="renderWealthSimulator()" />
         </div>
         <div class="form-group">
           <label for="simMonthly">Μηνιαία Επένδυση (€)</label>
-          <input type="number" id="simMonthly" value="200" min="0" oninput="renderWealthSimulator()" />
+          <input type="number" id="simMonthly" value="100" min="0" oninput="renderWealthSimulator()" />
         </div>
         <div class="form-group">
           <label for="simRate">Ετήσια Απόδοση (%)</label>
-          <input type="number" id="simRate" value="8" step="0.5" min="0" max="30" oninput="renderWealthSimulator()" />
+          <input type="number" id="simRate" value="4" step="0.5" min="0" max="30" oninput="renderWealthSimulator()" />
         </div>
         <div class="form-group">
           <label for="simYears">Ορίζοντας (Έτη)</label>
-          <input type="number" id="simYears" value="15" min="1" max="45" oninput="renderWealthSimulator()" />
+          <input type="number" id="simYears" value="10" min="1" max="45" oninput="renderWealthSimulator()" />
         </div>
       </div>
 
@@ -1739,7 +1739,7 @@
 
     <input type="hidden" id="editingTransactionId" value="" />
 
-    <!-- Quick-tap presets for instant daily tracking (17-45 friendly) -->
+    <!-- Quick-tap presets for instant daily tracking -->
     <div id="quickPresetsRow" class="quick-presets-row">
       <button type="button" class="preset-pill" onclick="applyQuickTxPreset('expense', 'Διασκέδαση', 3.50, 'Καφές')">☕ Καφές €3,50</button>
       <button type="button" class="preset-pill" onclick="applyQuickTxPreset('expense', 'Διασκέδαση', 12.00, 'Φαγητό / Delivery')">🍔 Φαγητό €12</button>
@@ -2262,7 +2262,8 @@ function createDefaultState() {
         resolvedRoomPath: "",
         resolvedRecipeId: "orig_salt_v1_sha256",
         resolvedSaltPrefix: "",
-        lastSyncedAt: 0
+        lastSyncedAt: 0,
+        pendingPush: false
       },
       alphaVantageApiKey: "",
       etfQuotesCache: {}
@@ -2365,7 +2366,12 @@ function loadStateFromStorage() {
 let data = loadStateFromStorage();
 let sessionHasUnsavedChanges = false;
 let cloudSyncStatus = "idle"; // idle | syncing | synced | error | locked
-let isCloudSyncInFlight = false;
+let isCloudPullInFlight = false;
+let isCloudPushInFlight = false;
+let queuedPushAfterCurrent = false;
+let dirtyTxIds = new Set();
+let fullSyncNeeded = Boolean(data.settings?.cloudSync?.pendingPush);
+
 let bankPreviewRows = [];
 let detectedBankSource = "Τράπεζα";
 let lastRawBankMatrix = [];
@@ -2376,6 +2382,10 @@ let wealthChartInstance = null;
 let portfolioChartInstance = null;
 let txSearchDebounceTimer = null;
 let bankSearchDebounceTimer = null;
+
+function markTxDirty(txId) {
+  if (txId) dirtyTxIds.add(String(txId));
+}
 
 function debouncedRenderTransactionsTable() {
   clearTimeout(txSearchDebounceTimer);
@@ -2389,6 +2399,9 @@ function debouncedRenderBankPreviewTable() {
 
 function persist(skipRemotePush = false, skipSessionDirty = false) {
   try {
+    if (!skipRemotePush && data.settings?.cloudSync?.enabled) {
+      data.settings.cloudSync.pendingPush = true;
+    }
     const copyToSave = deepClone(data);
     if (copyToSave.settings?.cloudSync) {
       const activePin = copyToSave.settings.cloudSync.pin || copyToSave.settings.cloudSync.roomPin || "";
@@ -2442,8 +2455,8 @@ function updateBackupStatusUI() {
       btn.textContent = isMobile ? "🔒" : "🔒 Ξεκλείδωμα Sync";
     } else if (cloudSyncStatus === "syncing") {
       btn.textContent = isMobile ? "🔄" : "🔄 Συγχρονισμός...";
-    } else if (cloudSyncStatus === "error") {
-      btn.textContent = isMobile ? "⚠️" : "⚠️ Cloud Σφάλμα";
+    } else if (cloudSyncStatus === "error" || cfg.pendingPush) {
+      btn.textContent = isMobile ? "⚠️" : (cfg.pendingPush ? "⏳ Εκκρεμεί Sync" : "⚠️ Cloud Σφάλμα");
     } else {
       btn.textContent = isMobile ? "☁️" : `☁️ Sync (${cfg.roomCode})`;
     }
@@ -2643,7 +2656,13 @@ function getCryptoRecipes(roomCode, pin) {
 }
 
 async function deriveKeyForRecipe(recipe) {
-  const cacheId = [recipe.id || recipe.type, recipe.pass || recipe.seed || "", recipe.salt || recipe.saltSeed || "", recipe.saltBytes ? bytesToBase64(recipe.saltBytes) : "", recipe.iterations || ""].join("|");
+  const cacheId = [
+    recipe.id || recipe.type,
+    recipe.pass || recipe.seed || "",
+    recipe.salt || recipe.saltSeed || "",
+    recipe.saltBytes ? bytesToBase64(recipe.saltBytes) : "",
+    recipe.iterations || ""
+  ].join("|");
   if (cachedRoomKeyMap.has(cacheId)) {
     return cachedRoomKeyMap.get(cacheId);
   }
@@ -2805,30 +2824,41 @@ let generatedSyncRoomCode = "";
 async function getRoomMarkerPath(roomCode) {
   return sha256Hex(`FinanceGR-RoomId-v2:${String(roomCode || "").trim().toUpperCase()}`);
 }
-// true = room code is registered, false = free, null = could not verify (offline / permission)
+
 async function roomMarkerExists(roomCode) {
   try {
     const res = await fetch(`${FIREBASE_RTDB_URL}/rooms/${await getRoomMarkerPath(roomCode)}.json`);
     if (!res.ok) return null;
     const v = await res.json();
     return Boolean(v && typeof v === "object");
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
+
 async function registerRoomMarker(roomCode) {
   try {
     await fetch(`${FIREBASE_RTDB_URL}/rooms/${await getRoomMarkerPath(roomCode)}.json`, {
-      method: "PUT", body: JSON.stringify({ marker: 1, v: 2, createdAt: Date.now() })
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marker: 1, v: 2, createdAt: Date.now() })
     });
-  } catch { /* best effort */ }
+  } catch {
+    // Best effort
+  }
 }
 
 function generateNewSyncRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const part = () => { const a = new Uint32Array(4); crypto.getRandomValues(a); return Array.from(a, v => chars[v % chars.length]).join(""); };
+  const part = () => {
+    const a = new Uint32Array(4);
+    crypto.getRandomValues(a);
+    return Array.from(a, v => chars[v % chars.length]).join("");
+  };
   const inp = document.getElementById("syncRoomCodeInput");
   const code = `FG-${part()}-${part()}`;
   if (inp) inp.value = code;
-  generatedSyncRoomCode = code; // only a freshly generated code may create a room
+  generatedSyncRoomCode = code;
 }
 
 function updateSyncPinStrengthHint() {
@@ -2880,7 +2910,8 @@ function openCloudSyncModal() {
       : "👤 Προσωπικό (Laptop ↔ Κινητό)";
     setTextSafe("connectedRoomInfoText", `Δωμάτιο: ${cfg.roomCode} • ${modeLabel}`);
     const lastStr = cfg.lastSyncedAt ? new Date(cfg.lastSyncedAt).toLocaleTimeString("el-GR") : "Μόλις τώρα";
-    setTextSafe("connectedRoomStatusDetail", `Συναλλαγές: ${data.transactions.length} • Τελευταίος συγχρονισμός: ${lastStr}`);
+    const pendingTag = cfg.pendingPush ? " • ⏳ Εκκρεμεί αποστολή αλλαγών" : "";
+    setTextSafe("connectedRoomStatusDetail", `Συναλλαγές: ${data.transactions.length} • Τελευταίος συγχρονισμός: ${lastStr}${pendingTag}`);
 
     const lockedBox = document.getElementById("sessionLockedPinBox");
     const pinGroup = document.getElementById("connectedPinGroup");
@@ -2932,6 +2963,9 @@ async function unlockSessionCloudPin() {
     try { sessionStorage.removeItem(SESSION_PIN_KEY); } catch {}
     showModal("Το PIN που πληκτρολόγησες δεν μπόρεσε να ξεκλειδώσει το δωμάτιο.", false, null, "Λάθος PIN");
     return;
+  }
+  if (data.settings.cloudSync.pendingPush) {
+    await pushCloudSyncNow(true);
   }
   openCloudSyncModal();
   render();
@@ -2985,7 +3019,8 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
     resolvedRoomPath: "",
     resolvedRecipeId: "orig_salt_v1_sha256",
     resolvedSaltPrefix: "",
-    lastSyncedAt: 0
+    lastSyncedAt: 0,
+    pendingPush: false
   };
 
   if (sessionOnly) {
@@ -2995,18 +3030,16 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
   showToast("🔄 Αναζήτηση & συγχρονισμός δωματίου...");
   const pullOutcome = await pullCloudSyncNow(false);
 
-  if (pullOutcome === "decrypt_error") {
+  const abortConnect = (msg, title = "Cloud Sync") => {
     data.settings.cloudSync = prevCfg;
     persist(true, true);
-    showModal("Το δωμάτιο βρέθηκε στο cloud, αλλά το PIN που εισήγαγες δεν μπόρεσε να αποκρυπτογραφήσει τα δεδομένα. Έλεγξε το PIN και προσπάθησε ξανά.", false, null, "Λάθος PIN");
+    showModal(msg, false, null, title);
+  };
+
+  if (pullOutcome === "decrypt_error") {
+    abortConnect("Το δωμάτιο βρέθηκε στο cloud, αλλά το PIN που εισήγαγες δεν μπόρεσε να αποκρυπτογραφήσει τα δεδομένα. Έλεγξε το PIN και προσπάθησε ξανά.", "Λάθος PIN");
     return;
   }
-
-  const abortConnect = (msg, title) => {
-    data.settings.cloudSync = prevCfg;
-    persist(true, true);
-    showModal(msg, false, null, title || "Cloud Sync");
-  };
 
   if (pullOutcome !== "synced" && pullOutcome !== "not_found") {
     abortConnect("Δεν ήταν δυνατή η επικοινωνία με το Cloud. Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά.");
@@ -3014,25 +3047,30 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
   }
 
   if (pullOutcome === "not_found") {
-    // A room is unique and is entered only with its PIN. A wrong PIN or a mistyped code must never create a new room.
     const exists = await roomMarkerExists(roomCode);
     if (exists === null) {
       abortConnect("Δεν μπόρεσα να επαληθεύσω αν ο κωδικός δωματίου υπάρχει ήδη. Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά.");
       return;
     }
     if (exists) {
-      abortConnect("Το δωμάτιο με αυτόν τον κωδικό υπάρχει, αλλά το PIN δεν είναι σωστό. Το PIN δεν μπορεί να αλλάξει ή να γίνει reset και δεν δημιουργείται νέο δωμάτιο. Αν χαθεί, το δωμάτιο χάνεται.", "Λάθος PIN");
+      abortConnect(
+        "Το δωμάτιο με αυτόν τον κωδικό υπάρχει, αλλά το PIN δεν είναι σωστό. Το PIN δεν μπορεί να αλλάξει ή να γίνει reset και δεν δημιουργείται νέο δωμάτιο.",
+        "Λάθος PIN"
+      );
       return;
     }
     if (generatedSyncRoomCode !== roomCode) {
-      abortConnect(`Δεν βρέθηκε δωμάτιο με κωδικό «${roomCode}» και αυτό το PIN. Έλεγξε τον κωδικό και το PIN. Νέα δωμάτια δημιουργούνται μόνο με το κουμπί «🎲 Νέος».`, "Δεν βρέθηκε δωμάτιο");
+      abortConnect(
+        `Δεν βρέθηκε δωμάτιο με κωδικό «${roomCode}» και αυτό το PIN. Έλεγξε τον κωδικό και το PIN. Νέα δωμάτια δημιουργούνται μόνο με το κουμπί «🎲 Νέος».`,
+        "Δεν βρέθηκε δωμάτιο"
+      );
       return;
     }
     if (!forceCreateNew) {
       data.settings.cloudSync = prevCfg;
       persist(true, true);
       showModal(
-        `Θα δημιουργηθεί νέο δωμάτιο «${roomCode}».\n\nΤο PIN δεν μπορεί να ανακτηθεί, να αλλάξει ή να γίνει reset από κανέναν. Αν το χάσεις, το δωμάτιο και τα δεδομένα του χάνονται. Σημείωσέ το σε ασφαλές μέρος.\n\nΠάτησε «Εντάξει» για δημιουργία.`,
+        `Θα δημιουργηθεί νέο δωμάτιο «${roomCode}».\n\n⚠️ Το PIN δεν μπορεί να ανακτηθεί, να αλλάξει ή να γίνει reset από κανέναν. Αν το χάσεις, το δωμάτιο και τα δεδομένα του χάνονται.\n\nΠάτησε «Εντάξει» για δημιουργία.`,
         true,
         (ok) => { if (ok) connectCloudSyncRoom(true); },
         "Νέο Δωμάτιο Cloud"
@@ -3042,15 +3080,18 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
   }
 
   if (pullOutcome === "synced" && (await roomMarkerExists(roomCode)) === false) {
-    await registerRoomMarker(roomCode); // rooms created by older versions get registered so a wrong PIN can never open a second room
+    await registerRoomMarker(roomCode);
   }
 
-  await pushCloudSyncNow();
-  if (pullOutcome === "not_found") await registerRoomMarker(roomCode);
+  fullSyncNeeded = true;
+  const pushedOk = await pushCloudSyncNow(true);
+  if (pushedOk && pullOutcome === "not_found") {
+    await registerRoomMarker(roomCode);
+  }
   persist(true, true);
   openCloudSyncModal();
   render();
-  showToast(pullOutcome === "synced" ? "✅ Τα δεδομένα ανακτήθηκαν από το Cloud!" : "✅ Το δωμάτιο συγχρονισμού συνδέθηκε!");
+  showToast(pullOutcome === "synced" ? "✅ Τα δεδομένα συγχρονίστηκαν με το Cloud!" : "✅ Το δωμάτιο συγχρονισμού συνδέθηκε!");
 }
 
 function disconnectCloudSyncRoom() {
@@ -3059,6 +3100,9 @@ function disconnectCloudSyncRoom() {
     data.settings.cloudSync.enabled = false;
     data.settings.cloudSync.resolvedRoomPath = "";
     data.settings.cloudSync.sessionOnlyPin = false;
+    data.settings.cloudSync.pendingPush = false;
+    dirtyTxIds.clear();
+    fullSyncNeeded = false;
     try { sessionStorage.removeItem(SESSION_PIN_KEY); } catch {}
     cloudSyncStatus = "idle";
     persist(true, true);
@@ -3068,16 +3112,28 @@ function disconnectCloudSyncRoom() {
 }
 
 async function manualSyncNow() {
-  showToast("🔄 Συγχρονισμός σε εξέλιξη...");
+  showToast("🔄 Πλήρης συγχρονισμός σε εξέλιξη...");
   const res = await pullCloudSyncNow(false);
   if (res === "decrypt_error") {
     showModal("Αδυναμία αποκρυπτογράφησης με το αποθηκευμένο PIN.");
     return;
   }
-  await pushCloudSyncNow();
+  fullSyncNeeded = true;
+  await pushCloudSyncNow(true);
   openCloudSyncModal();
   render();
   showToast("✅ Ο συγχρονισμός ολοκληρώθηκε!");
+}
+
+function mergeEntitiesById(localArr, remoteArr, deletedMap, preferRemote) {
+  const del = deletedMap || {};
+  const map = new Map();
+  const baseList = preferRemote ? [...(localArr || []), ...(remoteArr || [])] : [...(remoteArr || []), ...(localArr || [])];
+  for (const item of baseList) {
+    if (!item || !item.id || del[item.id]) continue;
+    map.set(item.id, item);
+  }
+  return Array.from(map.values());
 }
 
 async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
@@ -3089,8 +3145,6 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
   let changed = false;
   let decryptedCount = 0;
   let decryptErrors = 0;
-
-  // Only AES-GCM authenticated packets are trusted (plaintext tombstones/transactions are ignored).
 
   if (remoteRoom.members && typeof remoteRoom.members === "object") {
     const myNameNorm = (data.profile.userName || "Εγώ").trim().toLowerCase();
@@ -3130,6 +3184,15 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
         const remoteTs = Number(remoteState.stateUpdatedAt || remoteState.updatedAt) || 0;
         const localTs = Number(data.settings.stateUpdatedAt) || 0;
         const isFirstLoad = data.transactions.length === 0 && !data.profile.userName && Number(data.profile.monthlyIncome) === 0;
+        const preferRemote = remoteTs >= localTs || isFirstLoad;
+
+        if (remoteState.deletedTxIds && typeof remoteState.deletedTxIds === "object") {
+          data.deletedTxIds = { ...data.deletedTxIds, ...cleanTsMap(remoteState.deletedTxIds) };
+        }
+        if (remoteState.deletedEntityIds && typeof remoteState.deletedEntityIds === "object") {
+          data.deletedEntityIds = { ...data.deletedEntityIds, ...cleanTsMap(remoteState.deletedEntityIds) };
+        }
+        const delEntities = data.deletedEntityIds || {};
 
         if (remoteTs > localTs || isFirstLoad) {
           if (remoteState.profile && typeof remoteState.profile === "object") {
@@ -3145,19 +3208,6 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
           if (remoteState.budgets && typeof remoteState.budgets === "object") {
             data.budgets = { ...data.budgets, ...cleanBudgets(remoteState.budgets) };
           }
-          const delEntities = data.deletedEntityIds || {};
-          if (Array.isArray(remoteState.recurring)) {
-            data.recurring = cleanList(remoteState.recurring, cleanRecurring).filter(x => !delEntities[x.id]);
-          }
-          if (Array.isArray(remoteState.goals)) {
-            data.goals = cleanList(remoteState.goals, cleanGoal).filter(x => !delEntities[x.id]);
-          }
-          if (Array.isArray(remoteState.annualBills)) {
-            data.annualBills = cleanList(remoteState.annualBills, cleanBill).filter(x => !delEntities[x.id]);
-          }
-          if (Array.isArray(remoteState.portfolioAssets)) {
-            data.portfolioAssets = cleanList(remoteState.portfolioAssets, cleanAsset).filter(x => !delEntities[x.id]);
-          }
           if (remoteState.merchantRules && typeof remoteState.merchantRules === "object") {
             data.merchantRules = cleanRules(remoteState.merchantRules);
           }
@@ -3168,13 +3218,32 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
           } else if (remoteState.ignoredSubscriptions && typeof remoteState.ignoredSubscriptions === "object") {
             data.ignoredSubscriptions = { ...data.ignoredSubscriptions, ...remoteState.ignoredSubscriptions };
           }
-          if (remoteState.deletedTxIds && typeof remoteState.deletedTxIds === "object") {
-            data.deletedTxIds = { ...data.deletedTxIds, ...cleanTsMap(remoteState.deletedTxIds) };
-          }
-          if (Array.isArray(remoteState.transactions) && !remoteRoom.txs && !remoteRoom.transactions) {
-            data.transactions = remoteState.transactions.map(t => sanitizeRemoteTx(sanitizeJsonObject(t))).filter(t => t && !data.deletedTxIds[t.id]);
-          }
           data.settings.stateUpdatedAt = Math.max(localTs, remoteTs, 1);
+          changed = true;
+        }
+
+        if (Array.isArray(remoteState.recurring)) {
+          const prevLen = data.recurring.length;
+          data.recurring = mergeEntitiesById(data.recurring, cleanList(remoteState.recurring, cleanRecurring), delEntities, preferRemote);
+          if (data.recurring.length !== prevLen || preferRemote) changed = true;
+        }
+        if (Array.isArray(remoteState.goals)) {
+          const prevLen = data.goals.length;
+          data.goals = mergeEntitiesById(data.goals, cleanList(remoteState.goals, cleanGoal), delEntities, preferRemote);
+          if (data.goals.length !== prevLen || preferRemote) changed = true;
+        }
+        if (Array.isArray(remoteState.annualBills)) {
+          const prevLen = data.annualBills.length;
+          data.annualBills = mergeEntitiesById(data.annualBills, cleanList(remoteState.annualBills, cleanBill), delEntities, preferRemote);
+          if (data.annualBills.length !== prevLen || preferRemote) changed = true;
+        }
+        if (Array.isArray(remoteState.portfolioAssets)) {
+          const prevLen = data.portfolioAssets.length;
+          data.portfolioAssets = mergeEntitiesById(data.portfolioAssets, cleanList(remoteState.portfolioAssets, cleanAsset), delEntities, preferRemote);
+          if (data.portfolioAssets.length !== prevLen || preferRemote) changed = true;
+        }
+        if (Array.isArray(remoteState.transactions) && !remoteRoom.txs && !remoteRoom.transactions) {
+          data.transactions = remoteState.transactions.map(t => sanitizeRemoteTx(sanitizeJsonObject(t))).filter(t => t && !data.deletedTxIds[t.id]);
           changed = true;
         }
       }
@@ -3211,7 +3280,6 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
       if (!tx.id && txKey) tx.id = txKey;
       if (!tx.id) continue;
       tx.id = String(tx.id).slice(0, 80);
-      if (!tx._deleted) { tx = sanitizeRemoteTx(tx); if (!tx) continue; }
 
       if (tx._deleted) {
         data.deletedTxIds = data.deletedTxIds || {};
@@ -3223,6 +3291,8 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
         continue;
       }
 
+      tx = sanitizeRemoteTx(tx);
+      if (!tx) continue;
       if (data.deletedTxIds?.[tx.id]) continue;
 
       const txDevice = tx._originDeviceId || tx._lastModifiedByDevice || tx.deviceId || tx.modifiedBy || tx.createdByDevice;
@@ -3311,8 +3381,8 @@ async function pullCloudSyncNow(silent = true) {
     updateBackupStatusUI();
     return "locked";
   }
-  if (isCloudSyncInFlight) return "busy";
-  isCloudSyncInFlight = true;
+  if (isCloudPullInFlight) return "busy";
+  isCloudPullInFlight = true;
 
   if (!silent) {
     cloudSyncStatus = "syncing";
@@ -3354,17 +3424,28 @@ async function pullCloudSyncNow(silent = true) {
     updateBackupStatusUI();
     return "error";
   } finally {
-    isCloudSyncInFlight = false;
+    isCloudPullInFlight = false;
   }
 }
 
-async function pushCloudSyncNow() {
+async function pushCloudSyncNow(forceFull = false) {
   const cfg = data.settings?.cloudSync;
   const activePin = getActiveCloudPin();
   if (!cfg?.enabled || !cfg.roomCode || !activePin) return false;
 
+  if (isCloudPushInFlight) {
+    queuedPushAfterCurrent = true;
+    return false;
+  }
+  isCloudPushInFlight = true;
+
   cloudSyncStatus = "syncing";
   updateBackupStatusUI();
+
+  const shouldPushFull = forceFull || fullSyncNeeded || !cfg.resolvedRoomPath;
+  const batchDirtyIds = new Set(dirtyTxIds);
+  dirtyTxIds.clear();
+  fullSyncNeeded = false;
 
   try {
     const roomHash = cfg.resolvedRoomPath || (await getRoomHash(cfg.roomCode, activePin));
@@ -3384,6 +3465,7 @@ async function pushCloudSyncNow() {
 
     for (const tx of (data.transactions || [])) {
       if (!tx || !tx.id) continue;
+      if (!shouldPushFull && !batchDirtyIds.has(tx.id) && !tx._settlementPatch) continue;
       if ((tx.owner || "me") !== "me" && !tx._settlementPatch) continue;
       if (isCoupleSharedOnly && !tx.isShared) {
         patchBody[`txs/${tx.id}`] = null;
@@ -3401,6 +3483,7 @@ async function pushCloudSyncNow() {
     }
 
     for (const [delId, delTs] of Object.entries(data.deletedTxIds || {})) {
+      if (!shouldPushFull && !batchDirtyIds.has(delId)) continue;
       patchBody[`txs/${delId}`] = await encryptRoomPayload({
         id: delId,
         _deleted: true,
@@ -3442,14 +3525,24 @@ async function pushCloudSyncNow() {
 
     cfg.resolvedRoomPath = roomHash;
     cfg.lastSyncedAt = nowTs;
+    cfg.pendingPush = false;
     cloudSyncStatus = "synced";
     persist(true, true);
     return true;
   } catch (err) {
     console.error("Cloud push error:", err);
+    batchDirtyIds.forEach(id => dirtyTxIds.add(id));
+    if (shouldPushFull) fullSyncNeeded = true;
+    cfg.pendingPush = true;
     cloudSyncStatus = "error";
     updateBackupStatusUI();
     return false;
+  } finally {
+    isCloudPushInFlight = false;
+    if (queuedPushAfterCurrent) {
+      queuedPushAfterCurrent = false;
+      pushCloudSyncNow();
+    }
   }
 }
 
@@ -3706,28 +3799,67 @@ function getPeriodTotals(startIso, endIso, memberView = "all", split = null) {
   });
 }
 
-function computeCashReserveBalance() {
+function computeCashReserveBalance(asOfDate = today()) {
   const initial = Math.max(0, Number(data.profile.initialSavings) || 0);
   let delta = 0;
   (data.transactions || []).forEach(t => {
-    if (t.isInternalTransfer) return;
+    if (!t || !t.date || t.date > asOfDate || t.isInternalTransfer) return;
     if ((t.owner || "me") !== "me") return;
     const amt = Number(t.amount) || 0;
+    if (!Number.isFinite(amt) || amt <= 0) return;
     if (t.type === "saving") {
       if (t.category === "Επένδυση" || t.category === "Κουμπαράς Στόχου" || t.linkedGoalId) return;
       delta += amt;
     } else if (t.type === "withdrawal") {
-      if (t.category === "Κουμπαράς Στόχου" || t.linkedGoalId) return;
+      if (t.category === "Επένδυση" || t.category === "Κουμπαράς Στόχου" || t.linkedGoalId) return;
       delta -= amt;
     }
   });
   return Math.max(0, Number((initial + delta).toFixed(2)));
 }
 
+// Cumulative cash flow is used by Net Worth, not the currently selected report period.
+// Savings/withdrawals are treated as transfers between asset buckets and are therefore
+// included with opposite signs so that goal jars and investment holdings are not counted twice.
+function computeLifetimeCashFlow(memberView = "all", split = null, asOfDate = today()) {
+  const activeSplit = split || getCoupleSplit();
+  const eligible = (data.transactions || []).filter(t =>
+    t && t.date && t.date <= asOfDate && !t.isInternalTransfer
+  );
+  const txs = filterTransactionsByMemberView(eligible, memberView, activeSplit);
+  const total = txs.reduce((sum, t) => {
+    const amount = getEffectiveTxAmountForMemberView(t, memberView, activeSplit);
+    if (!Number.isFinite(amount) || amount <= 0) return sum;
+    if (t.type === "income" || t.type === "withdrawal") return sum + amount;
+    if (t.type === "expense" || t.type === "saving") return sum - amount;
+    return sum;
+  }, 0);
+  return Number(total.toFixed(2));
+}
+
+function computeNetWorthSnapshot(memberView = "all", split = null, asOfDate = today()) {
+  const activeSplit = split || getCoupleSplit();
+  const partnerOnly = activeSplit.hasPartner && memberView === "partner";
+  const sharedOnly = activeSplit.hasPartner && memberView === "shared";
+  const includePrimaryUserAssets = !partnerOnly && !sharedOnly;
+  const cashReserve = includePrimaryUserAssets ? computeCashReserveBalance(asOfDate) : 0;
+  const goalsTotal = includePrimaryUserAssets
+    ? (data.goals || []).reduce((sum, goal) => sum + (Number(goal.saved) || 0), 0)
+    : 0;
+  const portfolioTotal = includePrimaryUserAssets
+    ? (data.portfolioAssets || []).reduce((sum, asset) => sum + (Number(asset.current) || 0), 0)
+    : 0;
+  const cashFlow = computeLifetimeCashFlow(memberView, activeSplit, asOfDate);
+  const netWorth = Number((cashReserve + goalsTotal + portfolioTotal + cashFlow).toFixed(2));
+  return { asOfDate, cashReserve, goalsTotal, portfolioTotal, cashFlow, netWorth };
+}
+
 function computeUpcomingRecurringExpenses(ctx, memberView, split) {
   if (ctx.isClosed) return 0;
   const todayIso = today();
-  const rangeTxs = filterTransactionsForRange(ctx.start, ctx.end, true);
+  const rangeTxs = filterTransactionsForRange(ctx.start, ctx.end, true)
+    .filter(t => t.type === "expense");
+  const matchedTxIds = new Set();
   let upcomingSum = 0;
 
   const monthsToCheck = new Set();
@@ -3752,15 +3884,24 @@ function computeUpcomingRecurringExpenses(ctx, memberView, split) {
       const dStr = String(Math.min(maxDay, Math.max(1, Number(r.day) || 1))).padStart(2, "0");
       const dueIso = `${ym}-${dStr}`;
       if (dueIso < ctx.start || dueIso > ctx.end) return;
-      if (dueIso < todayIso) return;
+      if (dueIso <= todayIso) return;
 
-      const alreadyPaid = rangeTxs.some(t =>
-        t.type === "expense" && (
-          t.recurringId === r.id ||
-          (t.category === r.category && Math.abs((Number(t.amount) || 0) - (Number(r.amount) || 0)) < 0.02)
-        )
-      );
-      if (alreadyPaid) return;
+      const rKey = extractMerchantKey(r.title);
+      const matchingTx = rangeTxs.find(t => {
+        if (matchedTxIds.has(t.id)) return false;
+        if (!(t.date || "").startsWith(ym)) return false;
+        if (t.recurringId === r.id) return true;
+        if (t.category !== r.category) return false;
+        if (Math.abs((Number(t.amount) || 0) - (Number(r.amount) || 0)) >= 0.02) return false;
+        const tKey = extractMerchantKey(t.description || "");
+        if (!rKey || !tKey) return true;
+        return rKey === tKey || rKey.includes(tKey) || tKey.includes(rKey);
+      });
+
+      if (matchingTx) {
+        matchedTxIds.add(matchingTx.id);
+        return;
+      }
 
       const isShared = split.hasPartner && Boolean(r.isShared);
       if (split.hasPartner) {
@@ -3944,7 +4085,7 @@ function syncCategoryDropdown(typeVal, selectedCat = "") {
     catSel.value = selectedCat;
   } else if (selectedCat) {
     catSel.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(selectedCat)}">${escapeHtml(selectedCat)}</option>`);
-    catSel.value = selectedCat; // keep imported categories instead of silently switching to the first one
+    catSel.value = selectedCat;
   }
 }
 
@@ -4080,11 +4221,13 @@ function addTransaction(keepOpen = false) {
         paidBy,
         _updatedAt: Date.now()
       };
+      markTxDirty(editId);
     }
     showToast("✅ Η συναλλαγή ενημερώθηκε!");
   } else {
+    const newId = generateId("tx");
     data.transactions.push({
-      id: generateId("tx"),
+      id: newId,
       owner: "me",
       type,
       amount: Number(amount.toFixed(2)),
@@ -4098,6 +4241,7 @@ function addTransaction(keepOpen = false) {
       settled: false,
       _updatedAt: Date.now()
     });
+    markTxDirty(newId);
     showToast("✅ Η συναλλαγή καταχωρίστηκε!");
   }
 
@@ -4154,6 +4298,7 @@ function deleteTransaction(txId) {
     }
     data.transactions = data.transactions.filter(t => t.id !== txId);
     data.deletedTxIds[txId] = Date.now();
+    markTxDirty(txId);
     persist();
     render();
     showToast("🗑️ Η συναλλαγή διαγράφηκε.");
@@ -4171,6 +4316,7 @@ function toggleTransactionShared(txId) {
   tx.settled = false;
   tx._lastModifiedByDevice = data.settings.deviceId;
   tx._updatedAt = Date.now();
+  markTxDirty(txId);
 
   persist();
   render();
@@ -4185,6 +4331,7 @@ function toggleTransactionSettled(txId) {
   if (tx.owner === "partner") {
     tx._settlementPatch = true;
   }
+  markTxDirty(txId);
   persist();
   render();
   showToast(tx.settled ? "✓ Σημειώθηκε ως εξοφλημένο" : "Επανήλθε σε εκκρεμότητα");
@@ -4207,6 +4354,7 @@ function settleAllSharedExpenses() {
       t.settled = true;
       t._updatedAt = nowTs;
       if (t.owner === "partner") t._settlementPatch = true;
+      markTxDirty(t.id);
     });
     persist();
     render();
@@ -4505,14 +4653,6 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
   return { category: "Άλλο", isShared: false, confidence: "low" };
 }
 
-function parseFlexibleDate(val) {
-  const iso = parseFlexibleDateRaw(val);
-  const d = iso ? parseIsoDate(iso) : null;
-  if (!d) return null;
-  const back = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  return (back === iso && d.getFullYear() >= 1990 && d.getFullYear() <= 2100) ? iso : null; // rejects 31/02 etc.
-}
-
 function parseFlexibleDateRaw(val) {
   if (!val) return null;
   if (val instanceof Date && !Number.isNaN(val.getTime())) {
@@ -4542,6 +4682,14 @@ function parseFlexibleDateRaw(val) {
     return `${yyyy}-${String(p2).padStart(2, "0")}-${String(p1).padStart(2, "0")}`;
   }
   return null;
+}
+
+function parseFlexibleDate(val) {
+  const iso = parseFlexibleDateRaw(val);
+  const d = iso ? parseIsoDate(iso) : null;
+  if (!d) return null;
+  const back = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return (back === iso && d.getFullYear() >= 1990 && d.getFullYear() <= 2100) ? iso : null;
 }
 
 function parseFlexibleAmount(raw) {
@@ -4591,6 +4739,8 @@ function parseFlexibleAmount(raw) {
     const parts = s.split(".");
     if (parts.length > 2) {
       s = s.replace(/\./g, "");
+    } else if (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3 && Number(parts[0]) >= 1) {
+      s = s.replace(/\./g, "");
     }
   }
 
@@ -4599,12 +4749,13 @@ function parseFlexibleAmount(raw) {
   return negative ? -Math.abs(num) : num;
 }
 
-function isDuplicateTransaction(dateIso, amountAbs, desc, originalDesc = "", extraPool = []) {
+function isDuplicateTransaction(dateIso, amountAbs, desc, originalDesc = "", extraPool = [], consumedExistingIds = null) {
   const keyA = extractMerchantKey(desc);
   const keyB = originalDesc ? extractMerchantKey(originalDesc) : "";
   const pool = [...(data.transactions || []), ...extraPool];
 
-  return pool.find(existing => {
+  const found = pool.find(existing => {
+    if (consumedExistingIds && existing.id && consumedExistingIds.has(existing.id)) return false;
     if (Math.abs((Number(existing.amount) || 0) - amountAbs) > 0.01) return false;
     if (daysBetweenIso(existing.date, dateIso) > (existing.originalBankDesc ? 0 : 3)) return false;
     const exKey1 = extractMerchantKey(existing.description || "");
@@ -4616,6 +4767,11 @@ function isDuplicateTransaction(dateIso, amountAbs, desc, originalDesc = "", ext
     }
     return candidatesNew.some(cn => candidatesEx.some(ce => cn === ce || cn.includes(ce) || ce.includes(cn)));
   });
+
+  if (found && consumedExistingIds && found.id) {
+    consumedExistingIds.add(found.id);
+  }
+  return found;
 }
 
 function openBankImportModal() {
@@ -5050,6 +5206,7 @@ async function processBankFilesList(filesList) {
   try {
     let allParsed = [];
     const sourcesSeen = new Set();
+    const consumedExistingIds = new Set();
 
     for (const file of filesList) {
       const { fileName, matrices } = await readSingleBankFile(file);
@@ -5059,7 +5216,7 @@ async function processBankFilesList(filesList) {
           lastRawBankMatrix = rows;
           lastRawBankFileName = fileName;
         }
-        const candidate = parseBankMatrix(rows, fileName, null, allParsed);
+        const candidate = parseBankMatrix(rows, fileName, null, allParsed, consumedExistingIds);
         if (candidate.length > 0) {
           fileParsed = candidate;
           break;
@@ -5096,8 +5253,9 @@ async function processBankFilesList(filesList) {
   }
 }
 
-function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = []) {
+function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = [], consumedExistingIds = null) {
   if (!Array.isArray(rows) || rows.length === 0) return [];
+  const localConsumed = consumedExistingIds || new Set();
 
   const flatRaw = rows.slice(0, 20).flat().join(" ") + " " + fileName;
   const flatText = normalizeText(flatRaw);
@@ -5243,7 +5401,7 @@ function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = [])
       currencyCode !== "EUR" ||
       /(?<![\p{L}\p{N}])(top-up|topup|revolut\*\*|μεταφορα μεταξυ λογαριασμων|exchange)(?![\p{L}\p{N}])/u.test(normDesc);
 
-    const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, fullBankFingerprint, intraBatchPool);
+    const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, fullBankFingerprint, intraBatchPool, localConsumed);
     const autoCat = autoCategorizeDescription(fullBankFingerprint, signedAmt, bankHintCat);
 
     let statusTag = "new";
@@ -5299,8 +5457,9 @@ function confirmBankImport() {
 
   toImport.forEach(r => {
     const isShared = split.hasPartner && r.type === "expense" && Boolean(r.isShared);
+    const newId = generateId("tx");
     data.transactions.push({
-      id: generateId("tx"),
+      id: newId,
       owner: "me",
       type: r.type,
       category: r.category,
@@ -5315,6 +5474,7 @@ function confirmBankImport() {
       settled: false,
       _updatedAt: nowTs
     });
+    markTxDirty(newId);
 
     if (r.category !== "Άλλο" && r.category !== "Άλλο Έσοδο") {
       const mKey = extractMerchantKey(r.originalBankDesc || r.description);
@@ -5360,8 +5520,9 @@ function executePaydayAllocation() {
   const nowTs = Date.now();
   let createdCount = 0;
 
+  const salId = generateId("tx");
   data.transactions.push({
-    id: generateId("tx"),
+    id: salId,
     owner: "me",
     type: "income",
     category: "Μισθός",
@@ -5370,12 +5531,14 @@ function executePaydayAllocation() {
     description: "Μισθοδοσία",
     _updatedAt: nowTs
   });
+  markTxDirty(salId);
   createdCount++;
 
   const saveGoal = Math.max(0, Number(data.profile.savingGoal) || 0);
   if (saveGoal > 0) {
+    const savId = generateId("tx");
     data.transactions.push({
-      id: generateId("tx"),
+      id: savId,
       owner: "me",
       type: "saving",
       category: "Αποταμίευση",
@@ -5384,6 +5547,7 @@ function executePaydayAllocation() {
       description: "Αυτόματη Αποταμίευση Μισθού",
       _updatedAt: nowTs
     });
+    markTxDirty(savId);
     createdCount++;
   }
 
@@ -5398,8 +5562,9 @@ function executePaydayAllocation() {
       const step = Math.min(rem, Number((rem / monthsLeft).toFixed(2)));
       if (step > 0) {
         g.saved = Number(((Number(g.saved) || 0) + step).toFixed(2));
+        const gTxId = generateId("tx");
         data.transactions.push({
-          id: generateId("tx"),
+          id: gTxId,
           owner: "me",
           type: "saving",
           category: "Κουμπαράς Στόχου",
@@ -5409,6 +5574,7 @@ function executePaydayAllocation() {
           linkedGoalId: g.id,
           _updatedAt: nowTs
         });
+        markTxDirty(gTxId);
         createdCount++;
       }
     });
@@ -5684,8 +5850,9 @@ function applyRecurringTransactionsForMonth(ym) {
     if (txDate > today()) return;
 
     const isShared = split.hasPartner && r.type === "expense" && Boolean(r.isShared);
+    const newId = generateId("tx");
     data.transactions.push({
-      id: generateId("tx"),
+      id: newId,
       owner: "me",
       type: r.type,
       category: r.category,
@@ -5698,6 +5865,7 @@ function applyRecurringTransactionsForMonth(ym) {
       settled: false,
       _updatedAt: Date.now()
     });
+    markTxDirty(newId);
     added = true;
   });
 
@@ -5761,8 +5929,9 @@ function contributeGoal(goalId, delta) {
   if (actualDelta === 0) return;
 
   g.saved = Number(((Number(g.saved) || 0) + actualDelta).toFixed(2));
+  const txId = generateId("tx");
   data.transactions.push({
-    id: generateId("tx"),
+    id: txId,
     owner: "me",
     type: actualDelta > 0 ? "saving" : "withdrawal",
     category: "Κουμπαράς Στόχου",
@@ -5772,6 +5941,7 @@ function contributeGoal(goalId, delta) {
     linkedGoalId: g.id,
     _updatedAt: Date.now()
   });
+  markTxDirty(txId);
   data.settings.stateUpdatedAt = Date.now();
   persist();
   render();
@@ -5779,13 +5949,36 @@ function contributeGoal(goalId, delta) {
 }
 
 function deleteGoal(goalId) {
-  showModal("Διαγραφή αυτού του κουμπαρά στόχου;", true, (ok) => {
+  const g = (data.goals || []).find(item => item.id === goalId);
+  if (!g) return;
+  const savedAmt = Number(g.saved) || 0;
+  const msg = savedAmt > 0
+    ? `Διαγραφή του κουμπαρά «${g.title}»;\n\nΤα αποταμιευμένα ${money(savedAmt)} θα μεταφερθούν αυτόματα στο γενικό Αποθεματικό Ασφαλείας ώστε να μην χαθούν από την Καθαρή σου Θέση.`
+    : `Διαγραφή του κουμπαρά «${g.title}»;`;
+
+  showModal(msg, true, (ok) => {
     if (!ok) return;
-    data.goals = data.goals.filter(g => g.id !== goalId);
+    let movedFromTxs = 0;
+    (data.transactions || []).forEach(t => {
+      if (t.linkedGoalId === goalId) {
+        if (t.type === "saving") movedFromTxs += Number(t.amount) || 0;
+        else if (t.type === "withdrawal") movedFromTxs -= Number(t.amount) || 0;
+        t.category = "Αποταμίευση";
+        delete t.linkedGoalId;
+        t._updatedAt = Date.now();
+        markTxDirty(t.id);
+      }
+    });
+    const unbackedSaved = Math.max(0, Number((savedAmt - Math.max(0, movedFromTxs)).toFixed(2)));
+    if (unbackedSaved > 0) {
+      data.profile.initialSavings = Number(((Number(data.profile.initialSavings) || 0) + unbackedSaved).toFixed(2));
+    }
+
+    data.goals = data.goals.filter(item => item.id !== goalId);
     recordEntityDeletion(goalId);
     persist();
     render();
-    showToast("🗑️ Ο στόχος διαγράφηκε.");
+    showToast("🗑️ Ο στόχος διαγράφηκε (τα χρήματα διατηρήθηκαν στο Αποθεματικό).");
   }, "Διαγραφή Στόχου");
 }
 
@@ -5877,8 +6070,9 @@ function reserveForAnnualBill(billId, delta) {
   if (actualDelta === 0) return;
 
   b.saved = Number(((Number(b.saved) || 0) + actualDelta).toFixed(2));
+  const txId = generateId("tx");
   data.transactions.push({
-    id: generateId("tx"),
+    id: txId,
     owner: "me",
     type: actualDelta > 0 ? "saving" : "withdrawal",
     category: "Αποταμίευση",
@@ -5888,10 +6082,27 @@ function reserveForAnnualBill(billId, delta) {
     linkedAnnualBillId: b.id,
     _updatedAt: Date.now()
   });
+  markTxDirty(txId);
   data.settings.stateUpdatedAt = Date.now();
   persist();
   render();
   showToast(`Δεσμεύτηκαν ${money(actualDelta)} για «${b.title}»`);
+}
+
+function advanceDueDateToFuture(dueDateIso, referenceIso) {
+  const d = parseIsoDate(dueDateIso);
+  if (!d) return dueDateIso;
+  const dueDay = d.getDate();
+  let nextIso = dueDateIso;
+  let guard = 0;
+  while (nextIso <= referenceIso && guard < 20) {
+    d.setDate(1);
+    d.setFullYear(d.getFullYear() + 1);
+    d.setDate(Math.min(dueDay, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+    nextIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    guard++;
+  }
+  return nextIso;
 }
 
 function payAnnualBill(billId) {
@@ -5903,8 +6114,9 @@ function payAnnualBill(billId) {
     const nowTs = Date.now();
 
     if ((Number(b.saved) || 0) > 0) {
+      const wId = generateId("tx");
       data.transactions.push({
-        id: generateId("tx"),
+        id: wId,
         owner: "me",
         type: "withdrawal",
         category: "Αποταμίευση",
@@ -5914,10 +6126,12 @@ function payAnnualBill(billId) {
         linkedAnnualBillId: b.id,
         _updatedAt: nowTs
       });
+      markTxDirty(wId);
     }
 
+    const expId = generateId("tx");
     data.transactions.push({
-      id: generateId("tx"),
+      id: expId,
       owner: "me",
       type: "expense",
       category: b.category || "Λογαριασμοί",
@@ -5926,16 +6140,10 @@ function payAnnualBill(billId) {
       description: `${b.title} (Ετήσιο)`,
       _updatedAt: nowTs
     });
+    markTxDirty(expId);
 
     b.saved = 0;
-    const d = parseIsoDate(b.dueDate);
-    if (d) {
-      const dueDay = d.getDate();
-      d.setDate(1);
-      d.setFullYear(d.getFullYear() + 1);
-      d.setDate(Math.min(dueDay, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
-      b.dueDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    }
+    b.dueDate = advanceDueDateToFuture(b.dueDate, dateIso);
     data.settings.stateUpdatedAt = nowTs;
     persist();
     render();
@@ -6078,7 +6286,7 @@ async function fetchLiveFxRatesToEur() {
   } catch {
     // Fallback
   }
-  if (cachedFx && cachedFx.USD > 0) return cachedFx; // stale real rate beats a hard-coded guess
+  if (cachedFx && cachedFx.USD > 0) return cachedFx;
   return { USD: 0.92, GBP: 1.19, CHF: 1.06, fetchedAt: 0 };
 }
 
@@ -6137,7 +6345,7 @@ async function fetchYahooQuoteInEur(rawTicker, fxRates) {
       else if (rawCurrency === "GBp" || currency === "GBX" || currency === "GBPENCE") priceEur = (rawPrice / 100) * (fxRates.GBP || 1.19);
       else if (currency === "GBP") priceEur = rawPrice * (fxRates.GBP || 1.19);
       else if (currency === "CHF") priceEur = rawPrice * (fxRates.CHF || 1.06);
-      else if (currency !== "EUR") continue; // unknown currency: never value it as euro
+      else if (currency !== "EUR") continue;
 
       return { priceEur, rawPrice, currency, provider: `Yahoo Finance (${yahooSym})` };
     } catch {
@@ -6746,7 +6954,7 @@ function renderEReceiptsTracker() {
 
   const requiredReceipts = annualIncome * 0.30;
   const qualifyingSpent = yearTxs
-    .filter(t => t.type === "expense" && t.category !== "Ανάληψη" && t.category !== "Στέγαση")
+    .filter(t => t.type === "expense" && t.category !== "Ανάληψη" && t.category !== "Στέγαση" && t.paidBy !== "partner")
     .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
   const pct = requiredReceipts > 0 ? Math.min(100, (qualifyingSpent / requiredReceipts) * 100) : 0;
@@ -6916,13 +7124,28 @@ function renderCharts(totals, split, memberView) {
 
 function render503020(totals) {
   const container = document.getElementById("rule503020Container");
+  const badge = document.getElementById("rule503020TotalBadge");
   if (!container) return;
   const netSaving = Math.max(0, totals.saving - totals.withdrawal);
-  const base = totals.income > 0 ? totals.income : Math.max(1, totals.needs + totals.wants + netSaving);
+  const totalAllocated = totals.needs + totals.wants + netSaving;
+  const base = totals.income > 0 ? totals.income : Math.max(1, totalAllocated);
 
   const needsPct = (totals.needs / base) * 100;
   const wantsPct = (totals.wants / base) * 100;
   const savePct = (netSaving / base) * 100;
+
+  if (badge) {
+    if (totals.income > 0) {
+      const totalPct = (totalAllocated / totals.income) * 100;
+      badge.textContent = totalPct > 100.5
+        ? `⚠️ Διάθεση: ${totalPct.toFixed(0)}% (Υπέρβαση εσόδων)`
+        : `Συνολική διάθεση: ${totalPct.toFixed(0)}% εσόδων`;
+      badge.style.color = totalPct > 100.5 ? "var(--danger)" : "var(--muted)";
+    } else {
+      badge.textContent = "Ανάγκες • Επιθυμίες • Αποταμίευση";
+      badge.style.color = "var(--muted)";
+    }
+  }
 
   container.innerHTML = `
     <div style="margin-bottom:12px;">
@@ -7102,7 +7325,11 @@ function saveProfileSettings() {
     partnerName: document.getElementById("partnerName").value.trim(),
     partnerIncome: Math.max(0, Number(document.getElementById("partnerIncome").value) || 0),
     splitMode: document.getElementById("splitMode").value || "auto",
-    customUserSharePct: (() => { const raw = document.getElementById("customUserSharePct").value; const n = raw === "" ? NaN : Number(raw); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50; })()
+    customUserSharePct: (() => {
+      const raw = document.getElementById("customUserSharePct").value;
+      const n = raw === "" ? NaN : Number(raw);
+      return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50;
+    })()
   };
   data.settings.stateUpdatedAt = Date.now();
   persist();
@@ -7121,6 +7348,7 @@ function unlinkPartnerProfile() {
         .filter(t => t.owner !== "partner" || t.isShared)
         .map(t => {
           if (t.isShared) {
+            markTxDirty(t.id);
             return {
               ...t,
               owner: "me",
@@ -7367,11 +7595,13 @@ function downloadBlob(blob, name) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+
 function csvCell(v) {
   let t = String(v ?? "");
-  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; // neutralise spreadsheet formula injection
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
   return `"${t.replace(/"/g, '""')}"`;
 }
+
 function cleanList(arr, fn) { return (Array.isArray(arr) ? arr : []).slice(0, 5000).map(x => _isObj(x) ? fn(x) : null).filter(Boolean); }
 function cleanTsMap(o) { const out = {}; if (_isObj(o)) Object.entries(o).slice(0, 50000).forEach(([k, v]) => { const n = Number(v); if (k.length <= 80 && Number.isFinite(n)) out[k] = n; }); return out; }
 function cleanFlags(o) { const out = {}; if (_isObj(o)) Object.entries(o).slice(0, 2000).forEach(([k, v]) => { if (v) out[k.slice(0, 80)] = true; }); return out; }
@@ -7401,9 +7631,11 @@ function cleanRecurring(r) {
   if (!id || !(amount > 0)) return null;
   const skipped = {};
   if (_isObj(r.skippedMonths)) Object.entries(r.skippedMonths).slice(0, 600).forEach(([k, v]) => { if (/^\d{4}-\d{2}$/.test(k) && v) skipped[k] = true; });
-  return { id, title: _str(r.title), type: ["expense", "income", "saving"].includes(r.type) ? r.type : "expense",
+  return {
+    id, title: _str(r.title), type: ["expense", "income", "saving"].includes(r.type) ? r.type : "expense",
     category: ALL_CATEGORIES.includes(r.category) ? r.category : "Άλλο", amount: _r2(Math.min(amount, 1e9)),
-    day: Math.round(_clamp(r.day || 1, 1, 31)), isShared: Boolean(r.isShared), skippedMonths: skipped };
+    day: Math.round(_clamp(r.day || 1, 1, 31)), isShared: Boolean(r.isShared), skippedMonths: skipped
+  };
 }
 function cleanGoal(g) {
   const id = _sid(g.id), target = Math.abs(_num(g.target));
@@ -7413,15 +7645,19 @@ function cleanGoal(g) {
 function cleanBill(b) {
   const id = _sid(b.id), amount = Math.abs(_num(b.amount)), due = parseFlexibleDate(b.dueDate);
   if (!id || !(amount > 0) || !due) return null;
-  return { id, title: _str(b.title), amount: _r2(Math.min(amount, 1e9)), saved: _r2(_clamp(b.saved, 0, 1e9)), dueDate: due,
-    category: EXPENSE_CATEGORIES.includes(b.category) ? b.category : "Λογαριασμοί" };
+  return {
+    id, title: _str(b.title), amount: _r2(Math.min(amount, 1e9)), saved: _r2(_clamp(b.saved, 0, 1e9)), dueDate: due,
+    category: EXPENSE_CATEGORIES.includes(b.category) ? b.category : "Λογαριασμοί"
+  };
 }
 function cleanAsset(a) {
   const id = _sid(a.id), name = _str(a.name).trim();
   if (!id || !name) return null;
   const ticker = String(a.ticker || "").trim().toUpperCase();
-  const out = { id, name, ticker: /^[A-Z0-9.:^=\-]{1,20}$/.test(ticker) ? ticker : "", type: _str(a.type || "ETF", 30),
-    units: Number(_clamp(a.units, 0, 1e9).toFixed(8)), invested: _r2(_clamp(a.invested, 0, 1e12)), current: _r2(_clamp(a.current, 0, 1e12)) };
+  const out = {
+    id, name, ticker: /^[A-Z0-9.:^=\-]{1,20}$/.test(ticker) ? ticker : "", type: _str(a.type || "ETF", 30),
+    units: Number(_clamp(a.units, 0, 1e9).toFixed(8)), invested: _r2(_clamp(a.invested, 0, 1e12)), current: _r2(_clamp(a.current, 0, 1e12))
+  };
   if (_num(a.lastUnitPriceEur) > 0) out.lastUnitPriceEur = _num(a.lastUnitPriceEur);
   if (_num(a.lastPriceUpdatedAt) > 0) out.lastPriceUpdatedAt = _num(a.lastPriceUpdatedAt);
   return out;
@@ -7488,6 +7724,7 @@ function importJSON() {
             }
           };
           data.settings.stateUpdatedAt = Date.now();
+          fullSyncNeeded = true;
           persist();
           render();
           showToast(`✅ Το JSON Backup επαναφέρθηκε (${validTxs.length} συναλλαγές)!`);
@@ -7535,6 +7772,7 @@ function importCSV() {
     const rows = parseDelimitedTextToMatrix(e.target.result);
     let count = 0;
     let skippedDups = 0;
+    const consumedIds = new Set();
     for (let i = 1; i < Math.min(rows.length, 50001); i++) {
       const r = rows[i];
       if (!r || r.length < 4) continue;
@@ -7546,7 +7784,7 @@ function importCSV() {
       const description = String(r[4] || category).trim();
       if (!dateIso || amount <= 0) continue;
 
-      if (isDuplicateTransaction(dateIso, amount, description)) {
+      if (isDuplicateTransaction(dateIso, amount, description, "", [], consumedIds)) {
         skippedDups++;
         continue;
       }
@@ -7557,6 +7795,7 @@ function importCSV() {
       });
       if (!cleanTx) continue;
       data.transactions.push(cleanTx);
+      markTxDirty(cleanTx.id);
       count++;
     }
     persist();
@@ -7615,6 +7854,8 @@ function confirmResetAllData() {
     fresh.settings.darkMode = Boolean(data.settings?.darkMode);
     fresh.settings.privacyMode = Boolean(data.settings?.privacyMode);
     data = fresh;
+    dirtyTxIds.clear();
+    fullSyncNeeded = false;
     sessionHasUnsavedChanges = false;
     cloudSyncStatus = "idle";
     persist(true, true);
@@ -7625,7 +7866,7 @@ function confirmResetAllData() {
 }
 
 /* ==========================================================================
-   12. AUTOMATED REGRESSION SELF-TESTS (P2)
+   12. AUTOMATED REGRESSION SELF-TESTS (11 CHECKS)
    ========================================================================== */
 async function runFinanceGRSelfTests() {
   const results = [];
@@ -7645,20 +7886,96 @@ async function runFinanceGRSelfTests() {
   assert("Μοτίβα Πειραιώς (ΥΠΕΡ / B/O / Λογαριασμοί)", p1.category === "Διασκέδαση" && p2.category === "Επιστροφή Χρημάτων" && p3.category === "Λογαριασμοί");
 
   // Test 3: Flexible Amount & Date Parsers
-  assert("Parser Ποσών (Ελληνικά, US & Παρενθέσεις)", parseFlexibleAmount("1.234,56 €") === 1234.56 && parseFlexibleAmount("(45,50)") === -45.5);
-  assert("Parser Ημερομηνιών (GR & Excel Serial)", parseFlexibleDate("21/11/2026") === "2026-11-21" && parseFlexibleDate(46347) === "2026-11-21");
+  assert(
+    "Parser Ποσών (Ελληνικά χιλιάδες, US & Παρενθέσεις)",
+    parseFlexibleAmount("1.234,56 €") === 1234.56 && parseFlexibleAmount("1.500") === 1500 && parseFlexibleAmount("(45,50)") === -45.5
+  );
+  assert(
+    "Parser Ημερομηνιών (GR, Excel & Απόρριψη 31/02)",
+    parseFlexibleDate("21/11/2026") === "2026-11-21" && parseFlexibleDate(46347) === "2026-11-21" && parseFlexibleDate("31/02/2026") === null
+  );
 
-  // Test 4: Net Worth Isolation (Zero double counting of Goal Piggy Banks)
+  // Test 4: Net Worth calculations (cumulative, period-independent and no double counting)
   const backupData = deepClone(data);
   try {
+    const soloSplit = { hasPartner: false, myName: "Εσύ", partnerName: "", myPct: 100, partnerPct: 0 };
+    const coupleSplit = { hasPartner: true, myName: "Εσύ", partnerName: "Σύντροφος", myPct: 60, partnerPct: 40 };
+    const asOf = today();
+
+    // Cash savings are moved to the reserve bucket; the cumulative flow excludes them.
     data = createDefaultState();
-    data.profile.initialSavings = 1000;
-    data.goals = [{ id: "g1", title: "Test Goal", target: 500, saved: 200 }];
     data.transactions = [
-      { id: "t1", owner: "me", type: "saving", category: "Κουμπαράς Στόχου", linkedGoalId: "g1", amount: 200, date: today() }
+      { id: "nw-income", owner: "me", type: "income", amount: 1000, date: asOf },
+      { id: "nw-expense", owner: "me", type: "expense", amount: 500, date: asOf },
+      { id: "nw-saving", owner: "me", type: "saving", category: "Αποταμίευση", amount: 200, date: asOf }
     ];
-    const reserve = computeCashReserveBalance();
-    assert("Net Worth (Μηδενική διπλομέτρηση Κουμπαράδων)", reserve === 1000, `Expected 1000, got ${reserve}`);
+    const cashSave = computeNetWorthSnapshot("all", soloSplit, asOf);
+    assert("Net Worth: cumulative cash saving is not double-counted", cashSave.netWorth === 500 && cashSave.cashReserve === 200 && cashSave.cashFlow === 300,
+      `Expected NW=500, reserve=200, flow=300; got ${JSON.stringify(cashSave)}`);
+
+    // Goal and investment transfers are offset by the corresponding asset balances.
+    data = createDefaultState();
+    data.goals = [{ id: "g1", title: "Test Goal", target: 500, saved: 200 }];
+    data.portfolioAssets = [{ id: "a1", name: "ETF", current: 150 }];
+    data.transactions = [
+      { id: "nw-income", owner: "me", type: "income", amount: 1000, date: asOf },
+      { id: "nw-expense", owner: "me", type: "expense", amount: 500, date: asOf },
+      { id: "nw-goal", owner: "me", type: "saving", category: "Κουμπαράς Στόχου", linkedGoalId: "g1", amount: 200, date: asOf },
+      { id: "nw-invest", owner: "me", type: "saving", category: "Επένδυση", amount: 150, date: asOf }
+    ];
+    const assets = computeNetWorthSnapshot("all", soloSplit, asOf);
+    assert("Net Worth: goal and investment transfers reconcile with asset balances", assets.netWorth === 500 && assets.goalsTotal === 200 && assets.portfolioTotal === 150 && assets.cashFlow === 150,
+      `Expected NW=500; got ${JSON.stringify(assets)}`);
+
+    // The total must not change when the user changes the reporting period; the snapshot has no period input.
+    const sameSnapshot = computeNetWorthSnapshot("all", soloSplit, asOf);
+    assert("Net Worth: independent from selected month/cycle/year", sameSnapshot.netWorth === assets.netWorth);
+
+    // Withdrawals move value from reserve to cash flow; internal transfers are excluded.
+    data = createDefaultState();
+    data.profile.initialSavings = 100;
+    data.transactions = [
+      { id: "nw-withdrawal", owner: "me", type: "withdrawal", category: "Ανάληψη", amount: 40, date: asOf },
+      { id: "nw-internal", owner: "me", type: "income", amount: 900, date: asOf, isInternalTransfer: true },
+      { id: "nw-future", owner: "me", type: "income", amount: 700, date: "2999-01-01" }
+    ];
+    const transfer = computeNetWorthSnapshot("all", soloSplit, asOf);
+    assert("Net Worth: withdrawals, internal transfers and future transactions", transfer.netWorth === 100 && transfer.cashReserve === 60 && transfer.cashFlow === 40,
+      `Expected NW=100, reserve=60, flow=40; got ${JSON.stringify(transfer)}`);
+
+    // Couple filters retain existing member-scope behavior and allocate shared transactions.
+    data = createDefaultState();
+    data.transactions = [
+      { id: "nw-me", owner: "me", type: "income", amount: 1000, date: asOf },
+      { id: "nw-partner", owner: "partner", type: "income", amount: 500, date: asOf },
+      { id: "nw-shared", owner: "me", type: "expense", amount: 100, date: asOf, isShared: true }
+    ];
+    const partner = computeNetWorthSnapshot("partner", coupleSplit, asOf);
+    const shared = computeNetWorthSnapshot("shared", coupleSplit, asOf);
+    assert("Net Worth: partner view applies partner share to shared transactions", partner.netWorth === 460 && partner.cashReserve === 0,
+      `Expected partner flow=460; got ${JSON.stringify(partner)}`);
+    assert("Net Worth: shared view includes only shared transactions", shared.netWorth === -100 && shared.cashReserve === 0,
+      `Expected shared balance=-100; got ${JSON.stringify(shared)}`);
+
+    // Negative balances remain visible; no zero clamp is applied to net worth.
+    data = createDefaultState();
+    data.transactions = [{ id: "nw-negative", owner: "me", type: "expense", amount: 125, date: asOf }];
+    const negative = computeNetWorthSnapshot("all", soloSplit, asOf);
+    assert("Net Worth: negative result remains visible", negative.netWorth === -125,
+      `Expected -125; got ${negative.netWorth}`);
+
+    // Entity Array Merge (Offline Laptop + Mobile)
+    const mergedGoals = mergeEntitiesById(
+      [{ id: "g_mob", title: "Mobile Goal", target: 300, saved: 50 }],
+      [{ id: "g_lap", title: "Laptop Goal", target: 800, saved: 100 }],
+      {},
+      true
+    );
+    assert("Firebase Entity Array Merge (Offline συγχώνευση)", mergedGoals.length === 2);
+
+    // Annual Bill Multi-Year Rollover
+    const rolledDate = advanceDueDateToFuture("2024-02-29", "2026-11-23");
+    assert("Μετακύλιση Ετήσιας Υποχρέωσης (29/02 -> 2027-02-28)", rolledDate === "2027-02-28", `Got ${rolledDate}`);
   } finally {
     data = backupData;
   }
@@ -7716,36 +8033,32 @@ function render() {
 
   const totals = getPeriodTotals(ctx.start, ctx.end, memberView, split);
 
-  // Accurate Net Worth without double-counting Goal Savings or Investments
+  // Net Worth is a point-in-time snapshot and must not change with the report period selector.
   const isPartnerOnlyView = split.hasPartner && memberView === "partner";
   const isSharedOnlyView = split.hasPartner && memberView === "shared";
-  const cashReserve = (isPartnerOnlyView || isSharedOnlyView) ? 0 : computeCashReserveBalance();
-  const goalsTotal = (isPartnerOnlyView || isSharedOnlyView) ? 0 : (data.goals || []).reduce((s, g) => s + (Number(g.saved) || 0), 0);
-  const portfolioTotal = (isPartnerOnlyView || isSharedOnlyView) ? 0 : (data.portfolioAssets || []).reduce((s, a) => s + (Number(a.current) || 0), 0);
-
-  const periodCashFlow = Number((totals.income - totals.expense - totals.saving + totals.withdrawal).toFixed(2));
-  const netWorth = Number((cashReserve + goalsTotal + portfolioTotal + periodCashFlow).toFixed(2)); // negative net worth must stay visible
+  const netWorthSnapshot = computeNetWorthSnapshot(memberView, split, today());
+  const { cashReserve, goalsTotal, portfolioTotal, cashFlow, netWorth } = netWorthSnapshot;
 
   setTextSafe(
     "netWorthTitleLabel",
     isPartnerOnlyView
-      ? `💎 Ταμείο & Ροή (${split.partnerName})`
-      : (isSharedOnlyView ? "💎 Ισοζύγιο Κοινών Νοικοκυριού" : "💎 Συνολική Καθαρή Θέση (Net Worth)")
+      ? `💎 Σωρευτική Καθαρή Ροή (${split.partnerName})`
+      : (isSharedOnlyView ? "💎 Σωρευτικό Ισοζύγιο Κοινών Κινήσεων" : "💎 Συνολική Καθαρή Θέση (Net Worth)")
   );
   setTextSafe("netWorthMetric", money(netWorth));
   setTextSafe(
     "netWorthPeriodSubtitle",
     isPartnerOnlyView
-      ? `Περίοδος: ${ctx.label} • Προσωπικά αποθεματικά & ETFs αφορούν τον κύριο χρήστη`
-      : (split.hasPartner && memberView === "all"
-        ? `Περίοδος: ${ctx.label} • Αποθεματικά & ETFs αφορούν τον κύριο χρήστη`
-        : `Περίοδος: ${ctx.label} • Αποθεματικό + Κουμπαράδες + Χαρτοφυλάκιο + Ταμείο Περιόδου`)
+      ? `Έως ${netWorthSnapshot.asOfDate} • Σωρευτικές κινήσεις συντρόφου και μερίδιο κοινών συναλλαγών`
+      : (isSharedOnlyView
+        ? `Έως ${netWorthSnapshot.asOfDate} • Μόνο κοινές κινήσεις, χωρίς μη καταχωρισμένα περιουσιακά στοιχεία`
+        : `Έως ${netWorthSnapshot.asOfDate} • Ανεξάρτητο από την επιλεγμένη περίοδο • Το αρχικό αποθεματικό θεωρείται υπόλοιπο πριν από την πρώτη καταχωρισμένη συναλλαγή${split.hasPartner && memberView === "all" ? " • Τα περιουσιακά στοιχεία αφορούν τον κύριο χρήστη, η ροή όλο το νοικοκυριό" : ""} • Δεν αφαιρούνται μη καταχωρισμένες υποχρεώσεις`)
   );
   setTextSafe("nwReserve", money(cashReserve));
   setTextSafe("nwGoalsTotal", money(goalsTotal));
   setTextSafe("nwPortfolio", money(portfolioTotal));
-  setTextSafe("nwCashLabel", ctx.mode === "cycle" ? "💵 Ταμείο Κύκλου" : (ctx.mode === "year" ? "💵 Ταμείο Έτους" : "💵 Ταμείο Μήνα"));
-  setTextSafe("nwMonthCash", money(periodCashFlow));
+  setTextSafe("nwCashLabel", "💵 Σωρευτική Ταμειακή Ροή");
+  setTextSafe("nwMonthCash", money(cashFlow));
 
   // 4 Main KPIs + Hero Stat Chips (Savings Rate & Emergency Runway)
   const netSaving = Math.max(0, totals.saving - totals.withdrawal);
@@ -7770,16 +8083,15 @@ function render() {
     return cnt ? sum / cnt : 0;
   })();
   const periodMonthly = totals.expense / yearMult;
-  // a half-finished current period understates spending, so use the last full months for the runway
   const monthlyExpenseRef = (ctx.isCurrent && histAvg > 0) ? histAvg : (periodMonthly > 0 ? periodMonthly : (Number(data.profile.monthlyIncome) * 0.7 || 0));
-  const liquidTotal = cashReserve + goalsTotal;
+  const liquidTotal = cashReserve + goalsTotal + Math.max(0, cashFlow);
   const runwayMonths = monthlyExpenseRef > 0 ? (liquidTotal / monthlyExpenseRef) : 0;
 
   setTextSafe("heroSavingsRateChip", `📈 Ποσοστό Αποταμίευσης: ${savingsRatePct.toFixed(0)}%`);
   setTextSafe("heroRunwayChip", runwayMonths > 0 ? `🛡️ Μαξιλάρι: ${runwayMonths.toFixed(1)} μήνες` : "🛡️ Μαξιλάρι: €0");
 
   setTextSafe("incomeMetric", money(totals.income));
-  setTextSafe("incomeSub", totals.income > 0 ? "Καταγεγραμμένα έσοδα" : `Δηλωμένο: ${money(data.profile.monthlyIncome)}`);
+  setTextSafe("incomeSub", totals.income > 0 ? "Καταγεγραμμένα έσοδα" : `Δηλωμένο: ${money(declaredBaseIncome)}`);
 
   setTextSafe("expenseMetric", money(totals.expense));
   setTextSafe("expenseSub", totals.unexpected > 0 ? `Εκ των οποίων έκτακτα: ${money(totals.unexpected)}` : "Σύνολο δαπανών περιόδου");
@@ -7790,28 +8102,39 @@ function render() {
   setTextSafe("savingSub", saveGoal > 0 ? `Στόχος περιόδου: ${money(saveGoal)}` : "Αποταμίευση & Επενδύσεις");
 
   // Safe-to-Spend Calculation
-  const remainingSavingCommitment = ctx.isClosed ? 0 : Math.max(0, saveGoal - netSaving);
-  const upcomingRecurring = computeUpcomingRecurringExpenses(ctx, memberView, split);
-  const freeCash = Number((effectiveIncomeBase + totals.withdrawal - totals.expense - totals.saving - remainingSavingCommitment - upcomingRecurring).toFixed(2));
-
   const safeLabelEl = document.getElementById("safeToSpendLabel");
   const safeMetricEl = document.getElementById("safeToSpendMetric");
-  if (ctx.isClosed) {
-    if (safeLabelEl) safeLabelEl.textContent = "🏁 Τελικό Υπόλοιπο Περιόδου";
+  if (isSharedOnlyView) {
+    const mySharedPart = (totals.expense * split.myPct) / 100;
+    const ptSharedPart = (totals.expense * split.partnerPct) / 100;
+    if (safeLabelEl) safeLabelEl.textContent = "👫 Επιμερισμός Κοινών Περιόδου";
     if (safeMetricEl) {
-      safeMetricEl.textContent = money(freeCash);
-      safeMetricEl.className = `metric ${freeCash >= 0 ? "accent" : "red"} privacy-sensitive`;
+      safeMetricEl.textContent = `${money(mySharedPart)} / ${money(ptSharedPart)}`;
+      safeMetricEl.className = "metric primary privacy-sensitive";
     }
-    setTextSafe("safeToSpendSub", "Κλειστή περίοδος (ολοκληρώθηκε)");
+    setTextSafe("safeToSpendSub", `${split.myName} (${split.myPct}%) • ${split.partnerName} (${split.partnerPct}%)`);
   } else {
-    const dailySafe = freeCash / Math.max(1, ctx.remainingDays);
-    if (safeLabelEl) safeLabelEl.textContent = "⚡ Safe-to-Spend (Ημερήσιο)";
-    if (safeMetricEl) {
-      safeMetricEl.textContent = `${money(dailySafe)} / ημέρα`;
-      safeMetricEl.className = `metric ${freeCash < 0 ? "red" : (dailySafe < 10 ? "warn" : "accent")} privacy-sensitive`;
+    const remainingSavingCommitment = ctx.isClosed ? 0 : Math.max(0, saveGoal - totals.saving);
+    const upcomingRecurring = computeUpcomingRecurringExpenses(ctx, memberView, split);
+    const freeCash = Number((effectiveIncomeBase + totals.withdrawal - totals.expense - totals.saving - remainingSavingCommitment - upcomingRecurring).toFixed(2));
+
+    if (ctx.isClosed) {
+      if (safeLabelEl) safeLabelEl.textContent = "🏁 Τελικό Υπόλοιπο Περιόδου";
+      if (safeMetricEl) {
+        safeMetricEl.textContent = money(freeCash);
+        safeMetricEl.className = `metric ${freeCash >= 0 ? "accent" : "red"} privacy-sensitive`;
+      }
+      setTextSafe("safeToSpendSub", "Κλειστή περίοδος (ολοκληρώθηκε)");
+    } else {
+      const dailySafe = freeCash / Math.max(1, ctx.remainingDays);
+      if (safeLabelEl) safeLabelEl.textContent = "⚡ Safe-to-Spend (Ημερήσιο)";
+      if (safeMetricEl) {
+        safeMetricEl.textContent = `${money(dailySafe)} / ημέρα`;
+        safeMetricEl.className = `metric ${freeCash < 0 ? "red" : (dailySafe < 10 ? "warn" : "accent")} privacy-sensitive`;
+      }
+      const recurringNote = upcomingRecurring > 0 ? ` (μετά από ${money(upcomingRecurring)} επερχόμενα πάγια)` : "";
+      setTextSafe("safeToSpendSub", `${money(freeCash)} διαθέσιμα${recurringNote} • ${ctx.remainingDays} ημέρες`);
     }
-    const recurringNote = upcomingRecurring > 0 ? ` (μετά από ${money(upcomingRecurring)} επερχόμενα πάγια)` : "";
-    setTextSafe("safeToSpendSub", `${money(freeCash)} διαθέσιμα${recurringNote} • ${ctx.remainingDays} ημέρες`);
   }
 
   // Profile Summary Bar
@@ -7864,9 +8187,17 @@ function render() {
 }
 
 /* ==========================================================================
-   14. INITIALIZATION & WINDOW ONLOAD
+   14. INITIALIZATION & LIFECYCLE SYNC
    ========================================================================== */
 let appInitialized = false;
+
+async function syncCycleNow(silent = true) {
+  if (!data.settings?.cloudSync?.enabled) return;
+  await pullCloudSyncNow(silent);
+  if (data.settings?.cloudSync?.pendingPush || dirtyTxIds.size > 0 || fullSyncNeeded) {
+    await pushCloudSyncNow();
+  }
+}
 
 async function initFinanceGRApp() {
   if (appInitialized) return;
@@ -7893,6 +8224,16 @@ async function initFinanceGRApp() {
   setPlanningSubfilter(data.settings?.planningSubfilter || "all");
 
   window.addEventListener("resize", () => updateBackupStatusUI());
+  window.addEventListener("online", () => {
+    if (data.settings?.cloudSync?.enabled) {
+      syncCycleNow(true);
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && data.settings?.cloudSync?.enabled) {
+      syncCycleNow(true);
+    }
+  });
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -7932,7 +8273,7 @@ async function initFinanceGRApp() {
   }
 
   if (data.settings?.cloudSync?.enabled) {
-    await pullCloudSyncNow(true);
+    await syncCycleNow(true);
   }
 
   if ((data.portfolioAssets || []).some(a => a.ticker && Number(a.units) > 0)) {
@@ -7941,7 +8282,7 @@ async function initFinanceGRApp() {
 
   setInterval(() => {
     if (data.settings?.cloudSync?.enabled && !document.hidden) {
-      pullCloudSyncNow(true);
+      syncCycleNow(true);
     }
   }, 15000);
 }
