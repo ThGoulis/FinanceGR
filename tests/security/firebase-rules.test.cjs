@@ -23,4 +23,6 @@ test("Firebase database rules block client writes to room root, metadata & membe
   assert.equal(rules.rules.adminAuditLog[".write"], false);
   assert.equal(rules.rules.adminTelemetry[".read"], false);
   assert.equal(rules.rules.adminTelemetry[".write"], false);
+  assert.equal(rules.rules.userEntitlements.$uid[".read"], "auth != null && auth.uid === $uid");
+  assert.equal(rules.rules.userEntitlements.$uid[".write"], false);
 });

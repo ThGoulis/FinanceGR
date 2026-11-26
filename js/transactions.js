@@ -806,17 +806,17 @@ function renderTransactionsTable() {
 
     return `
       <tr>
-        <td><input type="checkbox" ${isChecked ? "checked" : ""} data-txid="${escapeHtml(t.id)}" onchange="toggleTxSelection(this.dataset.txid, this.checked)" aria-label="Επιλογή συναλλαγής" /></td>
+        <td><input type="checkbox" ${isChecked ? "checked" : ""} data-txid="${escapeHtml(t.id)}" data-change="toggleTxSelection" aria-label="Επιλογή συναλλαγής" /></td>
         <td>${escapeHtml(t.date)}</td>
         <td>${typeBadgeMap[t.type] || ""} ${ownerBadge} ${sharedBadge} ${srcBadge}</td>
         <td><strong>${escapeHtml(t.category)}</strong></td>
         <td class="col-desc">${escapeHtml(t.description || "")}${t.unexpected ? ' <span class="badge withdrawal">⚡ Έκτακτο</span>' : ""}</td>
         <td class="amount-cell" style="text-align:right; font-weight:700; color:${amtColor};">${sign}${money(effAmt)}</td>
         <td class="col-actions" style="text-align:right; white-space:nowrap;">
-          ${split.hasPartner && t.type === "expense" ? `<button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" onclick="toggleTransactionShared(this.dataset.txid)" aria-label="Εναλλαγή κοινού εξόδου" title="Κοινό / Προσωπικό">👫</button>` : ""}
-          ${t.isShared ? `<button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" onclick="toggleTransactionSettled(this.dataset.txid)" aria-label="Εξόφληση" title="Εξόφληση">${t.settled ? "↩️" : "✓"}</button>` : ""}
-          <button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" onclick="openTransactionModal(this.dataset.txid)" aria-label="Επεξεργασία συναλλαγής" title="Επεξεργασία">✏️</button>
-          <button type="button" class="danger small-btn" data-txid="${escapeHtml(t.id)}" onclick="deleteTransaction(this.dataset.txid)" aria-label="Διαγραφή συναλλαγής" title="Διαγραφή">🗑️</button>
+          ${split.hasPartner && t.type === "expense" ? `<button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" data-click="toggleTransactionShared" aria-label="Εναλλαγή κοινού εξόδου" title="Κοινό / Προσωπικό">👫</button>` : ""}
+          ${t.isShared ? `<button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" data-click="toggleTransactionSettled" aria-label="Εξόφληση" title="Εξόφληση">${t.settled ? "↩️" : "✓"}</button>` : ""}
+          <button type="button" class="secondary small-btn" data-txid="${escapeHtml(t.id)}" data-click="openTransactionModal" aria-label="Επεξεργασία συναλλαγής" title="Επεξεργασία">✏️</button>
+          <button type="button" class="danger small-btn" data-txid="${escapeHtml(t.id)}" data-click="deleteTransaction" aria-label="Διαγραφή συναλλαγής" title="Διαγραφή">🗑️</button>
         </td>
       </tr>
     `;

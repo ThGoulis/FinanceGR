@@ -218,7 +218,7 @@ function renderTopMerchants(ctx, split, memberView) {
   }
 
   container.innerHTML = top5.map(item => `
-    <div class="drilldown-row" data-merchant="${escapeHtml(item.label)}" onclick="drillDownToTransactions({ search: this.dataset.merchant, type: 'expense' })" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="drilldown-row" data-merchant="${escapeHtml(item.label)}" data-click="drillDownMerchant" style="display:flex; justify-content:space-between; align-items:center;">
       <div>
         <strong>${escapeHtml(item.label)}</strong>
         <div class="small">${item.count} συναλλαγές</div>
@@ -276,7 +276,7 @@ function renderAnomalyAlert(totals, split, memberView) {
       <strong>⚡ Ασυνήθιστη Αύξηση στη «${escapeHtml(top.cat)}» (+${top.pctOver}%)</strong>
       <div class="small">Έχεις δαπανήσει <strong>${money(top.curAmt)}</strong> έναντι μέσου όρου <strong>${money(top.avgPrev)}</strong> τους προηγούμενους μήνες.</div>
     </div>
-    <button type="button" class="secondary small-btn" data-cat="${escapeHtml(top.cat)}" onclick="drillDownToTransactions({ category: this.dataset.cat, type: 'expense' })">🔍 Προβολή</button>
+    <button type="button" class="secondary small-btn" data-cat="${escapeHtml(top.cat)}" data-click="drillDownCategory">🔍 Προβολή</button>
   `;
 }
 

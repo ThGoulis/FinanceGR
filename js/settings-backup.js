@@ -113,8 +113,8 @@ function renderMerchantRulesManager() {
         ${rule.isShared ? '<span class="badge shared">👫 Κοινό</span>' : (split.hasPartner ? '<span class="badge">👤 Προσωπικό</span>' : "")}
       </div>
       <div style="display:flex; gap:4px; flex-shrink:0;">
-        ${split.hasPartner ? `<button type="button" class="secondary small-btn" data-rulekey="${escapeHtml(key)}" onclick="toggleMerchantRuleShared(this.dataset.rulekey)" title="Εναλλαγή Κοινού / Προσωπικού" aria-label="Εναλλαγή κοινού">${rule.isShared ? "👤" : "👫"}</button>` : ""}
-        <button type="button" class="danger small-btn" data-rulekey="${escapeHtml(key)}" onclick="deleteMerchantRule(this.dataset.rulekey)" aria-label="Διαγραφή κανόνα">✕</button>
+        ${split.hasPartner ? `<button type="button" class="secondary small-btn" data-rulekey="${escapeHtml(key)}" data-click="toggleMerchantRuleShared" title="Εναλλαγή Κοινού / Προσωπικού" aria-label="Εναλλαγή κοινού">${rule.isShared ? "👤" : "👫"}</button>` : ""}
+        <button type="button" class="danger small-btn" data-rulekey="${escapeHtml(key)}" data-click="deleteMerchantRule" aria-label="Διαγραφή κανόνα">✕</button>
       </div>
     </div>
   `).join("");

@@ -3,13 +3,17 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const ROOT = path.join(__dirname, "..");
+const PROJECT_ROOT = path.join(__dirname, "..");
+const DIST_DIR = path.join(PROJECT_ROOT, "dist");
+const ROOT = fs.existsSync(path.join(DIST_DIR, "index.html")) ? DIST_DIR : PROJECT_ROOT;
 const PORT = Number(process.env.PORT || 4173);
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon"
@@ -30,5 +34,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`FinanceGR static server listening on http://127.0.0.1:${PORT}`);
+  const mode = ROOT === DIST_DIR ? "dist/ (Vite production build)" : "project root (run 'npm run build' or 'npm run dev')";
+  console.log(`FinanceGR static server [${mode}] listening on http://127.0.0.1:${PORT}`);
 });

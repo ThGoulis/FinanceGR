@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { loadFinanceGrRuntime } = require("../helpers/load-app.cjs");
 
-test("Hidden admin isolation, Firebase config, Google Ticker Guard, and server-side admin verification", async () => {
+test("Hidden admin isolation, Strict CSP, Firebase config, Google Ticker Guard, and server-side admin verification", async () => {
   const root = path.join(__dirname, "..", "..");
   const { ctx } = loadFinanceGrRuntime(["js/state.js", "js/firebase-config.js", "js/firebase-auth.js", "js/wealth.js"]);
 
@@ -12,23 +12,30 @@ test("Hidden admin isolation, Firebase config, Google Ticker Guard, and server-s
   assert.equal(ctx.window.FINANCEGR_FIREBASE_CONFIG.projectId, "financegr-sync");
   assert.ok(ctx.window.FINANCEGR_FIREBASE_CONFIG.apiKey.startsWith("AIza"));
 
-  // 2. Public index.html & service-worker.js expose ZERO admin links or panels
+  // 2. Public index.html & public/service-worker.js expose ZERO admin links or panels + Strict CSP
   const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  const swJs = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+  const swJs = fs.readFileSync(path.join(root, "public", "service-worker.js"), "utf8");
   assert.equal(indexHtml.includes('id="tab-admin"'), false);
   assert.equal(indexHtml.includes('data-tab="admin"'), false);
   assert.equal(indexHtml.includes("admin.html"), false);
+  assert.equal(indexHtml.includes("admin-main.js"), false);
   assert.equal(indexHtml.includes("runAndShowSelfTests"), false);
   assert.equal(indexHtml.includes("self-tests.js"), false);
   assert.equal(swJs.includes("admin.html"), false);
   assert.equal(swJs.includes("self-tests.js"), false);
 
-  // 3. Standalone admin.html has noindex & starts locked
+  const idxScriptSrc = (indexHtml.match(/script-src\s+([^;"]+)/) || [])[1] || "";
+  assert.equal(idxScriptSrc.includes("unsafe-inline"), false);
+  assert.ok(indexHtml.includes('type="module" src="./src/main.js"'));
+
+  // 3. Standalone admin.html has noindex, Strict CSP, starts locked, and loads isolated module bundle
   const adminHtml = fs.readFileSync(path.join(root, "admin.html"), "utf8");
+  const admScriptSrc = (adminHtml.match(/script-src\s+([^;"]+)/) || [])[1] || "";
+  assert.equal(admScriptSrc.includes("unsafe-inline"), false);
   assert.ok(adminHtml.includes('content="noindex, nofollow, noarchive"'));
   assert.ok(adminHtml.includes('id="adminConsoleApp" style="display:none;'));
-  assert.ok(adminHtml.includes('onclick="runAdminSystemHealthCheck()"'));
-  assert.ok(adminHtml.includes('src="js/self-tests.js"'));
+  assert.ok(adminHtml.includes('data-click="runAdminSystemHealthCheck"'));
+  assert.ok(adminHtml.includes('type="module" src="./src/admin-main.js"'));
 
   // 4. Server-side functions/index.js: no hardcoded personal email, uses lightweight roomIndex (never full rooms/), enforces isSystemAdmin
   const fnSrc = fs.readFileSync(path.join(root, "functions", "index.js"), "utf8");

@@ -2,9 +2,8 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; frame-src https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://financegr-quotes.tgoulis.workers.dev https://financegr-sync-default-rtdb.europe-west1.firebasedatabase.app https://europe-west1-financegr-sync.cloudfunctions.net https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://firebaseinstallations.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; frame-src https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://financegr-quotes.tgoulis.workers.dev https://financegr-sync-default-rtdb.europe-west1.firebasedatabase.app https://europe-west1-financegr-sync.cloudfunctions.net https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://firebaseinstallations.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
-<script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.innerHTML = ""; } }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>FinanceGR — Smart Money, Budgets & Wealth</title>
 <meta name="theme-color" content="#0f172a" />
@@ -23,7 +22,6 @@
 <script defer crossorigin="anonymous" referrerpolicy="no-referrer" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script defer crossorigin="anonymous" referrerpolicy="strict-origin-when-cross-origin" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer crossorigin="anonymous" referrerpolicy="strict-origin-when-cross-origin" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<link rel="stylesheet" href="styles.css" />
 </head>
 <body class="dark">
 <div class="app-shell">
@@ -38,44 +36,48 @@
     </div>
 
     <nav class="nav-tabs" role="tablist" aria-label="Κύριες Καρτέλες">
-      <button type="button" role="tab" aria-selected="true" class="nav-tab active" data-tab="overview" onclick="switchTab('overview')">
+      <button type="button" role="tab" aria-selected="true" class="nav-tab active" data-tab="overview" data-click="switchTab" data-arg="overview">
         <span class="nav-ico" aria-hidden="true">📊</span>
         <span class="nav-lbl">Επισκόπηση</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="transactions" onclick="switchTab('transactions')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="transactions" data-click="switchTab" data-arg="transactions">
         <span class="nav-ico" aria-hidden="true">💳</span>
         <span class="nav-lbl">Συναλλαγές</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="planning" onclick="switchTab('planning')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="planning" data-click="switchTab" data-arg="planning">
         <span class="nav-ico" aria-hidden="true">🎯</span>
         <span class="nav-lbl">Προϋπολογισμός</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="wealth" onclick="switchTab('wealth')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="wealth" data-click="switchTab" data-arg="wealth">
         <span class="nav-ico" aria-hidden="true">📈</span>
         <span class="nav-lbl">Επενδύσεις</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="loans" onclick="switchTab('loans')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="loans" data-click="switchTab" data-arg="loans">
         <span class="nav-ico" aria-hidden="true">🏦</span>
         <span class="nav-lbl">Δάνεια</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="cards" onclick="switchTab('cards')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="cards" data-click="switchTab" data-arg="cards">
         <span class="nav-ico" aria-hidden="true">💳</span>
         <span class="nav-lbl">Πιστωτικές</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="settings" onclick="switchTab('settings')">
+      <button type="button" role="tab" aria-selected="false" class="nav-tab" data-tab="settings" data-click="switchTab" data-arg="settings">
         <span class="nav-ico" aria-hidden="true">⚙️</span>
         <span class="nav-lbl">Ρυθμίσεις</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
-      <button type="button" class="accent sidebar-cta" onclick="openBankImportModal()" title="Εισαγωγή Αρχείου Τράπεζας ή Revolut">
+      <button type="button" class="accent sidebar-cta" data-click="openBankImportModal" title="Εισαγωγή Αρχείου Τράπεζας ή Revolut">
         <span aria-hidden="true">🏦</span>
         <span class="nav-lbl">Εισαγωγή Αρχείου</span>
       </button>
-      <button type="button" class="secondary sidebar-cta" onclick="openShareModal()" title="Κοινοποίηση εφαρμογής και QR Code">
+      <button type="button" class="secondary sidebar-cta" data-click="openShareModal" title="Κοινοποίηση εφαρμογής και QR Code">
         <span aria-hidden="true">📤</span>
         <span class="nav-lbl">Μοίρασέ το</span>
+      </button>
+      <button type="button" class="secondary sidebar-cta" data-click="openPrivacySecurityModal" title="Πολιτική Απορρήτου, GDPR &amp; Όροι Χρήσης" style="font-size:12px; opacity:0.9;">
+        <span aria-hidden="true">🔒</span>
+        <span class="nav-lbl">Ιδιωτικότητα &amp; Όροι</span>
       </button>
     </div>
   </aside>
@@ -86,7 +88,7 @@
     <header class="topbar">
       <div class="topbar-main-row">
         <div class="mobile-brand-mini">
-          <button type="button" class="secondary small-btn mobile-drawer-btn" id="mobileMenuBtn" onclick="toggleMobileMoreDrawer()" aria-expanded="false" aria-controls="mobileMoreDrawer" aria-label="Περισσότερες επιλογές και ρυθμίσεις" title="Περισσότερες Επιλογές &amp; Ρυθμίσεις">☰</button>
+          <button type="button" class="secondary small-btn mobile-drawer-btn" id="mobileMenuBtn" data-click="toggleMobileMoreDrawer" aria-expanded="false" aria-controls="mobileMoreDrawer" aria-label="Περισσότερες επιλογές και ρυθμίσεις" title="Περισσότερες Επιλογές &amp; Ρυθμίσεις">☰</button>
           <div class="brand-logo" aria-hidden="true">€</div>
           <div>
             <div class="mobile-brand-title">FinanceGR</div>
@@ -96,16 +98,16 @@
 
         <div class="topbar-controls">
           <div class="period-switch" role="group" aria-label="Επιλογή τρόπου περιόδου">
-            <button type="button" id="modeMonthBtn" class="active" onclick="setPeriodMode('month')">📅 Μήνας</button>
-            <button type="button" id="modeCycleBtn" onclick="setPeriodMode('cycle')">💰 Κύκλος</button>
-            <button type="button" id="modeYearBtn" onclick="setPeriodMode('year')">📆 Έτος</button>
+            <button type="button" id="modeMonthBtn" class="active" data-click="setPeriodMode" data-arg="month">📅 Μήνας</button>
+            <button type="button" id="modeCycleBtn" data-click="setPeriodMode" data-arg="cycle">💰 Κύκλος</button>
+            <button type="button" id="modeYearBtn" data-click="setPeriodMode" data-arg="year">📆 Έτος</button>
           </div>
 
-          <input type="month" id="activeMonth" onchange="onPeriodSelectorChange()" aria-label="Επιλογή Μήνα" title="Επιλογή Μήνα" />
-          <select id="activeCycleSelect" style="display:none;" onchange="onPeriodSelectorChange()" aria-label="Επιλογή Κύκλου Μισθοδοσίας" title="Επιλογή Κύκλου Μισθοδοσίας"></select>
-          <select id="activeYearSelect" style="display:none;" onchange="onPeriodSelectorChange()" aria-label="Επιλογή Έτους" title="Επιλογή Έτους"></select>
+          <input type="month" id="activeMonth" data-change="onPeriodSelectorChange" aria-label="Επιλογή Μήνα" title="Επιλογή Μήνα" />
+          <select id="activeCycleSelect" style="display:none;" data-change="onPeriodSelectorChange" aria-label="Επιλογή Κύκλου Μισθοδοσίας" title="Επιλογή Κύκλου Μισθοδοσίας"></select>
+          <select id="activeYearSelect" style="display:none;" data-change="onPeriodSelectorChange" aria-label="Επιλογή Έτους" title="Επιλογή Έτους"></select>
 
-          <select id="memberViewSelect" style="display:none;" onchange="onMemberViewChange()" aria-label="Προβολή Μέλους Νοικοκυριού" title="Προβολή Μέλους Νοικοκυριού">
+          <select id="memberViewSelect" style="display:none;" data-change="onMemberViewChange" aria-label="Προβολή Μέλους Νοικοκυριού" title="Προβολή Μέλους Νοικοκυριού">
             <option value="all">🏠 Όλο το Νοικοκυριό</option>
             <option value="me">👤 Εσύ</option>
             <option value="partner">👤 Σύντροφος</option>
@@ -114,9 +116,9 @@
         </div>
 
         <div class="topbar-quick-icons">
-          <button type="button" class="secondary small-btn" id="cloudSyncStatusBtn" onclick="openCloudSyncModal()" aria-label="Κατάσταση Αποθήκευσης και Live Cloud Sync" title="Κατάσταση Αποθήκευσης &amp; Live Cloud Sync">💾</button>
-          <button type="button" class="secondary small-btn" id="privacyBtn" onclick="togglePrivacyMode()" aria-label="Απόκρυψη ή εμφάνιση ποσών" title="Απόκρυψη Ποσών">👁️</button>
-          <button type="button" class="secondary small-btn" id="darkBtn" onclick="toggleDarkMode()" aria-label="Εναλλαγή Σκούρου και Φωτεινού Θέματος" title="Σκούρο / Φωτεινό Θέμα">☀️</button>
+          <button type="button" class="secondary small-btn" id="cloudSyncStatusBtn" data-click="openCloudSyncModal" aria-label="Κατάσταση Αποθήκευσης και Live Cloud Sync" title="Κατάσταση Αποθήκευσης &amp; Live Cloud Sync">💾</button>
+          <button type="button" class="secondary small-btn" id="privacyBtn" data-click="togglePrivacyMode" aria-label="Απόκρυψη ή εμφάνιση ποσών" title="Απόκρυψη Ποσών">👁️</button>
+          <button type="button" class="secondary small-btn" id="darkBtn" data-click="toggleDarkMode" aria-label="Εναλλαγή Σκούρου και Φωτεινού Θέματος" title="Σκούρο / Φωτεινό Θέμα">☀️</button>
         </div>
       </div>
     </header>
@@ -130,8 +132,8 @@
         <div class="small">Βλέπεις ενδεικτικά ελληνικά δεδομένα (μισθό, έξοδα, ETF &amp; δάνειο) για να εξερευνήσεις τις δυνατότητες του FinanceGR.</div>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button type="button" class="accent small-btn" onclick="clearDemoDataAndStartFresh(true)">🏦 Καθαρισμός &amp; Εισαγωγή Αρχείου Τράπεζας</button>
-        <button type="button" class="danger small-btn" onclick="clearDemoDataAndStartFresh(false)">🗑️ Καθαρισμός Demo (Καθαρό €0)</button>
+        <button type="button" class="accent small-btn" data-click="clearDemoDataAndStartFresh" data-arg="true">🏦 Καθαρισμός &amp; Εισαγωγή Αρχείου Τράπεζας</button>
+        <button type="button" class="danger small-btn" data-click="clearDemoDataAndStartFresh" data-arg="false">🗑️ Καθαρισμός Demo (Καθαρό €0)</button>
       </div>
     </div>
 
@@ -143,8 +145,8 @@
           <span class="badge income" id="firstUseProgressBadge">0/3 ολοκληρώθηκαν</span>
         </div>
         <div style="display:flex; gap:6px;">
-          <button type="button" class="secondary small-btn" id="toggleFirstUseBtn" onclick="toggleFirstUseCollapse()">▲ Σύμπτυξη</button>
-          <button type="button" class="secondary small-btn" onclick="dismissFirstUseGuide()" aria-label="Κλείσιμο οδηγού πρώτης χρήσης" title="Κλείσιμο οδηγού">✕</button>
+          <button type="button" class="secondary small-btn" id="toggleFirstUseBtn" data-click="toggleFirstUseCollapse">▲ Σύμπτυξη</button>
+          <button type="button" class="secondary small-btn" data-click="dismissFirstUseGuide" aria-label="Κλείσιμο οδηγού πρώτης χρήσης" title="Κλείσιμο οδηγού">✕</button>
         </div>
       </div>
       <div id="firstUseGuideBody">
@@ -152,22 +154,22 @@
           <div class="kpi-card" style="background:var(--card-soft);">
             <div class="kpi-label"><span>1. Προφίλ &amp; Αναλογία Σπιτιού</span><span id="step1Check">⬜</span></div>
             <div class="small" style="margin-bottom:8px;">Όρισε το εισόδημά σου, την ημέρα πληρωμής (Κύκλος) και προαιρετικά τον/την σύντροφό σου.</div>
-            <button type="button" class="secondary small-btn" onclick="switchTab('settings')">⚙️ Ρύθμιση Προφίλ</button>
+            <button type="button" class="secondary small-btn" data-click="switchTab" data-arg="settings">⚙️ Ρύθμιση Προφίλ</button>
           </div>
           <div class="kpi-card" style="background:var(--card-soft);">
             <div class="kpi-label"><span>2. Αρχείο Τράπεζας / Revolut</span><span id="step2Check">⬜</span></div>
             <div class="small" style="margin-bottom:8px;">Ανέβασε <code>.xlsx</code> Πειραιώς/Εθνικής ή <code>.csv</code> Revolut με αυτόματη κατηγοριοποίηση &amp; κοινά έξοδα.</div>
-            <button type="button" class="secondary small-btn" onclick="openBankImportModal()">🏦 Εισαγωγή Αρχείου</button>
+            <button type="button" class="secondary small-btn" data-click="openBankImportModal">🏦 Εισαγωγή Αρχείου</button>
           </div>
           <div class="kpi-card" style="background:var(--card-soft);">
             <div class="kpi-label"><span>3. Live Cloud Sync &amp; Κινητό</span><span id="step3Check">⬜</span></div>
             <div class="small" style="margin-bottom:8px;">Σύνδεσε δωμάτιο με PIN (AES-256) για αυτόματο συγχρονισμό Laptop ↔ Κινητό.</div>
-            <button type="button" class="secondary small-btn" onclick="openCloudSyncModal()">☁️ Σύνδεση Cloud</button>
+            <button type="button" class="secondary small-btn" data-click="openCloudSyncModal">☁️ Σύνδεση Cloud</button>
           </div>
         </div>
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
           <span class="small">💡 Θέλεις απλώς να εξερευνήσεις πώς φαίνεται γεμάτο;</span>
-          <button type="button" class="secondary small-btn" onclick="loadDemoData()">🧪 Φόρτωση Demo</button>
+          <button type="button" class="secondary small-btn" data-click="loadDemoData">🧪 Φόρτωση Demo</button>
         </div>
       </div>
     </section>
@@ -177,7 +179,7 @@
         <strong>💸 Ώρα Μισθοδοσίας!</strong>
         <div class="small" id="smartSalaryBannerText">Δεν έχει καταχωρηθεί ακόμη ο μισθός αυτής της περιόδου. Θέλεις να γίνει αυτόματη κατανομή (Μισθός + Αποταμίευση + Κουμπαράδες);</div>
       </div>
-      <button type="button" class="accent" onclick="openPaydayModal()">💸 Κατανομή Μισθού</button>
+      <button type="button" class="accent" data-click="openPaydayModal">💸 Κατανομή Μισθού</button>
     </div>
 
     <div id="anomalyAlertBanner" class="banner warn" style="display:none;"></div>
@@ -185,7 +187,7 @@
     <div class="panel" id="coupleSettlementPanel" style="display:none; border-left: 4px solid var(--purple);">
       <div class="panel-header" style="margin-bottom:6px;">
         <h3 class="panel-title">👫 Εκκαθάριση Κοινών Εξόδων Περιόδου</h3>
-        <button type="button" class="secondary small-btn" onclick="settleAllSharedExpenses()">✓ Εξόφληση Περιόδου</button>
+        <button type="button" class="secondary small-btn" data-click="settleAllSharedExpenses">✓ Εξόφληση Περιόδου</button>
       </div>
       <div id="coupleSettlementBody" style="font-size:14px;"></div>
     </div>
@@ -203,8 +205,8 @@
           </div>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
-          <button type="button" class="small-btn" id="toggleNwBreakdownBtn" style="background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.22);" onclick="toggleNwBreakdown()">▾ Ανάλυση</button>
-          <button type="button" class="small-btn" style="background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.22);" onclick="switchTab('wealth')">📈 Χαρτοφυλάκιο</button>
+          <button type="button" class="small-btn" id="toggleNwBreakdownBtn" style="background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.22);" data-click="toggleNwBreakdown">▾ Ανάλυση</button>
+          <button type="button" class="small-btn" style="background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.22);" data-click="switchTab" data-arg="wealth">📈 Χαρτοφυλάκιο</button>
         </div>
       </div>
       <div class="hero-nw-grid" id="nwBreakdownGrid" style="display:none;">
@@ -268,7 +270,7 @@
             <span style="font-size:26px;">🍩</span>
             <strong>Δεν υπάρχουν έξοδα στην επιλεγμένη περίοδο</strong>
             <span class="small">Ανέβασε αρχείο τράπεζας ή Revolut για να δεις την κατανομή.</span>
-            <button type="button" class="small-btn" onclick="openBankImportModal()">🏦 Εισαγωγή Αρχείου</button>
+            <button type="button" class="small-btn" data-click="openBankImportModal">🏦 Εισαγωγή Αρχείου</button>
           </div>
         </div>
       </div>
@@ -285,7 +287,7 @@
 
     <!-- Collapsible Secondary Insights (50/30/20 & Top 5 Merchants) -->
     <div style="margin-bottom:14px;">
-      <button type="button" class="secondary small-btn" id="toggleOverviewMoreBtn" onclick="toggleOverviewMoreInsights()" style="width:100%; justify-content:center; padding:10px;">
+      <button type="button" class="secondary small-btn" id="toggleOverviewMoreBtn" data-click="toggleOverviewMoreInsights" style="width:100%; justify-content:center; padding:10px;">
         ▾ Περισσότερα: Κανόνας 50/30/20 &amp; Top 5 Έμποροι
       </button>
     </div>
@@ -314,19 +316,20 @@
       <div class="panel-header">
         <h3 class="panel-title">💳 Ιστορικό Συναλλαγών</h3>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button type="button" class="small-btn" onclick="openBankImportModal()">🏦 Εισαγωγή Τράπεζας / Revolut</button>
+          <button type="button" class="accent small-btn" data-click="openTransactionModal">➕ Νέα Κίνηση</button>
+          <button type="button" class="small-btn" data-click="openBankImportModal">🏦 Εισαγωγή Τράπεζας / Revolut</button>
         </div>
       </div>
 
       <div id="sourcesBreakdownChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;"></div>
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:12px;">
-        <input type="text" id="filterSearch" aria-label="Αναζήτηση συναλλαγών" placeholder="🔍 Αναζήτηση περιγραφής..." oninput="debouncedRenderTransactionsTable()" />
-        <select id="filterScope" aria-label="Εύρος ημερομηνιών" onchange="renderTransactionsTable()">
+        <input type="text" id="filterSearch" aria-label="Αναζήτηση συναλλαγών" placeholder="🔍 Αναζήτηση περιγραφής..." data-input="debouncedRenderTransactionsTable" />
+        <select id="filterScope" aria-label="Εύρος ημερομηνιών" data-change="renderTransactionsTable">
           <option value="selectedPeriod">Επιλεγμένη Περίοδος</option>
           <option value="allHistory">Όλο το Ιστορικό</option>
         </select>
-        <select id="filterSource" aria-label="Φίλτρο λογαριασμού" onchange="renderTransactionsTable()">
+        <select id="filterSource" aria-label="Φίλτρο λογαριασμού" data-change="renderTransactionsTable">
           <option value="all">Όλοι οι Λογαριασμοί</option>
           <option value="manual">💵 Χειροκίνητο / Μετρητά</option>
           <option value="Πειραιώς">🏦 Πειραιώς</option>
@@ -336,23 +339,23 @@
           <option value="Revolut">💳 Revolut</option>
           <option value="Τράπεζα">🏦 Άλλη Τράπεζα</option>
         </select>
-        <select id="filterType" aria-label="Φίλτρο τύπου συναλλαγής" onchange="renderTransactionsTable()">
+        <select id="filterType" aria-label="Φίλτρο τύπου συναλλαγής" data-change="renderTransactionsTable">
           <option value="all">Όλοι οι Τύποι</option>
           <option value="expense">🔴 Έξοδα</option>
           <option value="income">🟢 Έσοδα</option>
           <option value="saving">🔵 Αποταμίευση</option>
           <option value="withdrawal">🟠 Ανάληψη Αποταμ.</option>
         </select>
-        <select id="filterCategory" aria-label="Φίλτρο κατηγορίας" onchange="renderTransactionsTable()">
+        <select id="filterCategory" aria-label="Φίλτρο κατηγορίας" data-change="renderTransactionsTable">
           <option value="all">Όλες οι Κατηγορίες</option>
         </select>
-        <select id="filterShared" aria-label="Φίλτρο κοινών εξόδων" style="display:none;" onchange="renderTransactionsTable()">
+        <select id="filterShared" aria-label="Φίλτρο κοινών εξόδων" style="display:none;" data-change="renderTransactionsTable">
           <option value="all">👫 Όλα (Κοινά &amp; Προσωπικά)</option>
           <option value="shared">👫 Μόνο Κοινά</option>
           <option value="personal">👤 Μόνο Προσωπικά</option>
           <option value="unsettled">⏳ Εκκρεμή Κοινά</option>
         </select>
-        <select id="filterSort" aria-label="Ταξινόμηση συναλλαγών" onchange="renderTransactionsTable()">
+        <select id="filterSort" aria-label="Ταξινόμηση συναλλαγών" data-change="renderTransactionsTable">
           <option value="date_desc">📅 Νεότερα πρώτα</option>
           <option value="date_asc">📅 Παλαιότερα πρώτα</option>
           <option value="amount_desc">💶 Ποσό (Μεγαλύτερο)</option>
@@ -362,7 +365,7 @@
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
         <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" id="filterOnlyUnexpected" onchange="renderTransactionsTable()" />
+          <input type="checkbox" id="filterOnlyUnexpected" data-change="renderTransactionsTable" />
           Μόνο έκτακτα έξοδα
         </label>
         <div class="small" id="filteredSummaryText">0 συναλλαγές</div>
@@ -373,13 +376,13 @@
         <strong class="small" id="txBulkSelectedCount" style="color:var(--primary);">0 επιλεγμένες</strong>
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
           <select id="txBulkCategorySelect" aria-label="Μαζική αλλαγή κατηγορίας" style="padding:4px 8px; font-size:12px;"></select>
-          <button type="button" class="secondary small-btn" onclick="applyBulkTxCategory()">🏷️ Κατηγορία</button>
+          <button type="button" class="secondary small-btn" data-click="applyBulkTxCategory">🏷️ Κατηγορία</button>
           <span id="txBulkSharedBtns" style="display:none; gap:6px;">
-            <button type="button" class="secondary small-btn" onclick="applyBulkTxShared(true)">👫 Κοινό</button>
-            <button type="button" class="secondary small-btn" onclick="applyBulkTxShared(false)">👤 Προσωπικό</button>
+            <button type="button" class="secondary small-btn" data-click="applyBulkTxShared" data-arg="true">👫 Κοινό</button>
+            <button type="button" class="secondary small-btn" data-click="applyBulkTxShared" data-arg="false">👤 Προσωπικό</button>
           </span>
-          <button type="button" class="danger small-btn" onclick="deleteBulkSelectedTx()">🗑️ Διαγραφή</button>
-          <button type="button" class="secondary small-btn" onclick="clearTxSelection()" aria-label="Αποεπιλογή όλων">✕</button>
+          <button type="button" class="danger small-btn" data-click="deleteBulkSelectedTx">🗑️ Διαγραφή</button>
+          <button type="button" class="secondary small-btn" data-click="clearTxSelection" aria-label="Αποεπιλογή όλων">✕</button>
         </div>
       </div>
 
@@ -387,7 +390,7 @@
         <table id="transactionsTable">
           <thead>
             <tr>
-              <th style="width:30px;"><input type="checkbox" id="txSelectAll" aria-label="Επιλογή όλων των ορατών" onchange="toggleAllVisibleTxSelection(this.checked)" /></th>
+              <th style="width:30px;"><input type="checkbox" id="txSelectAll" aria-label="Επιλογή όλων των ορατών" data-change="toggleAllVisibleTxSelection" /></th>
               <th>Ημερομηνία</th>
               <th>Τύπος &amp; Ετικέτες</th>
               <th>Κατηγορία</th>
@@ -401,7 +404,7 @@
       </div>
 
       <div id="txLoadMoreWrap" style="display:none; justify-content:center; margin-top:12px;">
-        <button type="button" class="secondary small-btn" onclick="loadMoreTransactions()">⬇️ Εμφάνιση περισσότερων συναλλαγών (+100)</button>
+        <button type="button" class="secondary small-btn" data-click="loadMoreTransactions">⬇️ Εμφάνιση περισσότερων συναλλαγών (+100)</button>
       </div>
     </div>
   </div>
@@ -409,10 +412,10 @@
   <!-- TAB 3: PLANNING -->
   <div id="tab-planning" role="tabpanel" class="tab-panel">
     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
-      <button type="button" class="chip-btn active" data-subfilter="all" onclick="setPlanningSubfilter('all')">📋 Όλα</button>
-      <button type="button" class="chip-btn" data-subfilter="budgets" onclick="setPlanningSubfilter('budgets')">📊 Προϋπολογισμός Κατηγοριών</button>
-      <button type="button" class="chip-btn" data-subfilter="recurring" onclick="setPlanningSubfilter('recurring')">🔁 Πάγια &amp; Συνδρομές</button>
-      <button type="button" class="chip-btn" data-subfilter="goals" onclick="setPlanningSubfilter('goals')">🐷 Στόχοι &amp; Ετήσια</button>
+      <button type="button" class="chip-btn active" data-subfilter="all" data-click="setPlanningSubfilter" data-arg="all">📋 Όλα</button>
+      <button type="button" class="chip-btn" data-subfilter="budgets" data-click="setPlanningSubfilter" data-arg="budgets">📊 Προϋπολογισμός Κατηγοριών</button>
+      <button type="button" class="chip-btn" data-subfilter="recurring" data-click="setPlanningSubfilter" data-arg="recurring">🔁 Πάγια &amp; Συνδρομές</button>
+      <button type="button" class="chip-btn" data-subfilter="goals" data-click="setPlanningSubfilter" data-arg="goals">🐷 Στόχοι &amp; Ετήσια</button>
     </div>
 
     <section class="panel planning-section" data-section="budgets">
@@ -426,10 +429,10 @@
         </div>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <label class="small" style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none;" title="Να δεσμεύεται αυτόματα το 1/12 των ετήσιων υποχρεώσεων στα μηνιαία όρια">
-            <input type="checkbox" id="autoBudgetIncludeAnnual" checked onchange="if(pendingAutoBudgetPlan) previewAutoBudgetAllocation(true)" />
+            <input type="checkbox" id="autoBudgetIncludeAnnual" checked data-change="refreshPendingAutoBudget" />
             + Ετήσια (/12)
           </label>
-          <button type="button" class="accent small-btn" onclick="previewAutoBudgetAllocation()">✨ Αυτόματος Υπολογισμός</button>
+          <button type="button" class="accent small-btn" data-click="previewAutoBudgetAllocation">✨ Αυτόματος Υπολογισμός</button>
         </div>
       </div>
 
@@ -448,7 +451,7 @@
           <h3 class="panel-title">🔍 Εντοπισμός Συνδρομών &amp; Επαναλαμβανόμενων Χρεώσεων</h3>
           <span class="badge saving" id="detectedSubsSummaryBadge">0 εντοπίστηκαν</span>
         </div>
-        <button type="button" class="secondary small-btn" id="toggleDetectedSubsBtn" onclick="toggleDetectedSubsCollapse()">▲ Απόκρυψη</button>
+        <button type="button" class="secondary small-btn" id="toggleDetectedSubsBtn" data-click="toggleDetectedSubsCollapse">▲ Απόκρυψη</button>
       </div>
       <div id="detectedSubsBody"></div>
     </section>
@@ -462,10 +465,10 @@
         <span class="badge" id="recurringMonthBadge"></span>
       </div>
 
-      <form onsubmit="event.preventDefault(); saveRecurringItem();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+      <form data-submit="saveRecurringItem" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
         <input type="hidden" id="editingRecurringId" value="" />
         <input type="text" id="recTitle" aria-label="Ονομασία παγίου" placeholder="Ονομασία (π.χ. Ενοίκιο)" required />
-        <select id="recType" aria-label="Τύπος παγίου" onchange="syncRecCategoryOptions()">
+        <select id="recType" aria-label="Τύπος παγίου" data-change="syncRecCategoryOptions">
           <option value="expense">🔴 Πάγιο Έξοδο</option>
           <option value="income">🟢 Πάγιο Έσοδο</option>
           <option value="saving">🔵 Πάγια Αποταμίευση/Επένδυση</option>
@@ -478,7 +481,7 @@
         </label>
         <div style="display:flex; gap:6px;">
           <button type="submit" id="saveRecBtn" style="flex:1;">➕ Προσθήκη</button>
-          <button type="button" class="secondary" id="cancelRecEditBtn" aria-label="Ακύρωση επεξεργασίας παγίου" style="display:none;" onclick="cancelRecurringEditor()">✕</button>
+          <button type="button" class="secondary" id="cancelRecEditBtn" aria-label="Ακύρωση επεξεργασίας παγίου" style="display:none;" data-click="cancelRecurringEditor">✕</button>
         </div>
       </form>
 
@@ -508,7 +511,7 @@
         </div>
       </div>
 
-      <form onsubmit="event.preventDefault(); addGoal();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+      <form data-submit="addGoal" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
         <input type="text" id="goalTitle" aria-label="Τίτλος στόχου" placeholder="Τίτλος στόχου (π.χ. Διακοπές)" required />
         <input type="number" id="goalTarget" aria-label="Ποσό στόχου" step="0.01" min="1" placeholder="Στόχος (€)" required />
         <input type="number" id="goalSaved" aria-label="Ήδη αποταμιευμένο ποσό" step="0.01" min="0" value="0" placeholder="Ήδη μαζεμένα (€)" />
@@ -527,7 +530,7 @@
         </div>
       </div>
 
-      <form onsubmit="event.preventDefault(); saveAnnualBill();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+      <form data-submit="saveAnnualBill" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
         <input type="hidden" id="editingAnnualBillId" value="" />
         <input type="text" id="annualTitle" aria-label="Περιγραφή ετήσιας υποχρέωσης" placeholder="Περιγραφή (π.χ. Τέλη Κυκλοφορίας)" required />
         <input type="number" id="annualAmount" aria-label="Ποσό ετήσιας υποχρέωσης" step="0.01" min="1" placeholder="Ποσό (€)" required />
@@ -535,7 +538,7 @@
         <select id="annualCategory" aria-label="Κατηγορία ετήσιας υποχρέωσης"></select>
         <div style="display:flex; gap:6px;">
           <button type="submit" id="saveAnnualBillBtn" style="flex:1;">➕ Προσθήκη</button>
-          <button type="button" class="secondary" id="cancelAnnualBillBtn" aria-label="Ακύρωση επεξεργασίας" style="display:none;" onclick="cancelAnnualBillEditor()">✕</button>
+          <button type="button" class="secondary" id="cancelAnnualBillBtn" aria-label="Ακύρωση επεξεργασίας" style="display:none;" data-click="cancelAnnualBillEditor">✕</button>
         </div>
       </form>
 
@@ -546,9 +549,9 @@
   <!-- TAB 4A: INVESTMENTS & FIRE SIMULATOR -->
   <div id="tab-wealth" role="tabpanel" class="tab-panel">
     <div class="mobile-wealth-switcher" style="display:none; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-      <button type="button" class="chip-btn" data-mwealth="wealth" onclick="switchTab('wealth')">📈 Επενδύσεις</button>
-      <button type="button" class="chip-btn" data-mwealth="loans" onclick="switchTab('loans')">🏦 Δάνεια</button>
-      <button type="button" class="chip-btn" data-mwealth="cards" onclick="switchTab('cards')">💳 Πιστωτικές</button>
+      <button type="button" class="chip-btn" data-mwealth="wealth" data-click="switchTab" data-arg="wealth">📈 Επενδύσεις</button>
+      <button type="button" class="chip-btn" data-mwealth="loans" data-click="switchTab" data-arg="loans">🏦 Δάνεια</button>
+      <button type="button" class="chip-btn" data-mwealth="cards" data-click="switchTab" data-arg="cards">💳 Πιστωτικές</button>
     </div>
     <div class="panel">
       <div class="panel-header">
@@ -560,8 +563,8 @@
           <div class="small" id="portfolioSummaryLine">Συνολική αξία: €0,00</div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="secondary small-btn" id="refreshEtfsBtn" onclick="refreshPortfolioMarketPrices(true)">🔄 Ενημέρωση Τιμών</button>
-          <button type="button" class="secondary small-btn" id="toggleTickerLookupBtn" onclick="toggleTickerLookupBox()">🔒 Έλεγχος Ticker</button>
+          <button type="button" class="secondary small-btn" id="refreshEtfsBtn" data-click="refreshPortfolioMarketPrices" data-arg="true">🔄 Ενημέρωση Τιμών</button>
+          <button type="button" class="secondary small-btn" id="toggleTickerLookupBtn" data-click="toggleTickerLookupBox">🔒 Έλεγχος Ticker</button>
         </div>
       </div>
 
@@ -569,27 +572,27 @@
       <div id="tickerLookupBox" style="display:none; background:var(--card-soft); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
           <strong style="font-size:14px;">🔍 Ζωντανός Έλεγχος Τιμής (Ευρώπη, Ελλάδα .AT & ΗΠΑ)</strong>
-          <button type="button" class="secondary small-btn" onclick="toggleTickerLookupBox()" aria-label="Κλείσιμο ελέγχου ticker">✕</button>
+          <button type="button" class="secondary small-btn" data-click="toggleTickerLookupBox" aria-label="Κλείσιμο ελέγχου ticker">✕</button>
         </div>
 
         <div id="tickerAuthLockBanner" class="banner warn" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:10px; padding:8px 12px;">
           <span class="small"><strong>🔒 Περιορισμένη Πρόσβαση:</strong> Ο έλεγχος Ticker απαιτεί σύνδεση με λογαριασμό Google για αποφυγή κακοπροαίρετης χρήσης.</span>
-          <button type="button" class="accent small-btn" onclick="signInWithGoogleFirebase()">🔑 Σύνδεση με Google</button>
+          <button type="button" class="accent small-btn" data-click="signInWithGoogleFirebase">🔑 Σύνδεση με Google</button>
         </div>
 
         <div class="quick-presets-row" style="margin-bottom:10px;">
-          <button type="button" class="preset-pill" onclick="quickTestTicker('VUAA.MI')">🇮🇹 VUAA.MI (S&amp;P 500)</button>
-          <button type="button" class="preset-pill" onclick="quickTestTicker('VWCE.DE')">🇩🇪 VWCE.DE (All-World)</button>
-          <button type="button" class="preset-pill" onclick="quickTestTicker('XEON.DE')">💶 XEON.DE (Overnight)</button>
-          <button type="button" class="preset-pill" onclick="quickTestTicker('OPAP.AT')">🇬🇷 OPAP.AT (ΧΑΑ)</button>
-          <button type="button" class="preset-pill" onclick="quickTestTicker('ASML.AS')">🇳🇱 ASML.AS</button>
-          <button type="button" class="preset-pill" onclick="quickTestTicker('VOO')">🇺🇸 VOO (US)</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="VUAA.MI">🇮🇹 VUAA.MI (S&amp;P 500)</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="VWCE.DE">🇩🇪 VWCE.DE (All-World)</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="XEON.DE">💶 XEON.DE (Overnight)</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="OPAP.AT">🇬🇷 OPAP.AT (ΧΑΑ)</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="ASML.AS">🇳🇱 ASML.AS</button>
+          <button type="button" class="preset-pill" data-click="quickTestTicker" data-arg="VOO">🇺🇸 VOO (US)</button>
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-          <input type="text" id="testTickerInput" value="VUAA.MI" aria-label="Έλεγχος Ticker" placeholder="π.χ. VUAA.MI, VWCE.DE, OPAP.AT, AAPL" style="flex:1 1 180px;" onkeydown="if(event.key==='Enter'){event.preventDefault();runLiveTickerTest();}" />
-          <button type="button" class="accent small-btn" id="testTickerBtn" onclick="runLiveTickerTest()">🧪 Έλεγχος Τιμής</button>
-          <button type="button" class="secondary small-btn" id="useTestedTickerBtn" style="display:none;" onclick="applyTestedTickerToForm()">➕ Χρήση στη Φόρμα</button>
+          <input type="text" id="testTickerInput" value="VUAA.MI" aria-label="Έλεγχος Ticker" placeholder="π.χ. VUAA.MI, VWCE.DE, OPAP.AT, AAPL" style="flex:1 1 180px;" data-keydown="testTickerEnter" />
+          <button type="button" class="accent small-btn" id="testTickerBtn" data-click="runLiveTickerTest">🧪 Έλεγχος Τιμής</button>
+          <button type="button" class="secondary small-btn" id="useTestedTickerBtn" style="display:none;" data-click="applyTestedTickerToForm">➕ Χρήση στη Φόρμα</button>
         </div>
         <div class="small" id="testTickerResultText" style="font-weight:600; min-height:18px;"></div>
 
@@ -629,7 +632,7 @@
       </div>
 
       <!-- Add / Edit Asset Form -->
-      <form onsubmit="event.preventDefault(); savePortfolioAsset();" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
+      <form data-submit="savePortfolioAsset" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:14px; background:var(--card-soft); padding:12px; border-radius:12px;">
         <input type="hidden" id="editingAssetId" value="" />
         <input type="text" id="assetName" aria-label="Όνομα επένδυσης" placeholder="Όνομα (π.χ. VUAA S&amp;P 500)" required />
         <input type="text" id="assetTicker" aria-label="Ticker χρηματιστηρίου" placeholder="Ticker (π.χ. VUAA.MI)" title="Σύμβολο χρηματιστηρίου για αυτόματη τιμή (π.χ. VUAA.MI, VWCE.DE, OPAP.AT)" />
@@ -644,20 +647,20 @@
         <input type="number" id="assetCurrent" aria-label="Τρέχουσα Αξία" step="0.01" min="0" placeholder="Τρέχουσα Αξία € (προαιρ.)" title="Προαιρετικό: υπολογίζεται αυτόματα αν βάλεις Ticker &amp; Μερίδια" />
         <div style="display:flex; gap:6px;">
           <button type="submit" id="saveAssetBtn" style="flex:1;">➕ Προσθήκη</button>
-          <button type="button" class="secondary" id="cancelAssetEditBtn" aria-label="Ακύρωση επεξεργασίας θέσης" style="display:none;" onclick="cancelPortfolioAssetEditor()">✕</button>
+          <button type="button" class="secondary" id="cancelAssetEditBtn" aria-label="Ακύρωση επεξεργασίας θέσης" style="display:none;" data-click="cancelPortfolioAssetEditor">✕</button>
         </div>
       </form>
 
       <!-- Portfolio Filter & Sort Toolbar -->
       <div id="portfolioToolbar" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap;" id="portfolioFilterChips">
-          <button type="button" class="chip-btn active" data-pfilter="all" onclick="setPortfolioFilter('all')">Όλα</button>
-          <button type="button" class="chip-btn" data-pfilter="ETF" onclick="setPortfolioFilter('ETF')">📈 ETFs</button>
-          <button type="button" class="chip-btn" data-pfilter="Μετοχή" onclick="setPortfolioFilter('Μετοχή')">🏢 Μετοχές</button>
-          <button type="button" class="chip-btn" data-pfilter="Κατάθεση / XEON" onclick="setPortfolioFilter('Κατάθεση / XEON')">🏦 XEON / Καταθέσεις</button>
-          <button type="button" class="chip-btn" data-pfilter="Crypto" onclick="setPortfolioFilter('Crypto')">🪙 Crypto</button>
+          <button type="button" class="chip-btn active" data-pfilter="all" data-click="setPortfolioFilter" data-arg="all">Όλα</button>
+          <button type="button" class="chip-btn" data-pfilter="ETF" data-click="setPortfolioFilter" data-arg="ETF">📈 ETFs</button>
+          <button type="button" class="chip-btn" data-pfilter="Μετοχή" data-click="setPortfolioFilter" data-arg="Μετοχή">🏢 Μετοχές</button>
+          <button type="button" class="chip-btn" data-pfilter="Κατάθεση / XEON" data-click="setPortfolioFilter" data-arg="Κατάθεση / XEON">🏦 XEON / Καταθέσεις</button>
+          <button type="button" class="chip-btn" data-pfilter="Crypto" data-click="setPortfolioFilter" data-arg="Crypto">🪙 Crypto</button>
         </div>
-        <select id="portfolioSortSelect" aria-label="Ταξινόμηση θέσεων" onchange="renderPortfolio()" style="padding:5px 10px; font-size:12px;">
+        <select id="portfolioSortSelect" aria-label="Ταξινόμηση θέσεων" data-change="renderPortfolio" style="padding:5px 10px; font-size:12px;">
           <option value="value_desc">Ταξινόμηση: Αξία (Υψηλότερη)</option>
           <option value="pnl_pct_desc">Ταξινόμηση: Απόδοση (%)</option>
           <option value="pnl_desc">Ταξινόμηση: Κέρδος (€)</option>
@@ -672,32 +675,32 @@
     <div class="panel">
       <div class="panel-header">
         <h3 class="panel-title">🚀 Προσομοιωτής Ανατοκισμού &amp; Οικονομικής Ελευθερίας (FIRE)</h3>
-        <button type="button" class="secondary small-btn" onclick="syncSimulatorWithPortfolio()">🔄 Φόρτωση από Χαρτοφυλάκιο</button>
+        <button type="button" class="secondary small-btn" data-click="syncSimulatorWithPortfolio">🔄 Φόρτωση από Χαρτοφυλάκιο</button>
       </div>
 
       <div class="quick-presets-row" style="margin-bottom:12px;">
-        <button type="button" class="preset-pill" onclick="applySimRatePreset(3)">🏦 3% XEON / Κατάθεση</button>
-        <button type="button" class="preset-pill" onclick="applySimRatePreset(6)">⚖️ 6% Ισορροπημένο</button>
-        <button type="button" class="preset-pill" onclick="applySimRatePreset(8)">📈 8% S&amp;P 500 / All-World</button>
-        <button type="button" class="preset-pill" onclick="applySimRatePreset(10)">🚀 10% Επιθετικό</button>
+        <button type="button" class="preset-pill" data-click="applySimRatePreset" data-arg="3">🏦 3% XEON / Κατάθεση</button>
+        <button type="button" class="preset-pill" data-click="applySimRatePreset" data-arg="6">⚖️ 6% Ισορροπημένο</button>
+        <button type="button" class="preset-pill" data-click="applySimRatePreset" data-arg="8">📈 8% S&amp;P 500 / All-World</button>
+        <button type="button" class="preset-pill" data-click="applySimRatePreset" data-arg="10">🚀 10% Επιθετικό</button>
       </div>
 
       <div class="grid-4">
         <div class="form-group">
           <label for="simInitial">Αρχικό Κεφάλαιο (€)</label>
-          <input type="number" id="simInitial" value="500" min="0" oninput="renderWealthSimulator()" />
+          <input type="number" id="simInitial" value="500" min="0" data-input="renderWealthSimulator" />
         </div>
         <div class="form-group">
           <label for="simMonthly">Μηνιαία Επένδυση (€)</label>
-          <input type="number" id="simMonthly" value="100" min="0" oninput="renderWealthSimulator()" />
+          <input type="number" id="simMonthly" value="100" min="0" data-input="renderWealthSimulator" />
         </div>
         <div class="form-group">
           <label for="simRate">Ετήσια Απόδοση (%)</label>
-          <input type="number" id="simRate" value="8" step="0.5" min="0" max="30" oninput="renderWealthSimulator()" />
+          <input type="number" id="simRate" value="8" step="0.5" min="0" max="30" data-input="renderWealthSimulator" />
         </div>
         <div class="form-group">
           <label for="simYears">Ορίζοντας (Έτη)</label>
-          <input type="number" id="simYears" value="15" min="1" max="45" oninput="renderWealthSimulator()" />
+          <input type="number" id="simYears" value="15" min="1" max="45" data-input="renderWealthSimulator" />
         </div>
       </div>
 
@@ -711,9 +714,9 @@
   <!-- TAB 4B: LOANS & INSTALLMENTS -->
   <div id="tab-loans" role="tabpanel" class="tab-panel">
     <div class="mobile-wealth-switcher" style="display:none; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-      <button type="button" class="chip-btn" data-mwealth="wealth" onclick="switchTab('wealth')">📈 Επενδύσεις</button>
-      <button type="button" class="chip-btn" data-mwealth="loans" onclick="switchTab('loans')">🏦 Δάνεια</button>
-      <button type="button" class="chip-btn" data-mwealth="cards" onclick="switchTab('cards')">💳 Πιστωτικές</button>
+      <button type="button" class="chip-btn" data-mwealth="wealth" data-click="switchTab" data-arg="wealth">📈 Επενδύσεις</button>
+      <button type="button" class="chip-btn" data-mwealth="loans" data-click="switchTab" data-arg="loans">🏦 Δάνεια</button>
+      <button type="button" class="chip-btn" data-mwealth="cards" data-click="switchTab" data-arg="cards">💳 Πιστωτικές</button>
     </div>
       <div class="panel" id="loansPanel">
         <div class="panel-header">
@@ -755,7 +758,7 @@
           </div>
         </div>
 
-        <form onsubmit="event.preventDefault(); saveLoanLiabilityItem();" style="background:var(--card-soft); padding:14px; border-radius:14px; margin-bottom:14px;">
+        <form data-submit="saveLoanLiabilityItem" style="background:var(--card-soft); padding:14px; border-radius:14px; margin-bottom:14px;">
           <input type="hidden" id="editingLoanId" value="" />
           <div class="grid-4" style="margin-bottom:8px;">
             <div class="form-group" style="margin-bottom:0;">
@@ -804,7 +807,7 @@
               💰 Το ποσό της εκταμίευσης / αξίας περιλαμβάνεται ήδη στο αρχικό αποθεματικό (μην ρίξεις το Net Worth)
             </label>
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;">
-              <button type="button" class="secondary small-btn" id="cancelLoanEditBtn" style="display:none;" onclick="cancelLoanEditor()">Ακύρωση</button>
+              <button type="button" class="secondary small-btn" id="cancelLoanEditBtn" style="display:none;" data-click="cancelLoanEditor">Ακύρωση</button>
               <button type="submit" class="accent small-btn" id="saveLoanBtn">➕ Προσθήκη Δανείου</button>
             </div>
           </div>
@@ -820,9 +823,9 @@
   <!-- TAB 4C: CREDIT CARDS -->
   <div id="tab-cards" role="tabpanel" class="tab-panel">
     <div class="mobile-wealth-switcher" style="display:none; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-      <button type="button" class="chip-btn" data-mwealth="wealth" onclick="switchTab('wealth')">📈 Επενδύσεις</button>
-      <button type="button" class="chip-btn" data-mwealth="loans" onclick="switchTab('loans')">🏦 Δάνεια</button>
-      <button type="button" class="chip-btn" data-mwealth="cards" onclick="switchTab('cards')">💳 Πιστωτικές</button>
+      <button type="button" class="chip-btn" data-mwealth="wealth" data-click="switchTab" data-arg="wealth">📈 Επενδύσεις</button>
+      <button type="button" class="chip-btn" data-mwealth="loans" data-click="switchTab" data-arg="loans">🏦 Δάνεια</button>
+      <button type="button" class="chip-btn" data-mwealth="cards" data-click="switchTab" data-arg="cards">💳 Πιστωτικές</button>
     </div>
       <div class="panel" id="creditCardsPanel">
         <div class="panel-header">
@@ -865,7 +868,7 @@
           </div>
         </div>
 
-        <form onsubmit="event.preventDefault(); saveCreditCardItem();" style="background:var(--card-soft); padding:14px; border-radius:14px; margin-bottom:14px;">
+        <form data-submit="saveCreditCardItem" style="background:var(--card-soft); padding:14px; border-radius:14px; margin-bottom:14px;">
           <input type="hidden" id="editingCardId" value="" />
           <div class="grid-4" style="margin-bottom:8px;">
             <div class="form-group" style="margin-bottom:0;">
@@ -915,7 +918,7 @@
               <input type="number" id="cardInstallmentCount" min="0" max="120" placeholder="π.χ. 10" />
             </div>
             <div class="form-group" style="margin-bottom:0; grid-column: span 2; display:flex; align-items:flex-end; justify-content:flex-end; gap:8px;">
-              <button type="button" class="secondary small-btn" id="cancelCardEditBtn" style="display:none;" onclick="cancelCreditCardEditor()">Ακύρωση</button>
+              <button type="button" class="secondary small-btn" id="cancelCardEditBtn" style="display:none;" data-click="cancelCreditCardEditor">Ακύρωση</button>
               <button type="submit" class="accent small-btn" id="saveCardBtn">➕ Προσθήκη Πιστωτικής</button>
             </div>
           </div>
@@ -936,11 +939,11 @@
         <div class="form-row">
           <div class="form-group">
             <label for="userName">Το Όνομά σου</label>
-            <input type="text" id="userName" placeholder="π.χ. Αλέξανδρος" oninput="previewProfileSplit()" />
+            <input type="text" id="userName" placeholder="π.χ. Αλέξανδρος" data-input="previewProfileSplit" />
           </div>
           <div class="form-group">
             <label for="monthlyIncome">Καθαρό Μηνιαίο Εισόδημα (€)</label>
-            <input type="number" id="monthlyIncome" min="0" step="10" oninput="previewProfileSplit()" />
+            <input type="number" id="monthlyIncome" min="0" step="10" data-input="previewProfileSplit" />
           </div>
         </div>
 
@@ -964,36 +967,36 @@
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <strong>👫 Ρυθμίσεις Συντρόφου (Προαιρετικά)</strong>
-          <button type="button" class="danger small-btn" id="unlinkPartnerSettingsBtn" style="display:none;" onclick="unlinkPartnerProfile()">🔓 Αποσύνδεση Συντρόφου</button>
+          <button type="button" class="danger small-btn" id="unlinkPartnerSettingsBtn" style="display:none;" data-click="unlinkPartnerProfile">🔓 Αποσύνδεση Συντρόφου</button>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="partnerName">Όνομα Συντρόφου</label>
-            <input type="text" id="partnerName" placeholder="π.χ. Μαρία" oninput="previewProfileSplit()" />
+            <input type="text" id="partnerName" placeholder="π.χ. Μαρία" data-input="previewProfileSplit" />
           </div>
           <div class="form-group">
             <label for="partnerIncome">Μηνιαίο Εισόδημα Συντρόφου (€)</label>
-            <input type="number" id="partnerIncome" min="0" step="10" oninput="previewProfileSplit()" />
+            <input type="number" id="partnerIncome" min="0" step="10" data-input="previewProfileSplit" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="splitMode">Τρόπος Επιμερισμού Κοινών Εξόδων</label>
-            <select id="splitMode" onchange="previewProfileSplit()">
+            <select id="splitMode" data-change="previewProfileSplit">
               <option value="auto">Αυτόματος βάσει Εισοδήματος</option>
               <option value="custom">Χειροκίνητο Ποσοστό (%)</option>
             </select>
           </div>
           <div class="form-group" id="customSplitInputWrap" style="display:none;">
             <label for="customUserSharePct">Το δικό σου ποσοστό (%)</label>
-            <input type="number" id="customUserSharePct" min="0" max="100" step="0.5" value="55" oninput="previewProfileSplit()" />
+            <input type="number" id="customUserSharePct" min="0" max="100" step="0.5" value="55" data-input="previewProfileSplit" />
           </div>
         </div>
 
         <div class="small" id="profileSplitPreviewText" style="margin-bottom:12px; font-weight:600; color:var(--primary);"></div>
-        <button type="button" onclick="saveProfileSettings()">💾 Αποθήκευση Προφίλ</button>
+        <button type="button" data-click="saveProfileSettings">💾 Αποθήκευση Προφίλ</button>
       </div>
 
       <div class="panel">
@@ -1005,17 +1008,17 @@
           <div class="kpi-label"><span>☁️ Live Cloud Sync (AES-256-GCM)</span></div>
           <div class="small" style="margin-bottom:8px;">Συγχρονισμός σε πραγματικό χρόνο μεταξύ Laptop, Κινητού ή Συντρόφου με τοπική κρυπτογράφηση PIN.</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" onclick="openCloudSyncModal()">☁️ Διαχείριση Cloud Sync</button>
-            <button type="button" class="secondary" onclick="openCoupleMergeModal()">🤝 Ενοποίηση με Αρχείο</button>
+            <button type="button" data-click="openCloudSyncModal">☁️ Διαχείριση Cloud Sync</button>
+            <button type="button" class="secondary" data-click="openCoupleMergeModal">🤝 Ενοποίηση με Αρχείο</button>
           </div>
         </div>
 
         <div class="kpi-card" style="background:var(--card-soft); margin-bottom:12px;">
           <div class="kpi-label"><span>💾 Τοπικό Backup &amp; Εξαγωγή</span></div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-            <button type="button" class="secondary small-btn" onclick="exportJSON()">⬇️ Εξαγωγή JSON</button>
-            <button type="button" class="secondary small-btn" onclick="exportCSV()">⬇️ Εξαγωγή CSV</button>
-            <button type="button" class="secondary small-btn" onclick="reopenFirstUseGuide()">📖 Οδηγός Πρώτης Χρήσης</button>
+            <button type="button" class="secondary small-btn" data-click="exportJSON">⬇️ Εξαγωγή JSON</button>
+            <button type="button" class="secondary small-btn" data-click="exportCSV">⬇️ Εξαγωγή CSV</button>
+            <button type="button" class="secondary small-btn" data-click="reopenFirstUseGuide">📖 Οδηγός Πρώτης Χρήσης</button>
           </div>
 
           <div class="form-row">
@@ -1023,26 +1026,30 @@
               <label class="small" for="importJsonFile">Επαναφορά JSON Backup</label>
               <div style="display:flex; gap:6px; margin-top:4px;">
                 <input type="file" id="importJsonFile" accept=".json" style="width:100%;" />
-                <button type="button" class="secondary small-btn" onclick="importJSON()">⬆️ Εισαγωγή</button>
+                <button type="button" class="secondary small-btn" data-click="importJSON">⬆️ Εισαγωγή</button>
               </div>
             </div>
             <div>
               <label class="small" for="importCsvFile">Εισαγωγή Συναλλαγών CSV</label>
               <div style="display:flex; gap:6px; margin-top:4px;">
                 <input type="file" id="importCsvFile" accept=".csv" style="width:100%;" />
-                <button type="button" class="secondary small-btn" onclick="importCSV()">⬆️ CSV</button>
+                <button type="button" class="secondary small-btn" data-click="importCSV">⬆️ CSV</button>
               </div>
             </div>
           </div>
 
           <hr style="border:none; border-top:1px solid var(--border); margin:12px 0;" />
           <label class="small" style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text); margin-bottom:10px;">
-            <input type="checkbox" id="anonymousTelemetryToggle" checked onchange="toggleAnonymousTelemetry(this.checked)" />
+            <input type="checkbox" id="anonymousTelemetryToggle" checked data-change="toggleAnonymousTelemetry" />
             <span>📊 Ανώνυμο telemetry σφαλμάτων parser &amp; μετρητών χρήσης (<strong>0 προσωπικά ή οικονομικά δεδομένα</strong>)</span>
           </label>
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <span class="small">Επαναφορά εφαρμογής σε καθαρό μηδέν (€0)</span>
-            <button type="button" class="danger small-btn" onclick="confirmResetAllData()">🗑️ Διαγραφή Όλων των Δεδομένων</button>
+            <span class="small">Επαναφορά τοπικής εφαρμογής σε καθαρό μηδέν (€0)</span>
+            <button type="button" class="danger small-btn" data-click="confirmResetAllData">🗑️ Διαγραφή Τοπικών Δεδομένων</button>
+          </div>
+          <div id="gdprAccountDeletionRow" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);">
+            <span class="small">Δικαίωμα στη Λήθη (GDPR Άρθρο 17): οριστική διαγραφή λογαριασμού &amp; Cloud rooms</span>
+            <button type="button" class="danger small-btn" id="gdprDeleteAccountBtn" data-click="confirmDeleteMyAccountGDPR">⚠️ Διαγραφή Λογαριασμού &amp; Cloud (GDPR)</button>
           </div>
         </div>
 
@@ -1068,29 +1075,29 @@
 
 <!-- MOBILE BOTTOM NAVIGATION BAR WITH CENTER '+' -->
 <nav class="mobile-bottom-nav" aria-label="Κύρια Πλοήγηση Κινητού">
-  <button type="button" class="mob-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+  <button type="button" class="mob-nav-item active" data-tab="overview" data-click="switchTab" data-arg="overview">
     <span class="mob-ico" aria-hidden="true">📊</span>
     <span>Επισκόπηση</span>
   </button>
-  <button type="button" class="mob-nav-item" data-tab="transactions" onclick="switchTab('transactions')">
+  <button type="button" class="mob-nav-item" data-tab="transactions" data-click="switchTab" data-arg="transactions">
     <span class="mob-ico" aria-hidden="true">💳</span>
     <span>Κινήσεις</span>
   </button>
   <div class="mob-nav-center-wrap">
-    <button type="button" class="mob-nav-plus" onclick="openBankImportModal()" aria-label="Εισαγωγή Αρχείου Τράπεζας ή Revolut" title="Εισαγωγή Αρχείου Τράπεζας / Revolut" style="font-size:20px;">🏦</button>
+    <button type="button" class="mob-nav-plus" data-click="openBankImportModal" aria-label="Εισαγωγή Αρχείου Τράπεζας ή Revolut" title="Εισαγωγή Αρχείου Τράπεζας / Revolut" style="font-size:20px;">🏦</button>
   </div>
-  <button type="button" class="mob-nav-item" data-tab="planning" onclick="switchTab('planning')">
+  <button type="button" class="mob-nav-item" data-tab="planning" data-click="switchTab" data-arg="planning">
     <span class="mob-ico" aria-hidden="true">🎯</span>
     <span>Πλάνο</span>
   </button>
-  <button type="button" class="mob-nav-item" data-tab="wealth" onclick="switchTab('wealth')">
+  <button type="button" class="mob-nav-item" data-tab="wealth" data-click="switchTab" data-arg="wealth">
     <span class="mob-ico" aria-hidden="true">📈</span>
     <span>Επενδύσεις</span>
   </button>
 </nav>
 
 <!-- MOBILE MORE & SETTINGS SHEET DRAWER -->
-<div id="mobileMoreDrawerBackdrop" class="mobile-drawer-backdrop" onclick="if(event.target===this) closeMobileMoreDrawer()">
+<div id="mobileMoreDrawerBackdrop" class="mobile-drawer-backdrop" data-backdrop-close="closeMobileMoreDrawer">
   <aside id="mobileMoreDrawer" class="mobile-drawer-sheet" role="dialog" aria-modal="true" aria-label="Λοιπές Επιλογές &amp; Ρυθμίσεις">
     <div class="mobile-drawer-head">
       <div style="display:flex; align-items:center; gap:9px;">
@@ -1100,44 +1107,47 @@
           <div class="small">Ενότητες &amp; Λοιπές Ρυθμίσεις</div>
         </div>
       </div>
-      <button type="button" class="secondary small-btn" onclick="closeMobileMoreDrawer()" aria-label="Κλείσιμο μενού">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeMobileMoreDrawer" aria-label="Κλείσιμο μενού">✕</button>
     </div>
 
     <div class="mobile-drawer-section-title">Ενότητες</div>
     <div class="mobile-drawer-list">
-      <button type="button" class="mobile-drawer-item" onclick="mobileDrawerNavigateTab('wealth')">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerNavigateTab" data-arg="wealth">
         <span>📈</span><span>Χαρτοφυλάκιο Επενδύσεων</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="mobileDrawerNavigateTab('loans')">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerNavigateTab" data-arg="loans">
         <span>🏦</span><span>Δάνεια &amp; Δόσεις</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="mobileDrawerNavigateTab('cards')">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerNavigateTab" data-arg="cards">
         <span>💳</span><span>Πιστωτικές Κάρτες</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="mobileDrawerNavigateTab('planning')">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerNavigateTab" data-arg="planning">
         <span>🔁</span><span>Πάγια &amp; Συνδρομές</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="mobileDrawerNavigateTab('settings')">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerNavigateTab" data-arg="settings">
         <span>⚙️</span><span>Ρυθμίσεις &amp; Αποδείξεις 30% Ε1</span>
       </button>
     </div>
 
     <div class="mobile-drawer-section-title">Δεδομένα &amp; Εργαλεία</div>
     <div class="mobile-drawer-list">
-      <button type="button" class="mobile-drawer-item" onclick="closeMobileMoreDrawer(); openBankImportModal()">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="openBankImportModal">
         <span>🏦</span><span>Εισαγωγή Τράπεζας / Revolut</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="closeMobileMoreDrawer(); openCloudSyncModal()">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="openCloudSyncModal">
         <span>☁️</span><span>Live Cloud Sync (AES-256)</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="closeMobileMoreDrawer(); openCoupleMergeModal()">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="openCoupleMergeModal">
         <span>🤝</span><span>Ενοποίηση Ζευγαριού</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="closeMobileMoreDrawer(); exportJSON()">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="exportJSON">
         <span>⬇️</span><span>Εξαγωγή Backup (JSON)</span>
       </button>
-      <button type="button" class="mobile-drawer-item" onclick="closeMobileMoreDrawer(); openShareModal()">
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="openShareModal">
         <span>📤</span><span>Μοίρασέ το &amp; QR Code</span>
+      </button>
+      <button type="button" class="mobile-drawer-item" data-click="mobileDrawerAndOpen" data-arg="openPrivacySecurityModal">
+        <span>🔒</span><span>Ιδιωτικότητα, GDPR &amp; Όροι</span>
       </button>
     </div>
   </aside>
@@ -1149,26 +1159,26 @@
 <!-- MODALS -->
 
 <!-- 1. Add/Edit Transaction Modal with Quick-Tap Presets -->
-<div id="transactionModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transactionFormTitle" onclick="if(event.target===this) closeTransactionModal()">
+<div id="transactionModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transactionFormTitle" data-backdrop-close="closeTransactionModal">
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="transactionFormTitle">Καταχώριση Συναλλαγής</h3>
-      <button type="button" class="secondary small-btn" onclick="closeTransactionModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeTransactionModal" aria-label="Κλείσιμο">✕</button>
     </div>
 
     <input type="hidden" id="editingTransactionId" value="" />
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:12px;">
-      <button type="button" class="chip-btn active" id="typeBtn_expense" onclick="selectTransactionType('expense')">🔴 Έξοδο</button>
-      <button type="button" class="chip-btn" id="typeBtn_income" onclick="selectTransactionType('income')">🟢 Έσοδο</button>
-      <button type="button" class="chip-btn" id="typeBtn_saving" onclick="selectTransactionType('saving')">🔵 Αποταμ.</button>
-      <button type="button" class="chip-btn" id="typeBtn_withdrawal" onclick="selectTransactionType('withdrawal')">🟠 Ανάληψη</button>
+      <button type="button" class="chip-btn active" id="typeBtn_expense" data-click="selectTransactionType" data-arg="expense">🔴 Έξοδο</button>
+      <button type="button" class="chip-btn" id="typeBtn_income" data-click="selectTransactionType" data-arg="income">🟢 Έσοδο</button>
+      <button type="button" class="chip-btn" id="typeBtn_saving" data-click="selectTransactionType" data-arg="saving">🔵 Αποταμ.</button>
+      <button type="button" class="chip-btn" id="typeBtn_withdrawal" data-click="selectTransactionType" data-arg="withdrawal">🟠 Ανάληψη</button>
     </div>
     <input type="hidden" id="txType" value="expense" />
 
     <div class="form-row">
       <div class="form-group">
         <label for="amount">Ποσό (€)</label>
-        <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" oninput="updateSharedTxPreview()" required />
+        <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" data-input="updateSharedTxPreview" required />
       </div>
       <div class="form-group">
         <label for="date">Ημερομηνία</label>
@@ -1179,7 +1189,7 @@
     <div class="form-row">
       <div class="form-group">
         <label for="category">Κατηγορία</label>
-        <select id="category" onchange="onTransactionCategoryChange()"></select>
+        <select id="category" data-change="onTransactionCategoryChange"></select>
       </div>
       <div class="form-group">
         <label for="txSource">Λογαριασμός / Πηγή</label>
@@ -1209,13 +1219,13 @@
 
     <div id="sharedTxControls" style="display:none; background:var(--purple-soft); padding:10px 12px; border-radius:12px; margin-bottom:12px;">
       <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:13px; cursor:pointer;">
-        <input type="checkbox" id="txIsShared" onchange="txSharedManuallyTouched = true; updateSharedTxPreview()" />
+        <input type="checkbox" id="txIsShared" data-change="onTxSharedManualToggle" />
         👫 Κοινό Έξοδο Σπιτιού (Επιμερισμός Ζευγαριού)
       </label>
       <div id="sharedTxDetails" style="display:none; margin-top:8px;">
         <div class="form-group" style="margin-bottom:6px;">
           <label for="txPaidBy">Ποιος πλήρωσε τον λογαριασμό;</label>
-          <select id="txPaidBy" onchange="updateSharedTxPreview()">
+          <select id="txPaidBy" data-change="updateSharedTxPreview">
             <option value="me">Πλήρωσα Εγώ (100%)</option>
             <option value="partner">Πλήρωσε ο/η Σύντροφος (100%)</option>
             <option value="split">Πλήρωσε ο καθένας το μερίδιό του</option>
@@ -1232,17 +1242,17 @@
     </div>
 
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" style="flex:1;" onclick="addTransaction(false)">💾 Αποθήκευση</button>
+      <button type="button" style="flex:1;" data-click="addTransaction" data-arg="false">💾 Αποθήκευση</button>
     </div>
   </div>
 </div>
 
 <!-- 2. Payday Allocation Modal -->
-<div id="paydayModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="paydayModalTitle" onclick="if(event.target===this) closePaydayModal()">
+<div id="paydayModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="paydayModalTitle" data-backdrop-close="closePaydayModal">
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="paydayModalTitle">💸 Έξυπνη Κατανομή Μισθοδοσίας (Payday)</h3>
-      <button type="button" class="secondary small-btn" onclick="closePaydayModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closePaydayModal" aria-label="Κλείσιμο">✕</button>
     </div>
     <p class="small">Καταχώρισε τον μισθό σου και δέσμευσε αυτόματα τον στόχο αποταμίευσης και τις μηνιαίες δόσεις των κουμπαράδων σου («Πλήρωσε πρώτα τον εαυτό σου»).</p>
     <div class="form-group">
@@ -1255,29 +1265,34 @@
         🐷 Αυτόματη τροφοδότηση κουμπαράδων στόχων (μηνιαία αναλογία)
       </label>
     </div>
-    <button type="button" class="accent" style="width:100%;" onclick="executePaydayAllocation()">🚀 Εκτέλεση Κατανομής Μισθού</button>
+    <button type="button" class="accent" style="width:100%;" data-click="executePaydayAllocation">🚀 Εκτέλεση Κατανομής Μισθού</button>
   </div>
 </div>
 
 <!-- 3. Bank & Revolut Import Modal -->
 <div id="bankImportModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bankImportModalTitle">
-  <div class="modal-content wide" id="bankImportDropZone" ondragover="handleBankDragOver(event)" ondragleave="handleBankDragLeave(event)" ondrop="handleBankDrop(event)">
+  <div class="modal-content wide" id="bankImportDropZone" data-dragover="handleBankDragOver" data-dragleave="handleBankDragLeave" data-drop="handleBankDrop">
     <div class="panel-header" style="flex-shrink:0;">
       <h3 class="panel-title" id="bankImportModalTitle">🏦 Εισαγωγή Κινήσεων Τράπεζας & Revolut (.xlsx / .xls / .csv)</h3>
       <div style="display:flex; gap:6px; align-items:center;">
-        <button type="button" class="secondary small-btn" id="toggleColumnMapperBtn" style="display:none;" onclick="toggleManualColumnMapper()" title="Χειροκίνητη αντιστοίχιση στηλών">🛠️ Στήλες</button>
-        <button type="button" class="secondary small-btn" onclick="closeBankImportModal()" aria-label="Κλείσιμο">✕ Κλείσιμο</button>
+        <button type="button" class="secondary small-btn" id="toggleColumnMapperBtn" style="display:none;" data-click="toggleManualColumnMapper" title="Χειροκίνητη αντιστοίχιση στηλών">🛠️ Στήλες</button>
+        <button type="button" class="secondary small-btn" data-click="closeBankImportModal" aria-label="Κλείσιμο">✕ Κλείσιμο</button>
       </div>
+    </div>
+
+    <div class="banner success" style="flex-shrink:0; margin-bottom:10px; padding:8px 12px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+      <span class="small">🔒 <strong>100% Τοπική Επεξεργασία:</strong> Το αρχείο της τράπεζάς σου διαβάζεται αποκλειστικά στον browser σου και <strong>δεν ανεβαίνει ποτέ</strong> σε κανέναν server.</span>
+      <button type="button" class="secondary small-btn" data-click="openPrivacySecurityModal">Μάθε περισσότερα</button>
     </div>
 
     <div class="bank-filters-grid">
       <div>
         <label class="small" for="bankStatementFile">1. Επιλογή Αρχείου (1 ή πολλά .xlsx, .csv)</label>
-        <input type="file" id="bankStatementFile" accept=".xlsx,.xls,.csv" multiple onchange="handleBankFileUpload(event)" style="margin-top:4px; width:100%;" />
+        <input type="file" id="bankStatementFile" accept=".xlsx,.xls,.csv" multiple data-change="handleBankFileUpload" style="margin-top:4px; width:100%;" />
       </div>
       <div>
         <label class="small" for="bankSourceSelect">2. Λογαριασμός / Πηγή</label>
-        <select id="bankSourceSelect" onchange="onBankSourceOverrideChange()" style="margin-top:4px; width:100%;">
+        <select id="bankSourceSelect" data-change="onBankSourceOverrideChange" style="margin-top:4px; width:100%;">
           <option value="auto">✨ Αυτόματος Εντοπισμός</option>
           <option value="Πειραιώς">🏦 Τράπεζα Πειραιώς</option>
           <option value="Εθνική">🏦 Εθνική Τράπεζα</option>
@@ -1290,7 +1305,7 @@
       </div>
       <div>
         <label class="small" for="bankPreviewFilter">3. Φίλτρο Κατάστασης</label>
-        <select id="bankPreviewFilter" onchange="renderBankPreviewTable()" style="margin-top:4px; width:100%;">
+        <select id="bankPreviewFilter" data-change="renderBankPreviewTable" style="margin-top:4px; width:100%;">
           <option value="all">Όλες οι γραμμές</option>
           <option value="selected">✅ Επιλεγμένες προς εισαγωγή</option>
           <option value="debt">🏦 Δόσεις / Δάνεια / Κάρτες</option>
@@ -1301,8 +1316,8 @@
       <div>
         <label class="small" for="bankPreviewSearch">4. Γρήγορη Αναζήτηση Ιδίων</label>
         <div style="display:flex; gap:4px; margin-top:4px;">
-          <input type="text" id="bankPreviewSearch" placeholder="🔍 π.χ. PRONTO, Σκλαβενίτης..." oninput="debouncedRenderBankPreviewTable()" style="width:100%;" />
-          <button type="button" class="secondary small-btn" id="clearBankSearchBtn" onclick="clearBankPreviewSearch()" aria-label="Καθαρισμός αναζήτησης" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
+          <input type="text" id="bankPreviewSearch" placeholder="🔍 π.χ. PRONTO, Σκλαβενίτης..." data-input="debouncedRenderBankPreviewTable" style="width:100%;" />
+          <button type="button" class="secondary small-btn" id="clearBankSearchBtn" data-click="clearBankPreviewSearch" aria-label="Καθαρισμός αναζήτησης" title="Καθαρισμός αναζήτησης" style="display:none;">✕</button>
         </div>
       </div>
     </div>
@@ -1312,7 +1327,7 @@
       <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <label class="small" for="bankCreditCardSelect" style="font-weight:700; color:var(--text);">💳 Statement Πιστωτικής Κάρτας:</label>
-          <select id="bankCreditCardSelect" onchange="onBankCreditCardSelectChange()" style="padding:5px 8px; font-size:12px; min-width:210px;">
+          <select id="bankCreditCardSelect" data-change="onBankCreditCardSelectChange" style="padding:5px 8px; font-size:12px; min-width:210px;">
             <option value="">Όχι (Τραπεζικός Λογαριασμός / Χρεωστική)</option>
           </select>
         </div>
@@ -1331,7 +1346,7 @@
           <select id="mapDateColSelect" aria-label="Στήλη Ημερομηνίας" style="padding:4px 8px; font-size:12px;"></select>
           <select id="mapDescColSelect" aria-label="Στήλη Περιγραφής" style="padding:4px 8px; font-size:12px;"></select>
           <select id="mapAmountColSelect" aria-label="Στήλη Ποσού" style="padding:4px 8px; font-size:12px;"></select>
-          <button type="button" class="small-btn" onclick="applyManualColumnMapping()">🔄 Εφαρμογή</button>
+          <button type="button" class="small-btn" data-click="applyManualColumnMapping">🔄 Εφαρμογή</button>
         </div>
       </div>
     </div>
@@ -1341,12 +1356,12 @@
     <div id="bankBulkActionsBar" style="flex-shrink:0; display:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
       <div class="small" id="bankSelectedCountText">0 επιλεγμένες</div>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-        <button type="button" class="secondary small-btn" id="selectOnlyVisibleBankBtn" onclick="selectOnlyVisibleBankRows()" style="display:none;" title="Επιλογή μόνο των γραμμών που εμφανίζονται">☑️ Επιλογή Μόνο Αυτών</button>
+        <button type="button" class="secondary small-btn" id="selectOnlyVisibleBankBtn" data-click="selectOnlyVisibleBankRows" style="display:none;" title="Επιλογή μόνο των γραμμών που εμφανίζονται">☑️ Επιλογή Μόνο Αυτών</button>
         <select id="bankBulkCategorySelect" aria-label="Μαζική επιλογή κατηγορίας" style="font-size:12px;"></select>
-        <button type="button" class="secondary small-btn" id="applyBulkBankCatBtn" onclick="applyBulkBankCategory()">Εφαρμογή στα Επιλεγμένα</button>
+        <button type="button" class="secondary small-btn" id="applyBulkBankCatBtn" data-click="applyBulkBankCategory">Εφαρμογή στα Επιλεγμένα</button>
         <span id="bankBulkSharedBtns" style="display:none; gap:4px;">
-          <button type="button" class="secondary small-btn" onclick="applyBulkBankShared(true)" title="Ορισμός επιλεγμένων εξόδων ως Κοινά">👫 Κοινά</button>
-          <button type="button" class="secondary small-btn" onclick="applyBulkBankShared(false)" title="Ορισμός επιλεγμένων εξόδων ως Προσωπικά">👤 Προσωπικά</button>
+          <button type="button" class="secondary small-btn" data-click="applyBulkBankShared" data-arg="true" title="Ορισμός επιλεγμένων εξόδων ως Κοινά">👫 Κοινά</button>
+          <button type="button" class="secondary small-btn" data-click="applyBulkBankShared" data-arg="false" title="Ορισμός επιλεγμένων εξόδων ως Προσωπικά">👤 Προσωπικά</button>
         </span>
       </div>
     </div>
@@ -1355,7 +1370,7 @@
       <table id="bankPreviewTable">
         <thead>
           <tr>
-            <th><input type="checkbox" id="bankSelectAll" aria-label="Επιλογή όλων" onchange="toggleAllBankRows(this.checked)" /></th>
+            <th><input type="checkbox" id="bankSelectAll" aria-label="Επιλογή όλων" data-change="toggleAllBankRows" /></th>
             <th>Ημ/νία & Πηγή</th>
             <th>Περιγραφή (Κλικ για διόρθωση)</th>
             <th>Κατηγορία</th>
@@ -1371,18 +1386,18 @@
     </div>
 
     <div style="flex-shrink:0; display:flex; justify-content:flex-end; gap:8px;">
-      <button type="button" class="secondary" onclick="closeBankImportModal()">Ακύρωση</button>
-      <button type="button" class="accent" id="confirmBankImportBtn" disabled onclick="confirmBankImport()">✅ Εισαγωγή Επιλεγμένων</button>
+      <button type="button" class="secondary" data-click="closeBankImportModal">Ακύρωση</button>
+      <button type="button" class="accent" id="confirmBankImportBtn" disabled data-click="confirmBankImport">✅ Εισαγωγή Επιλεγμένων</button>
     </div>
   </div>
 </div>
 
 <!-- 4. Live Cloud Sync Modal -->
-<div id="cloudSyncModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cloudSyncModalTitle" onclick="if(event.target===this) closeCloudSyncModal()">
+<div id="cloudSyncModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cloudSyncModalTitle" data-backdrop-close="closeCloudSyncModal">
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="cloudSyncModalTitle">☁️ Live Cloud Sync Room (AES-256)</h3>
-      <button type="button" class="secondary small-btn" onclick="closeCloudSyncModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeCloudSyncModal" aria-label="Κλείσιμο">✕</button>
     </div>
 
     <!-- Firebase Authentication Panel -->
@@ -1392,18 +1407,19 @@
         Για ενεργοποίηση του Firebase Auth + Cloud Functions, βάλε το <code>apiKey</code> &amp; <code>appId</code> στο <code>js/firebase-config.js</code> (βλ. <code>docs/FIREBASE_SETUP_GUIDE.md</code>).
       </div>
       <div id="fbAuthSignedOutBox" style="display:none;">
-        <button type="button" class="accent small-btn" style="width:100%; margin-bottom:8px;" onclick="signInWithGoogleFirebase()">🔑 Σύνδεση με Google</button>
+        <button type="button" class="accent small-btn" style="width:100%; margin-bottom:8px;" data-click="signInWithGoogleFirebase">🔑 Σύνδεση με Google</button>
         <div class="form-row" style="margin-bottom:6px;">
           <input type="email" id="fbAuthEmailInput" placeholder="Email" autocomplete="email" />
           <input type="password" id="fbAuthPassInput" placeholder="Κωδικός (6+ χαρ.)" autocomplete="current-password" />
         </div>
         <div style="display:flex; gap:6px;">
-          <button type="button" class="secondary small-btn" style="flex:1;" onclick="signInWithEmailFirebase(false)">Είσοδος Email</button>
-          <button type="button" class="secondary small-btn" style="flex:1;" onclick="signInWithEmailFirebase(true)">Εγγραφή Email</button>
+          <button type="button" class="secondary small-btn" style="flex:1;" data-click="signInWithEmailFirebase" data-arg="false">Είσοδος Email</button>
+          <button type="button" class="secondary small-btn" style="flex:1;" data-click="signInWithEmailFirebase" data-arg="true">Εγγραφή Email</button>
         </div>
       </div>
-      <div id="fbAuthSignedInBox" style="display:none; justify-content:flex-end;">
-        <button type="button" class="secondary small-btn" onclick="signOutFirebase()">🚪 Αποσύνδεση Λογαριασμού</button>
+      <div id="fbAuthSignedInBox" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span class="badge saving" id="fbAuthPlanBadge" style="display:none;">Πλάνο: Free</span>
+        <button type="button" class="secondary small-btn" data-click="signOutFirebase">🚪 Αποσύνδεση Λογαριασμού</button>
       </div>
     </div>
 
@@ -1414,15 +1430,15 @@
         <label for="syncRoomCodeInput">Κωδικός Δωματίου</label>
         <div style="display:flex; gap:6px;">
           <input type="text" id="syncRoomCodeInput" placeholder="π.χ. FG-8492-KLMN" autocapitalize="characters" autocorrect="off" spellcheck="false" />
-          <button type="button" class="secondary small-btn" onclick="generateNewSyncRoomCode()">🎲 Νέος</button>
+          <button type="button" class="secondary small-btn" data-click="generateNewSyncRoomCode">🎲 Νέος</button>
         </div>
       </div>
 
       <div class="form-group">
         <label for="syncRoomPinInput">Μυστικό PIN Κρυπτογράφησης (συνιστώνται 6+ χαρακτήρες)</label>
         <div style="display:flex; gap:6px;">
-          <input type="password" id="syncRoomPinInput" placeholder="π.χ. 482910" autocomplete="off" autocorrect="off" spellcheck="false" oninput="updateSyncPinStrengthHint()" />
-          <button type="button" class="secondary small-btn" onclick="toggleSyncPinVisibility('syncRoomPinInput', this)" aria-label="Εμφάνιση ή απόκρυψη PIN" title="Εμφάνιση/Απόκρυψη PIN">👁️</button>
+          <input type="password" id="syncRoomPinInput" placeholder="π.χ. 482910" autocomplete="off" autocorrect="off" spellcheck="false" data-input="updateSyncPinStrengthHint" />
+          <button type="button" class="secondary small-btn" data-click="toggleSyncPinVisibility" data-arg="syncRoomPinInput" aria-label="Εμφάνιση ή απόκρυψη PIN" title="Εμφάνιση/Απόκρυψη PIN">👁️</button>
         </div>
         <div class="small" id="syncPinStrengthHint" style="margin-top:2px;"></div>
       </div>
@@ -1437,7 +1453,7 @@
       <div class="form-row">
         <div class="form-group">
           <label for="syncRoomModeSelect">Τρόπος Χρήσης</label>
-          <select id="syncRoomModeSelect" onchange="onSyncModeSelectChange()">
+          <select id="syncRoomModeSelect" data-change="onSyncModeSelectChange">
             <option value="solo">👤 Προσωπικό (Laptop ↔ Κινητό)</option>
             <option value="couple">👫 Ζευγάρι (2 Μέλη)</option>
           </select>
@@ -1451,7 +1467,7 @@
         </div>
       </div>
 
-      <button type="button" class="accent" style="width:100%;" onclick="connectCloudSyncRoom()">🔗 Σύνδεση & Συγχρονισμός Τώρα</button>
+      <button type="button" class="accent" style="width:100%;" data-click="connectCloudSyncRoom">🔗 Σύνδεση & Συγχρονισμός Τώρα</button>
     </div>
 
     <div id="cloudSyncConnectedView" style="display:none;">
@@ -1468,7 +1484,7 @@
         <div class="small" style="margin:4px 0 8px;">Εισήγαγε το PIN του δωματίου για να ξεκλειδώσει ο αυτόματος συγχρονισμός.</div>
         <div style="display:flex; gap:6px;">
           <input type="password" id="unlockSessionPinInput" placeholder="PIN δωματίου" />
-          <button type="button" class="accent small-btn" onclick="unlockSessionCloudPin()">🔓 Ξεκλείδωμα</button>
+          <button type="button" class="accent small-btn" data-click="unlockSessionCloudPin">🔓 Ξεκλείδωμα</button>
         </div>
       </div>
 
@@ -1476,7 +1492,7 @@
         <label for="connectedRoomPinDisplay">Αποθηκευμένο PIN Δωματίου (για σύνδεση 2ης συσκευής)</label>
         <div style="display:flex; gap:6px;">
           <input type="password" id="connectedRoomPinDisplay" readonly />
-          <button type="button" class="secondary small-btn" onclick="toggleSyncPinVisibility('connectedRoomPinDisplay', this)" aria-label="Εμφάνιση ή απόκρυψη PIN">👁️</button>
+          <button type="button" class="secondary small-btn" data-click="toggleSyncPinVisibility" data-arg="connectedRoomPinDisplay" aria-label="Εμφάνιση ή απόκρυψη PIN">👁️</button>
         </div>
       </div>
 
@@ -1500,33 +1516,33 @@
           </select>
         </div>
         <div style="display:flex; gap:6px;">
-          <button type="button" class="accent small-btn" style="flex:1;" onclick="inviteRoomMemberViaFunction()">➕ Προσθήκη / Ενημέρωση</button>
-          <button type="button" class="danger small-btn" onclick="removeRoomMemberViaFunction()">🗑️ Αφαίρεση</button>
+          <button type="button" class="accent small-btn" style="flex:1;" data-click="inviteRoomMemberViaFunction">➕ Προσθήκη / Ενημέρωση</button>
+          <button type="button" class="danger small-btn" data-click="removeRoomMemberViaFunction">🗑️ Αφαίρεση</button>
         </div>
       </div>
 
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-        <button type="button" style="flex:1;" onclick="manualSyncNow()">🔄 Συγχρονισμός Τώρα</button>
-        <button type="button" class="danger" onclick="disconnectCloudSyncRoom()">🔌 Αποσύνδεση</button>
+        <button type="button" style="flex:1;" data-click="manualSyncNow">🔄 Συγχρονισμός Τώρα</button>
+        <button type="button" class="danger" data-click="disconnectCloudSyncRoom">🔌 Αποσύνδεση</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- 5. Couple File Merge Modal -->
-<div id="coupleMergeModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="coupleMergeModalTitle" onclick="if(event.target===this) closeCoupleMergeModal()">
+<div id="coupleMergeModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="coupleMergeModalTitle" data-backdrop-close="closeCoupleMergeModal">
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="coupleMergeModalTitle">🤝 Ενοποίηση Δεδομένων Ζευγαριού (Χωρίς Server)</h3>
-      <button type="button" class="secondary small-btn" onclick="closeCoupleMergeModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeCoupleMergeModal" aria-label="Κλείσιμο">✕</button>
     </div>
     <p class="small">Ανταλλάξτε αρχεία μέσω WhatsApp / Viber / AirDrop. Οι ρόλοι πληρωμής (<code>paidBy</code>) αντιστρέφονται αυτόματα και δεν δημιουργούνται διπλοεγγραφές.</p>
 
     <div class="kpi-card" style="background:var(--card-soft); margin-bottom:12px;">
       <strong>1. Αποστολή στον/στην Σύντροφό σου</strong>
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-        <button type="button" class="secondary small-btn" onclick="exportPartnerMergeFile(true)">🔒 Εξαγωγή Μόνο Κοινών (👫)</button>
-        <button type="button" class="secondary small-btn" onclick="exportPartnerMergeFile(false)">🏠 Εξαγωγή Πλήρους Εικόνας</button>
+        <button type="button" class="secondary small-btn" data-click="exportPartnerMergeFile" data-arg="true">🔒 Εξαγωγή Μόνο Κοινών (👫)</button>
+        <button type="button" class="secondary small-btn" data-click="exportPartnerMergeFile" data-arg="false">🏠 Εξαγωγή Πλήρους Εικόνας</button>
       </div>
     </div>
 
@@ -1534,18 +1550,18 @@
       <strong>2. Εισαγωγή Αρχείου Συντρόφου</strong>
       <div style="display:flex; gap:8px; margin-top:8px;">
         <input type="file" id="partnerMergeFileInput" accept=".json" aria-label="Αρχείο JSON συντρόφου" />
-        <button type="button" class="accent small-btn" onclick="importPartnerMergeFile()">🤝 Συγχώνευση</button>
+        <button type="button" class="accent small-btn" data-click="importPartnerMergeFile">🤝 Συγχώνευση</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- 6. Share & QR Code Modal -->
-<div id="shareModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" onclick="if(event.target===this) closeShareModal()">
+<div id="shareModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" data-backdrop-close="closeShareModal">
   <div class="modal-content" style="text-align:center;">
     <div class="panel-header">
       <h3 class="panel-title" id="shareModalTitle">📤 Μοίρασέ το με Φίλους</h3>
-      <button type="button" class="secondary small-btn" onclick="closeShareModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeShareModal" aria-label="Κλείσιμο">✕</button>
     </div>
     <p class="small">Δωρεάν, 100% ιδιωτικό εργαλείο οικονομικού ελέγχου για Ελλάδα (Τράπεζες, Revolut, Κύκλος Μισθοδοσίας & Ζευγάρια).</p>
 
@@ -1553,14 +1569,14 @@
 
     <div style="display:flex; gap:6px; margin:12px 0;">
       <input type="text" id="shareUrlInput" readonly value="https://thgoulis.github.io/FinanceGR/" aria-label="Σύνδεσμος εφαρμογής" style="text-align:center; font-weight:600;" />
-      <button type="button" onclick="copyShareUrl()">📋 Αντιγραφή</button>
+      <button type="button" data-click="copyShareUrl">📋 Αντιγραφή</button>
     </div>
 
     <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
-      <button type="button" class="secondary small-btn" onclick="shareSocial('whatsapp')">💬 WhatsApp</button>
-      <button type="button" class="secondary small-btn" onclick="shareSocial('viber')">📱 Viber</button>
-      <button type="button" class="secondary small-btn" onclick="shareSocial('telegram')">✈️ Telegram</button>
-      <button type="button" class="secondary small-btn" onclick="downloadQrCodePng()">📥 Λήψη QR PNG</button>
+      <button type="button" class="secondary small-btn" data-click="shareSocial" data-arg="whatsapp">💬 WhatsApp</button>
+      <button type="button" class="secondary small-btn" data-click="shareSocial" data-arg="viber">📱 Viber</button>
+      <button type="button" class="secondary small-btn" data-click="shareSocial" data-arg="telegram">✈️ Telegram</button>
+      <button type="button" class="secondary small-btn" data-click="downloadQrCodePng">📥 Λήψη QR PNG</button>
     </div>
   </div>
 </div>
@@ -1570,13 +1586,24 @@
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="welcomeModalTitle">👋 Καλώς ήρθες στο FinanceGR!</h3>
+      <button type="button" class="secondary small-btn" data-click="skipWelcomeSetup" aria-label="Κλείσιμο">✕</button>
     </div>
-    <p class="small">Διάλεξε ένα έτοιμο προφίλ αφετηρίας ή συμπλήρωσε τα δικά σου στοιχεία σε 10 δευτερόλεπτα:</p>
+    <p class="small" style="margin-bottom:10px;">Οργάνωσε μισθό, έξοδα Πειραιώς/Revolut, προϋπολογισμό, επενδύσεις &amp; δάνεια — <strong>100% ιδιωτικά στη συσκευή σου</strong>.</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+      <button type="button" class="secondary" style="text-align:left; padding:10px 12px; display:flex; flex-direction:column; gap:3px;" data-click="loadDemoShowcaseData">
+        <strong style="font-size:13px; color:var(--accent);">👀 Δοκιμή με Demo Δεδομένα</strong>
+        <span class="small">Δες έτοιμα γραφήματα, ETF &amp; δάνεια (σβήνεται με 1 κλικ)</span>
+      </button>
+      <button type="button" class="secondary" style="text-align:left; padding:10px 12px; display:flex; flex-direction:column; gap:3px;" data-click="startWithBankStatementImport">
+        <strong style="font-size:13px; color:var(--primary);">🏦 Εισαγωγή Αρχείου Τράπεζας</strong>
+        <span class="small">Ανέβασε .xlsx/.csv Πειραιώς ή Revolut (100% τοπικά)</span>
+      </button>
+    </div>
 
     <div class="quick-presets-row" style="margin-bottom:12px;">
-      <button type="button" class="preset-pill" onclick="applyWelcomePersona(600, 1, 100)">🎓 Φοιτητής / Νέος (€600)</button>
-      <button type="button" class="preset-pill" onclick="applyWelcomePersona(1350, 25, 250)">💼 Μισθωτός (€1.350)</button>
-      <button type="button" class="preset-pill" onclick="applyWelcomePersona(1850, 25, 400)">📈 Επενδυτής / Family (€1.850)</button>
+      <button type="button" class="preset-pill" data-click="applyWelcomePersona" data-income="600" data-payday="1" data-goal="100">🎓 Φοιτητής / Νέος (€600)</button>
+      <button type="button" class="preset-pill" data-click="applyWelcomePersona" data-income="1350" data-payday="25" data-goal="250">💼 Μισθωτός (€1.350)</button>
+      <button type="button" class="preset-pill" data-click="applyWelcomePersona" data-income="1850" data-payday="25" data-goal="400">📈 Επενδυτής / Family (€1.850)</button>
     </div>
 
     <div class="form-row">
@@ -1600,18 +1627,21 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-      <button type="button" class="accent" style="flex:1;" onclick="completeWelcomeSetup()">🚀 Ξεκινάμε</button>
-      <button type="button" class="secondary" onclick="skipWelcomeSetup()">Παράλειψη (Καθαρό €0)</button>
+      <button type="button" class="accent" style="flex:1;" data-click="completeWelcomeSetup">🚀 Ξεκινάμε</button>
+      <button type="button" class="secondary" data-click="skipWelcomeSetup">Καθαρό Ξεκίνημα (€0)</button>
+    </div>
+    <div class="small" style="margin-top:10px; text-align:center; color:var(--muted);">
+      🔒 Κανένα τραπεζικό στοιχείο δεν φεύγει από τον browser σου. <button type="button" class="secondary small-btn" style="padding:2px 8px; font-size:11.5px; margin-left:4px;" data-click="openPrivacySecurityModal">Ιδιωτικότητα &amp; Όροι</button>
     </div>
   </div>
 </div>
 
 <!-- 7b. Liability Installment Payment Modal (Principal vs Interest) -->
-<div id="liabilityPaymentModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="liabilityPaymentModalTitle" onclick="if(event.target===this) closeLiabilityPaymentModal()">
+<div id="liabilityPaymentModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="liabilityPaymentModalTitle" data-backdrop-close="closeLiabilityPaymentModal">
   <div class="modal-content">
     <div class="panel-header">
       <h3 class="panel-title" id="liabilityPaymentModalTitle">💸 Καταχώριση Πληρωμής Δόσης</h3>
-      <button type="button" class="secondary small-btn" onclick="closeLiabilityPaymentModal()" aria-label="Κλείσιμο">✕</button>
+      <button type="button" class="secondary small-btn" data-click="closeLiabilityPaymentModal" aria-label="Κλείσιμο">✕</button>
     </div>
     <input type="hidden" id="payLiabilityId" value="" />
     <div class="banner info" id="payLiabilityInfoBar" style="margin-bottom:12px; font-size:12.5px;"></div>
@@ -1619,17 +1649,17 @@
     <div class="form-row">
       <div class="form-group">
         <label for="payLiabilityPrincipal">Αποπληρωμή Κεφαλαίου (€)</label>
-        <input type="number" id="payLiabilityPrincipal" step="0.01" min="0" placeholder="0.00" oninput="recalcLiabilityPaymentPreview()" />
+        <input type="number" id="payLiabilityPrincipal" step="0.01" min="0" placeholder="0.00" data-input="recalcLiabilityPaymentPreview" />
       </div>
       <div class="form-group">
         <label for="payLiabilityInterest">Τόκοι / Έξοδα (€)</label>
-        <input type="number" id="payLiabilityInterest" step="0.01" min="0" placeholder="0.00" oninput="recalcLiabilityPaymentPreview()" />
+        <input type="number" id="payLiabilityInterest" step="0.01" min="0" placeholder="0.00" data-input="recalcLiabilityPaymentPreview" />
       </div>
     </div>
 
     <div id="payLiabilityInstallmentWrap" class="form-group" style="display:none; background:var(--card-soft); padding:10px 12px; border-radius:10px; margin-bottom:10px;">
       <label for="payLiabilityInstallmentPrincipal">📅 Εκ των οποίων Αποπληρωμή Άτοκων Δόσεων (€)</label>
-      <input type="number" id="payLiabilityInstallmentPrincipal" step="0.01" min="0" placeholder="0.00" oninput="recalcLiabilityPaymentPreview()" />
+      <input type="number" id="payLiabilityInstallmentPrincipal" step="0.01" min="0" placeholder="0.00" data-input="recalcLiabilityPaymentPreview" />
       <div class="small" style="margin-top:3px;">Μειώνει αυτόματα το υπόλοιπο άτοκων δόσεων και τον μετρητή υπολειπόμενων δόσεων της κάρτας.</div>
     </div>
 
@@ -1647,8 +1677,8 @@
     <div class="small" id="payLiabilityImpactHint" style="margin-bottom:14px; padding:10px 12px; background:var(--card-soft); border-radius:10px;"></div>
 
     <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button type="button" class="secondary" onclick="closeLiabilityPaymentModal()">Ακύρωση</button>
-      <button type="button" class="accent" onclick="executeLiabilityPayment()">✅ Καταχώριση Πληρωμής</button>
+      <button type="button" class="secondary" data-click="closeLiabilityPaymentModal">Ακύρωση</button>
+      <button type="button" class="accent" data-click="executeLiabilityPayment">✅ Καταχώριση Πληρωμής</button>
     </div>
   </div>
 </div>
@@ -1665,63 +1695,50 @@
   </div>
 </div>
 
-<!-- 8. Privacy, Zero-Knowledge Security & Legal Disclaimer Modal -->
-<div id="privacySecurityModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle" onclick="if(event.target===this) closePrivacySecurityModal()">
-  <div class="modal-content">
+<!-- 8. Privacy, Zero-Knowledge Security, GDPR & Terms of Use Modal -->
+<div id="privacySecurityModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle" data-backdrop-close="closePrivacySecurityModal">
+  <div class="modal-content" style="max-width:640px; max-height:88vh; overflow-y:auto;">
     <div class="panel-header">
-      <h3 class="panel-title" id="privacyModalTitle">🔒 Ιδιωτικότητα, Ασφάλεια &amp; Όροι Χρήσης</h3>
-      <button type="button" class="secondary small-btn" onclick="closePrivacySecurityModal()" aria-label="Κλείσιμο">✕</button>
+      <h3 class="panel-title" id="privacyModalTitle">🔒 Πολιτική Απορρήτου, GDPR &amp; Όροι Χρήσης</h3>
+      <button type="button" class="secondary small-btn" data-click="closePrivacySecurityModal" aria-label="Κλείσιμο">✕</button>
     </div>
 
-    <div style="display:grid; gap:10px; font-size:13px; line-height:1.5;">
+    <div style="display:grid; gap:10px; font-size:13px; line-height:1.55;">
       <div class="kpi-card" style="background:var(--card-soft); padding:12px;">
-        <strong>1. 100% Τοπική Ανάγνωση Αρχείων Τράπεζας (.xlsx / .csv)</strong>
-        <div class="small" style="margin-top:4px;">Όταν εισάγεις αρχείο κινήσεων από Πειραιώς, Εθνική, Alpha, Eurobank ή Revolut, η ανάλυση εκτελείται <strong>αποκλειστικά στη μνήμη του browser σου</strong>. Το αρχείο δεν μεταφορτώνεται ποτέ σε εξωτερικό server.</div>
+        <strong>1. 100% Τοπική Επεξεργασία Αρχείων Τράπεζας (.xlsx / .csv)</strong>
+        <div class="small" style="margin-top:4px;">Όταν εισάγεις αρχείο κινήσεων από Πειραιώς, Εθνική, Alpha, Eurobank ή Revolut, η ανάγνωση και κατηγοριοποίηση εκτελούνται <strong>αποκλειστικά στη μνήμη του browser σου</strong>. Το αρχείο δεν μεταφορτώνεται ποτέ σε εξωτερικό server.</div>
       </div>
 
       <div class="kpi-card" style="background:var(--card-soft); padding:12px;">
-        <strong>2. Zero-Knowledge Κρυπτογράφηση Cloud Sync (AES-256-GCM)</strong>
-        <div class="small" style="margin-top:4px;">Το Cloud Sync είναι <strong>προαιρετικό</strong>. Αν το ενεργοποιήσεις, τα οικονομικά σου δεδομένα κρυπτογραφούνται τοπικά με <strong>AES-256-GCM</strong> (PBKDF2 100.000 επαναλήψεις) χρησιμοποιώντας το μυστικό PIN δωματίου. Ο διαχειριστής της βάσης δεν έχει πρόσβαση στο PIN σου και δεν μπορεί να διαβάσει τις συναλλαγές, τα ποσά ή το χαρτοφυλάκιό σου.</div>
+        <strong>2. Zero-Knowledge Cloud Sync (AES-256-GCM) &amp; Υπο-εκτελούντες Επεξεργασία</strong>
+        <div class="small" style="margin-top:4px;">
+          Το Cloud Sync είναι προαιρετικό και κρυπτογραφεί τοπικά τα οικονομικά σου δεδομένα με <strong>AES-256-GCM</strong> (PBKDF2 100.000 επαναλήψεις) βάσει του μυστικού PIN δωματίου. Ο διαχειριστής δεν έχει πρόσβαση στο PIN ούτε στα κρυπτογραφημένα ποσά/συναλλαγές σου.<br />
+          <strong>Υποδομή (ΕΕ / GDPR):</strong> Google Cloud Firebase Authentication &amp; Realtime Database (<code>europe-west1</code>, Βέλγιο), Cloudflare Workers (proxy τιμών αγοράς), Yahoo Finance &amp; Frankfurter/ECB (μόνο σύμβολα ticker, χωρίς προσωπικά στοιχεία).
+        </div>
       </div>
 
       <div class="kpi-card" style="background:var(--card-soft); padding:12px;">
-        <strong>3. Επενδυτική &amp; Φορολογική Αποποίηση Ευθύνης (Disclaimer)</strong>
-        <div class="small" style="margin-top:4px;">Το FinanceGR είναι εργαλείο προσωπικής οργάνωσης προϋπολογισμού. Οι τιμές ETF/μετοχών, ο υπολογισμός αποδείξεων 30% Ε1 και ο προσομοιωτής ανατοκισμού (FIRE) παρέχονται αποκλειστικά για ενημερωτικούς σκοπούς και <strong>δεν αποτελούν</strong> επενδυτική, φορολογική ή λογιστική συμβουλή.</div>
+        <strong>3. Όροι Χρήσης &amp; Αποποίηση Ευθύνης (Disclaimer)</strong>
+        <div class="small" style="margin-top:4px;">Το FinanceGR παρέχεται «ως έχει» (as-is) για προσωπική οργάνωση προϋπολογισμού. Οι τιμές ETF/μετοχών, οι ισοτιμίες FX, ο υπολογισμός αποδείξεων 30% Ε1 και ο προσομοιωτής ανατοκισμού (FIRE) έχουν αποκλειστικά ενημερωτικό χαρακτήρα και <strong>δεν αποτελούν</strong> επενδυτική, φορολογική, νομική ή λογιστική συμβουλή.</div>
       </div>
 
       <div class="kpi-card" style="background:var(--card-soft); padding:12px;">
-        <strong>4. Ανώνυμο Telemetry &amp; Έλεγχος Δεδομένων (GDPR / Φορητότητα)</strong>
-        <div class="small" style="margin-top:4px;">Μπορείς ανά πάσα στιγμή να εξάγεις όλα τα δεδομένα σου σε <strong>JSON ή CSV</strong> (Ρυθμίσεις → Αντίγραφα Ασφαλείας) ή να διαγράψεις οριστικά τα τοπικά σου δεδομένα με 1 κλικ.</div>
+        <strong>4. Δικαιώματα GDPR (Άρθρα 15, 17 &amp; 20 — Πρόσβαση, Διαγραφή, Φορητότητα)</strong>
+        <div class="small" style="margin-top:4px;">
+          • <strong>Φορητότητα (Άρθρο 20):</strong> Εξαγωγή όλων των δεδομένων σου ανά πάσα στιγμή σε JSON ή CSV.<br />
+          • <strong>Δικαίωμα στη Λήθη (Άρθρο 17):</strong> Αυτοεξυπηρετούμενη οριστική διαγραφή τοπικών δεδομένων, Firebase λογαριασμού και προσωπικών Cloud δωματίων από τις <em>Ρυθμίσεις</em>.<br />
+          • <strong>Ανώνυμο Telemetry (Opt-Out):</strong> Καταγράφονται μόνο ανώνυμοι ημερήσιοι μετρητές χρήσης &amp; κωδικοί σφαλμάτων parser (0 PII / 0 ποσά) και μπορείς να το απενεργοποιήσεις με 1 κλικ από τις <em>Ρυθμίσεις</em>.
+        </div>
       </div>
     </div>
 
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
-      <button type="button" class="accent small-btn" onclick="closePrivacySecurityModal()">✅ Κατανοητό</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px;">
+      <button type="button" class="secondary small-btn" data-click="exportJSON">⬇️ Εξαγωγή JSON (GDPR)</button>
+      <button type="button" class="accent small-btn" data-click="closePrivacySecurityModal">✅ Κατανοητό</button>
     </div>
   </div>
 </div>
 
-<script src="js/state.js"></script>
-<script src="js/firebase-config.js"></script>
-<script src="js/telemetry.js"></script>
-<script src="js/firebase-auth.js"></script>
-<script src="js/cloud-sync.js"></script>
-<script src="js/periods-ui.js"></script>
-<script src="js/transactions.js"></script>
-<script src="js/bank-import.js"></script>
-<script src="js/planning.js"></script>
-<script src="js/wealth.js"></script>
-<script src="js/overview.js"></script>
-<script src="js/settings-backup.js"></script>
-<script src="js/app.js"></script>
-<script>
-if ("serviceWorker" in navigator && (window.location.protocol === "https:" || window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
-      console.warn("SW registration skipped:", err);
-    });
-  });
-}
-</script>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>

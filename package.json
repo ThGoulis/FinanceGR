@@ -1,16 +1,22 @@
 {
   "name": "financegr",
-  "version": "2.5.0",
+  "version": "3.0.0",
   "private": true,
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
     "check": "node scripts/verify-integrity.cjs",
     "test": "node scripts/run-tests.cjs",
     "test:all": "npm run check && npm test",
     "test:emulator": "node --test tests/emulator/rules.emulator.test.cjs",
     "test:e2e": "npx playwright test",
     "serve": "node scripts/serve-static.cjs"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
   }
 }

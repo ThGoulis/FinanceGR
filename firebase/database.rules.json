@@ -53,6 +53,12 @@
     "adminTelemetry": {
       ".read": false,
       ".write": false
+    },
+    "userEntitlements": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
     }
   }
 }

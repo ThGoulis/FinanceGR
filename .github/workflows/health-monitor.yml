@@ -1,0 +1,53 @@
+name: Scheduled Production Health Monitor
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  probe-live-infrastructure:
+    name: Probe Live Site, Cloudflare Worker Auth & Market Data APIs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Live Infrastructure & Upstream API Probes
+        run: |
+          node -e '
+          (async () => {
+            const fail = (msg) => { console.error("FAIL:", msg); process.exit(1); };
+
+            // 1. Live GitHub Pages site check
+            const siteRes = await fetch("https://thgoulis.github.io/FinanceGR/");
+            if (!siteRes.ok) fail(`Site HTTP ${siteRes.status}`);
+            const html = await siteRes.text();
+            if (!html.includes("FinanceGR")) fail("Site HTML missing FinanceGR title");
+            console.log("PASS: Live site reachable (HTTP 200)");
+
+            // 2. Cloudflare Worker availability & RS256 Google Guard check (unauthenticated MUST return 401)
+            const wkRes = await fetch("https://financegr-quotes.tgoulis.workers.dev/?symbol=VUAA.MI");
+            if (wkRes.status !== 401) fail(`Cloudflare Worker expected 401 without token, got ${wkRes.status}`);
+            console.log("PASS: Cloudflare Worker online & RS256 auth guard active (HTTP 401)");
+
+            // 3. Frankfurter / ECB FX API check
+            const fxRes = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD,GBP,CHF");
+            if (!fxRes.ok) fail(`Frankfurter FX HTTP ${fxRes.status}`);
+            const fxJson = await fxRes.json();
+            if (!(fxJson?.rates?.USD > 0)) fail("Frankfurter FX missing USD rate");
+            console.log(`PASS: Frankfurter FX healthy (date=${fxJson.date}, EUR/USD=${fxJson.rates.USD})`);
+
+            // 4. Yahoo Finance chart endpoint check (VUAA.MI)
+            const yhRes = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/VUAA.MI?range=1d&interval=5m", {
+              headers: { "User-Agent": "FinanceGR-HealthMonitor/1.0" }
+            });
+            if (!yhRes.ok) fail(`Yahoo Finance HTTP ${yhRes.status}`);
+            const yhJson = await yhRes.json();
+            const px = Number(yhJson?.chart?.result?.[0]?.meta?.regularMarketPrice);
+            if (!(px > 0)) fail("Yahoo Finance returned invalid VUAA.MI price");
+            console.log(`PASS: Yahoo Finance healthy (VUAA.MI=${px} EUR)`);
+          })().catch(err => { console.error(err); process.exit(1); });
+          '

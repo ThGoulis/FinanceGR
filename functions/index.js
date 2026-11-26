@@ -62,6 +62,64 @@ function getMaxRoomsPerUser() {
   return Number.isFinite(n) && n >= 1 ? Math.min(50, Math.floor(n)) : 5;
 }
 
+const ALLOWED_PLANS = new Set(["free", "pro"]);
+
+function getPlanCatalog() {
+  const freeMaxRooms = getMaxRoomsPerUser();
+  return {
+    free: {
+      plan: "free",
+      label: "Free",
+      maxRooms: freeMaxRooms,
+      features: {
+        cloudSync: true,
+        liveQuotes: true,
+        coupleSharing: true,
+        exportFormats: ["json", "csv"],
+        prioritySupport: false
+      }
+    },
+    pro: {
+      plan: "pro",
+      label: "Pro",
+      maxRooms: 20,
+      features: {
+        cloudSync: true,
+        liveQuotes: true,
+        coupleSharing: true,
+        exportFormats: ["json", "csv"],
+        prioritySupport: true
+      }
+    }
+  };
+}
+
+function normalizeEntitlementRecord(raw, fallbackCatalog = null) {
+  const catalog = fallbackCatalog || getPlanCatalog();
+  const planKey = ALLOWED_PLANS.has(String(raw?.plan || "").toLowerCase())
+    ? String(raw.plan).toLowerCase()
+    : "free";
+  const base = catalog[planKey] || catalog.free;
+  const customMax = Number(raw?.maxRooms);
+  const maxRooms = Number.isFinite(customMax) && customMax >= 1 ? Math.min(100, Math.floor(customMax)) : base.maxRooms;
+  return {
+    plan: base.plan,
+    label: base.label,
+    status: String(raw?.status || "active"),
+    provider: String(raw?.provider || "none"),
+    maxRooms,
+    features: base.features,
+    updatedAt: Number(raw?.updatedAt) || 0,
+    expiresAt: Number(raw?.expiresAt) || 0
+  };
+}
+
+async function resolveUserEntitlement(db, uid) {
+  const snap = await db.ref(`userEntitlements/${uid}`).once("value");
+  return normalizeEntitlementRecord(snap.exists() ? snap.val() : null);
+}
+
+
 function isSystemAdmin(decoded) {
   if (!decoded) return false;
   const provider = String(decoded?.firebase?.sign_in_provider || "");
@@ -198,19 +256,23 @@ async function recordAuditEvent(db, { action, severity = "info", actorUid = "", 
   }
 }
 
-function buildUsersQuotaFromRooms(rooms, maxRoomsPerUser, nowMs = Date.now()) {
+function buildUsersQuotaFromRooms(rooms, maxRoomsPerUser, entitlementsMap = {}, nowMs = Date.now()) {
+  const catalog = getPlanCatalog();
   const userMap = new Map();
   for (const r of rooms) {
     const updatedAt = Number(r.updatedAt) || Number(r.createdAt) || 0;
     const members = r.members && typeof r.members === "object" ? r.members : {};
     for (const [uid, info] of Object.entries(members)) {
       if (!userMap.has(uid)) {
+        const ent = normalizeEntitlementRecord(entitlementsMap?.[uid], catalog);
         userMap.set(uid, {
           uid,
           email: String(info?.email || ""),
+          plan: ent.plan,
+          planProvider: ent.provider,
           roomsCount: 0,
           ownedRoomsCount: 0,
-          maxRooms: maxRoomsPerUser,
+          maxRooms: ent.maxRooms || maxRoomsPerUser,
           lastActivityAt: 0,
           rooms: []
         });
@@ -294,11 +356,14 @@ exports.createRoom = onRequest(async (req, res) => {
       });
     }
 
-    // Enforce per-user room quota (prevents database spam / abuse)
+    // Enforce per-user room quota based on server-side entitlement (prevents database spam / abuse)
     if (!isSystemAdmin(decoded)) {
-      const userRoomsSnap = await db.ref(`userRooms/${uid}`).once("value");
+      const [userRoomsSnap, ent] = await Promise.all([
+        db.ref(`userRooms/${uid}`).once("value"),
+        resolveUserEntitlement(db, uid)
+      ]);
       const currentRoomsCount = userRoomsSnap.exists() ? Object.keys(userRoomsSnap.val() || {}).length : 0;
-      const maxRooms = getMaxRoomsPerUser();
+      const maxRooms = ent.maxRooms || getMaxRoomsPerUser();
       if (currentRoomsCount >= maxRooms) {
         await recordAuditEvent(db, {
           action: "room_quota_exceeded",
@@ -572,13 +637,15 @@ exports.adminOverview = onRequest(async (req, res) => {
     rooms.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt));
 
     const maxRoomsPerUser = getMaxRoomsPerUser();
-    const usersQuota = buildUsersQuotaFromRooms(rooms, maxRoomsPerUser);
 
-    // Read lightweight audit log & anonymous telemetry nodes (never encrypted rooms/)
-    const [auditSnap, telemetrySnap] = await Promise.all([
+    // Read lightweight audit log, anonymous telemetry & entitlements nodes (never encrypted rooms/)
+    const [auditSnap, telemetrySnap, entitlementsSnap] = await Promise.all([
       db.ref("adminAuditLog").once("value"),
-      db.ref("adminTelemetry").once("value")
+      db.ref("adminTelemetry").once("value"),
+      db.ref("userEntitlements").once("value")
     ]);
+    const entitlementsVal = entitlementsSnap.val() || {};
+    const usersQuota = buildUsersQuotaFromRooms(rooms, maxRoomsPerUser, entitlementsVal);
 
     const auditVal = auditSnap.val() || {};
     const auditLogs = Object.values(auditVal)
@@ -869,6 +936,212 @@ exports.clearTelemetry = onRequest(async (req, res) => {
       return res.status(200).json({ ok: true, cleared: "parserErrors" });
     }
     return res.status(400).json({ ok: false, error: "Μη έγκυρος στόχος εκκαθάρισης." });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ ok: false, error: err.message || "Internal error" });
+  }
+});
+
+/**
+ * POST /getMyEntitlements
+ * Returns server-verified plan, quotas, and feature flags for the authenticated user.
+ * Ready for Stripe/Paddle webhook integration writing to userEntitlements/{uid}.
+ */
+exports.getMyEntitlements = onRequest(async (req, res) => {
+  applyCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
+
+  try {
+    const decoded = await verifyCaller(req);
+    const db = admin.database();
+    const entitlement = await resolveUserEntitlement(db, decoded.uid);
+    return res.status(200).json({
+      ok: true,
+      uid: decoded.uid,
+      email: decoded.email || "",
+      entitlement
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ ok: false, error: err.message || "Internal error" });
+  }
+});
+
+/**
+ * POST /setUserPlan
+ * Body: { targetUid, plan: "free" | "pro", provider?: "manual" | "stripe" | "paddle" }
+ * Admin-only endpoint for plan management (mirrors future billing webhook contract).
+ */
+exports.setUserPlan = onRequest(async (req, res) => {
+  applyCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
+
+  try {
+    const decoded = await verifyCaller(req);
+    if (!isSystemAdmin(decoded)) {
+      await recordAuditEvent(admin.database(), {
+        action: "set_user_plan_denied",
+        severity: "security",
+        actorUid: decoded.uid,
+        actorEmail: decoded.email || "",
+        statusCode: 403,
+        detail: "Μη εξουσιοδοτημένη απόπειρα αλλαγής πλάνου χρήστη"
+      });
+      return res.status(403).json({ ok: false, error: "Μη εξουσιοδοτημένη πρόσβαση διαχειριστή." });
+    }
+
+    const targetUid = String(req.body?.targetUid || "").trim();
+    const plan = String(req.body?.plan || "").trim().toLowerCase();
+    const provider = ["manual", "stripe", "paddle", "none"].includes(String(req.body?.provider || "").toLowerCase())
+      ? String(req.body.provider).toLowerCase()
+      : "manual";
+
+    if (!targetUid || targetUid.length > 128) {
+      return res.status(400).json({ ok: false, error: "Μη έγκυρο targetUid." });
+    }
+    if (!ALLOWED_PLANS.has(plan)) {
+      return res.status(400).json({ ok: false, error: "Μη έγκυρο πλάνο (free | pro)." });
+    }
+
+    const catalog = getPlanCatalog();
+    const now = Date.now();
+    const record = {
+      plan,
+      status: "active",
+      provider: plan === "free" ? "none" : provider,
+      maxRooms: catalog[plan].maxRooms,
+      updatedAt: now,
+      updatedBy: decoded.email || decoded.uid
+    };
+
+    const db = admin.database();
+    await db.ref().update({ [`userEntitlements/${targetUid}`]: record });
+    await recordAuditEvent(db, {
+      action: "user_plan_updated",
+      severity: "info",
+      actorUid: decoded.uid,
+      actorEmail: decoded.email || "",
+      statusCode: 200,
+      detail: `${targetUid} -> ${plan.toUpperCase()} (maxRooms=${record.maxRooms})`
+    });
+
+    return res.status(200).json({ ok: true, targetUid, entitlement: normalizeEntitlementRecord(record, catalog) });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ ok: false, error: err.message || "Internal error" });
+  }
+});
+
+/**
+ * POST /deleteMyAccount
+ * Body: { confirm: "DELETE_MY_ACCOUNT" }
+ * GDPR Art. 17 Self-Service Right to Erasure:
+ *  - Purges every room where the caller is the sole member.
+ *  - Leaves shared rooms cleanly (auto-promoting the oldest remaining member if caller was sole owner).
+ *  - Removes userRooms/{uid} and userEntitlements/{uid}.
+ *  - Permanently deletes the Firebase Auth user record.
+ */
+exports.deleteMyAccount = onRequest(async (req, res) => {
+  applyCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
+
+  try {
+    const decoded = await verifyCaller(req);
+    const confirmStr = String(req.body?.confirm || "").trim();
+    if (confirmStr !== "DELETE_MY_ACCOUNT") {
+      return res.status(400).json({
+        ok: false,
+        error: "Απαιτείται ρητή επιβεβαίωση διαγραφής λογαριασμού (confirm: DELETE_MY_ACCOUNT)."
+      });
+    }
+
+    const uid = decoded.uid;
+    const db = admin.database();
+    const userRoomsSnap = await db.ref(`userRooms/${uid}`).once("value");
+    const userRoomsVal = userRoomsSnap.val() || {};
+    const roomIds = Object.keys(userRoomsVal);
+
+    const updates = {};
+    let purgedRooms = 0;
+    let leftSharedRooms = 0;
+    const now = Date.now();
+
+    for (const roomId of roomIds) {
+      const membersSnap = await db.ref(`rooms/${roomId}/members`).once("value");
+      const members = membersSnap.val() || {};
+      const otherUids = Object.keys(members).filter(mUid => mUid !== uid);
+
+      if (otherUids.length === 0) {
+        // Sole member -> permanently purge the entire encrypted room & its index
+        updates[`rooms/${roomId}`] = null;
+        updates[`roomIndex/${roomId}`] = null;
+        purgedRooms += 1;
+      } else {
+        // Shared room -> remove caller, and promote successor if caller was sole owner
+        updates[`rooms/${roomId}/members/${uid}`] = null;
+        updates[`roomIndex/${roomId}/members/${uid}`] = null;
+        updates[`roomIndex/${roomId}/updatedAt`] = now;
+
+        const remainingOwners = otherUids.filter(mUid => members[mUid]?.role === "owner");
+        if (remainingOwners.length === 0) {
+          const sortedOthers = otherUids.sort((a, b) => {
+            const roleScore = (r) => (r === "editor" ? 0 : 1);
+            const diff = roleScore(members[a]?.role) - roleScore(members[b]?.role);
+            if (diff !== 0) return diff;
+            return (Number(members[a]?.joinedAt) || 0) - (Number(members[b]?.joinedAt) || 0);
+          });
+          const successorUid = sortedOthers[0];
+          const successorRec = {
+            ...(members[successorUid] || {}),
+            role: "owner"
+          };
+          updates[`rooms/${roomId}/members/${successorUid}`] = successorRec;
+          updates[`roomIndex/${roomId}/members/${successorUid}`] = successorRec;
+          updates[`rooms/${roomId}/metadata/ownerUid`] = successorUid;
+          updates[`roomIndex/${roomId}/ownerUid`] = successorUid;
+          updates[`userRooms/${successorUid}/${roomId}/role`] = "owner";
+        }
+        leftSharedRooms += 1;
+      }
+    }
+
+    updates[`userRooms/${uid}`] = null;
+    updates[`userEntitlements/${uid}`] = null;
+
+    await db.ref().update(updates);
+
+    // Delete Firebase Auth user record
+    let authDeleted = false;
+    try {
+      await admin.auth().deleteUser(uid);
+      authDeleted = true;
+    } catch (authErr) {
+      if (authErr?.code === "auth/user-not-found") {
+        authDeleted = true;
+      } else {
+        throw authErr;
+      }
+    }
+
+    await recordAuditEvent(db, {
+      action: "account_deleted_gdpr",
+      severity: "warn",
+      actorUid: uid,
+      actorEmail: "[erased-gdpr]",
+      statusCode: 200,
+      detail: `GDPR Art.17: purgedRooms=${purgedRooms}, leftShared=${leftSharedRooms}`
+    });
+
+    return res.status(200).json({
+      ok: true,
+      deletedUid: uid,
+      authDeleted,
+      purgedRooms,
+      leftSharedRooms
+    });
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({ ok: false, error: err.message || "Internal error" });

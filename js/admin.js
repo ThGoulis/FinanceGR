@@ -259,12 +259,12 @@ function renderSelectedRoomMembers() {
         <td class="small">${admEscapeHtml(admFormatDate(info.joinedAt))}</td>
         <td style="text-align:right;">
           <div style="display:inline-flex; gap:6px; align-items:center;">
-            <select style="padding:4px 8px; font-size:12px;" data-room="${admEscapeHtml(roomId)}" data-uid="${admEscapeHtml(uid)}" data-email="${emailLabel}" onchange="admChangeRole(this.dataset.room, this.dataset.uid, this.value, this.dataset.email)" ${disableLastOwner ? "disabled title='Πρέπει να παραμείνει τουλάχιστον 1 Owner'" : ""}>
+            <select style="padding:4px 8px; font-size:12px;" data-room="${admEscapeHtml(roomId)}" data-uid="${admEscapeHtml(uid)}" data-email="${emailLabel}" data-change="admChangeRole" ${disableLastOwner ? "disabled title='Πρέπει να παραμείνει τουλάχιστον 1 Owner'" : ""}>
               <option value="owner" ${r === "owner" ? "selected" : ""}>Owner</option>
               <option value="editor" ${r === "editor" ? "selected" : ""}>Editor</option>
               <option value="viewer" ${r === "viewer" ? "selected" : ""}>Viewer</option>
             </select>
-            <button type="button" class="danger small-btn" data-room="${admEscapeHtml(roomId)}" data-uid="${admEscapeHtml(uid)}" data-email="${emailLabel}" onclick="admRemoveMember(this.dataset.room, this.dataset.uid, this.dataset.email)" ${disableLastOwner ? "disabled" : ""}>🗑️</button>
+            <button type="button" class="danger small-btn" data-room="${admEscapeHtml(roomId)}" data-uid="${admEscapeHtml(uid)}" data-email="${emailLabel}" data-click="admRemoveMember" ${disableLastOwner ? "disabled" : ""}>🗑️</button>
           </div>
         </td>
       </tr>
@@ -312,8 +312,8 @@ function renderRoomsOverviewTable() {
         <td class="small">${admEscapeHtml(admFormatDate(r.updatedAt || r.createdAt))}</td>
         <td style="text-align:right;">
           <div style="display:inline-flex; gap:6px; align-items:center;">
-            <button type="button" class="secondary small-btn" data-room="${safeRoom}" onclick="admSelectRoom(this.dataset.room)" title="Επιλογή δωματίου">👁️</button>
-            <button type="button" class="danger small-btn" data-room="${safeRoom}" onclick="admDeleteRoom(this.dataset.room)" title="Οριστική διαγραφή δωματίου">🗑️</button>
+            <button type="button" class="secondary small-btn" data-room="${safeRoom}" data-click="admSelectRoom" title="Επιλογή δωματίου">👁️</button>
+            <button type="button" class="danger small-btn" data-room="${safeRoom}" data-click="admDeleteRoom" title="Οριστική διαγραφή δωματίου">🗑️</button>
           </div>
         </td>
       </tr>
@@ -385,7 +385,7 @@ async function admRemoveMember(roomId, targetUid, emailLabel) {
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function initFinanceGrAdminApp() {
   if (typeof firebase === "undefined" || !window.FINANCEGR_FIREBASE_CONFIG) {
     showGateError("Αδυναμία φόρτωσης Firebase SDK.");
     return;
@@ -413,7 +413,13 @@ window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("adminLoginGate").style.display = "flex";
     }
   });
-});
+}
+
+if (document.readyState === "complete") {
+  initFinanceGrAdminApp();
+} else {
+  window.addEventListener("load", initFinanceGrAdminApp);
+}
 
 async function runAdminSystemHealthCheck() {
   const btn = document.getElementById("admRunHealthBtn");
@@ -584,23 +590,32 @@ function renderUsersQuotaTable() {
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="small">Δεν βρέθηκαν χρήστες για αυτό το φίλτρο.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="small">Δεν βρέθηκαν χρήστες για αυτό το φίλτρο.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = list.map(u => {
     const pct = Math.min(100, Math.round((u.roomsCount / Math.max(1, u.maxRooms)) * 100));
+    const plan = u.plan === "pro" ? "pro" : "free";
     const statusMap = {
       active: `<span class="badge income">🟢 Ενεργός</span>`,
       at_quota: `<span class="badge expense">⚠️ Όριο Quota</span>`,
       inactive_30d: `<span class="badge withdrawal">🟡 Ανενεργός ${u.inactiveDays}ημ</span>`,
       inactive_60d: `<span class="badge expense">🔴 Ανενεργός ${u.inactiveDays}ημ</span>`
     };
+    const safeUid = admEscapeHtml(u.uid);
+    const safeEmail = admEscapeHtml(u.email || u.uid);
     return `
       <tr>
         <td>
-          <strong>${admEscapeHtml(u.email || u.uid)}</strong>
-          <div class="small" style="font-family:monospace; opacity:0.7;">${admEscapeHtml(u.uid)}</div>
+          <strong>${safeEmail}</strong>
+          <div class="small" style="font-family:monospace; opacity:0.7;">${safeUid}</div>
+        </td>
+        <td>
+          <select style="padding:4px 8px; font-size:12px;" data-uid="${safeUid}" data-email="${safeEmail}" data-change="admSetUserPlan">
+            <option value="free" ${plan === "free" ? "selected" : ""}>🆓 Free</option>
+            <option value="pro" ${plan === "pro" ? "selected" : ""}>⭐ Pro (20 rooms)</option>
+          </select>
         </td>
         <td>
           <strong>${u.roomsCount} / ${u.maxRooms}</strong> (${pct}%)
@@ -614,6 +629,18 @@ function renderUsersQuotaTable() {
       </tr>
     `;
   }).join("");
+}
+
+async function admSetUserPlan(targetUid, plan, label = "") {
+  if (!targetUid || !plan) return;
+  try {
+    await callAdminFunction("setUserPlan", { targetUid, plan, provider: "manual" });
+    showAdminBanner(`⭐ Το πλάνο του ${label || targetUid} ενημερώθηκε σε ${plan.toUpperCase()}.`);
+    await loadAdminOverview();
+  } catch (err) {
+    showAdminBanner(`⚠️ ${err?.message || "Σφάλμα ενημέρωσης πλάνου"}`, true);
+    await loadAdminOverview();
+  }
 }
 
 function renderAuditLogTable() {
