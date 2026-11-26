@@ -55,9 +55,19 @@ body.dark {
 
 * { box-sizing: border-box; }
 
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+html:has(body.dark) {
+  background: #070b14;
+}
+
 html, body {
   margin: 0;
   padding: 0;
+  min-height: 100vh;
   overflow-x: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);

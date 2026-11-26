@@ -710,6 +710,8 @@ function renderInfraDashboard() {
   setEl("admInfraRuntime", infra.runtime ? `Node.js ${infra.runtime}` : "Node.js 22");
   setEl("admInfraCostCap", `maxInstances: ${infra.maxInstances ?? 2} • ${infra.memory || "256MiB"} • ${infra.timeoutSeconds ?? 15}s`);
   setEl("admInfraRoomQuota", `${infra.maxRoomsPerUser ?? 5} rooms / χρήστη`);
+  setEl("admTipMaxInst", `maxInstances: ${infra.maxInstances ?? 2}`);
+  setEl("admTipRoomQuota", `${infra.maxRoomsPerUser ?? 5} rooms/χρήστη`);
   setEl(
     "admInfraBetaMode",
     infra.betaAllowlistActive

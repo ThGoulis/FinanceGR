@@ -159,10 +159,20 @@ async function fetchCloudflareWorkerQuote(rawTicker) {
   }
 
   try {
-    const idToken = typeof getFreshFirebaseIdToken === "function" ? await getFreshFirebaseIdToken(false) : "";
-    const headers = idToken ? { "Authorization": `Bearer ${idToken}` } : {};
     const url = `${CF_QUOTES_WORKER_URL}/?symbol=${encodeURIComponent(symbol)}`;
-    const res = await fetch(url, { signal: controller.signal, headers });
+    let idToken = typeof getFreshFirebaseIdToken === "function" ? await getFreshFirebaseIdToken(false) : "";
+    let headers = idToken ? { "Authorization": `Bearer ${idToken}` } : {};
+    let res = await fetch(url, { signal: controller.signal, headers });
+
+    // If token expired / clock skew caused 401, force-refresh Firebase ID token and retry once
+    if (res.status === 401 && typeof getFreshFirebaseIdToken === "function") {
+      idToken = await getFreshFirebaseIdToken(true);
+      if (idToken) {
+        headers = { "Authorization": `Bearer ${idToken}` };
+        res = await fetch(url, { signal: controller.signal, headers });
+      }
+    }
+
     let json = null;
     try {
       json = await res.json();
@@ -256,7 +266,20 @@ async function runLiveTickerTest() {
   } catch (err) {
     if (out) {
       out.style.color = "var(--danger)";
-      out.textContent = `❌ Δεν βρέθηκε τιμή για ${ticker} (${err?.message || "Σφάλμα σύνδεσης"}). Δοκίμασε VUAA.MI, VWCE.DE ή OPAP.AT.`;
+      const hintMap = { XETRA: "DE", XETR: "DE", GER: "DE", MIL: "MI", LSE: "L", AMS: "AS", EPA: "PA", ATH: "AT", FRA: "F", SWX: "SW" };
+      const dotIdx = ticker.lastIndexOf(".");
+      const suggested = (dotIdx > 0 && hintMap[ticker.slice(dotIdx + 1)])
+        ? `${ticker.slice(0, dotIdx)}.${hintMap[ticker.slice(dotIdx + 1)]}`
+        : "";
+      const errMsg = escapeHtml(err?.message || "Σφάλμα σύνδεσης");
+      if (suggested) {
+        const safeSug = escapeHtml(suggested);
+        out.innerHTML = `❌ Δεν βρέθηκε το <strong>${escapeHtml(ticker)}</strong> (${errMsg}). ` +
+          `Το Yahoo Finance χρησιμοποιεί διαφορετική κατάληξη — θέλεις να δοκιμάσεις ` +
+          `<button type="button" class="secondary small-btn" style="padding:2px 8px; font-size:11.5px; margin-left:4px;" data-sym="${safeSug}" onclick="quickTestTicker(this.dataset.sym)">🔍 ${safeSug}</button>;`;
+      } else {
+        out.textContent = `❌ Δεν βρέθηκε τιμή για ${ticker} (${err?.message || "Σφάλμα σύνδεσης"}). Δοκίμασε VUAA.MI, VWCE.DE ή OPAP.AT.`;
+      }
     }
   } finally {
     if (btn) btn.disabled = false;
@@ -283,6 +306,7 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
   const CACHE_TTL_MS = 15 * 60 * 1000; // 15 λεπτά τοπική cache
   data.settings.etfQuotesCache = data.settings.etfQuotesCache || {};
   let updatedCount = 0;
+  const failedDetails = [];
 
   try {
     await Promise.all(trackedAssets.map(async (asset) => {
@@ -305,6 +329,9 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
           const quote = await fetchCloudflareWorkerQuote(symbol);
           const prevPx = Number(asset.lastUnitPriceEur) || 0;
           const implausible = prevPx > 0 && quote && (quote.priceEur / prevPx > 5 || quote.priceEur / prevPx < 0.2);
+          if (implausible) {
+            failedDetails.push(`${symbol}: απόκλιση τιμής >5x από την προηγούμενη (€${quote.priceEur.toFixed(2)} έναντι €${prevPx.toFixed(2)})`);
+          }
           if (quote && quote.priceEur > 0 && !implausible) {
             unitPriceEur = quote.priceEur;
             dayChangePct = quote.dayChangePct;
@@ -325,7 +352,9 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
             };
           }
         } catch (err) {
-          console.warn(`Quote fetch failed for ${symbol}:`, err?.message || err);
+          const reason = err?.message || "Σφάλμα σύνδεσης";
+          console.warn(`Quote fetch failed for ${symbol}:`, reason);
+          failedDetails.push(`${symbol}: ${reason}`);
           if (err?.fxUnavailable) {
             asset.marketDataStatus = "unavailable";
             asset.fxStatus = "unavailable";
@@ -353,7 +382,10 @@ async function refreshPortfolioMarketPrices(forceManual = false) {
         showToast(`📈 Ενημερώθηκαν ${updatedCount} θέσεις χαρτοφυλακίου!`);
       }
     } else if (forceManual) {
-      showModal("Δεν βρέθηκε τιμή για τα συγκεκριμένα tickers. Έλεγξε τη μορφή (π.χ. VUAA.MI, VWCE.DE, OPAP.AT, VOO).");
+      const detailText = failedDetails.length > 0
+        ? `\n\nΛεπτομέρειες:\n• ${failedDetails.join("\n• ")}`
+        : "";
+      showModal(`Δεν βρέθηκε τιμή για τα συγκεκριμένα tickers. Έλεγξε τη μορφή (π.χ. VUAA.MI, VWCE.DE, OPAP.AT, VOO).${detailText}`);
     }
   } catch (err) {
     console.error("Portfolio quote error:", err);

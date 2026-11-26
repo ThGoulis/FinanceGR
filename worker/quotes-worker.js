@@ -93,6 +93,7 @@ async function fetchWithTimeoutAndRetry(url, { timeoutMs = 6000, retries = 1 } =
       clearTimeout(timer);
       if (!res.ok) {
         lastErr = new Error(`Upstream HTTP ${res.status}`);
+        lastErr.httpStatus = res.status;
         if (res.status >= 500 && attempt < retries) continue;
         throw lastErr;
       }
@@ -259,8 +260,24 @@ async function getFxRatesToEur() {
 }
 
 async function fetchYahooQuoteRaw(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`;
-  const json = await fetchWithTimeoutAndRetry(url, { timeoutMs: 6500, retries: 1 });
+  const encoded = encodeURIComponent(symbol);
+  const candidateUrls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=1d&interval=5m`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=5d&interval=1d`
+  ];
+  let json = null;
+  let lastErr = null;
+  for (const url of candidateUrls) {
+    try {
+      json = await fetchWithTimeoutAndRetry(url, { timeoutMs: 6500, retries: 1 });
+      if (json?.chart?.result?.[0]?.meta) break;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (!json?.chart?.result?.[0]?.meta) {
+    throw lastErr || new Error("Missing chart meta");
+  }
   const result = json?.chart?.result?.[0];
   const meta = result?.meta;
   if (!meta) throw new Error("Missing chart meta");
@@ -276,12 +293,19 @@ async function fetchYahooQuoteRaw(symbol) {
     throw new Error(`Unsupported currency: ${meta.currency || "unknown"}`);
   }
 
+  const returnedSymbol = String(meta.symbol || "").trim().toUpperCase();
+  if (returnedSymbol && returnedSymbol !== symbol) {
+    const mismatchErr = new Error(`Ασυμφωνία ticker (ζητήθηκε ${symbol}, επεστράφη ${returnedSymbol})`);
+    mismatchErr.httpStatus = 404;
+    throw mismatchErr;
+  }
+
   const marketTimeMs = Number(meta.regularMarketTime) > 0
     ? Number(meta.regularMarketTime) * 1000
     : Date.now();
 
   return {
-    ticker: String(meta.symbol || symbol).toUpperCase(),
+    ticker: returnedSymbol || symbol,
     name: String(meta.shortName || meta.longName || meta.symbol || symbol),
     exchange: String(meta.exchangeName || ""),
     price,
@@ -506,13 +530,16 @@ export default {
       return jsonResponse(payload, 200, request);
     } catch (err) {
       console.error("Worker error:", err?.message || err);
+      const status = err?.httpStatus === 404 ? 404 : 502;
       return jsonResponse(
         {
           success: false,
-          error: err?.message || "Market data unavailable",
-          fxStatus: "unavailable"
+          error: status === 404
+            ? `Δεν βρέθηκε το ticker «${symbolParam}» στο Yahoo Finance (${err?.message || "404"})`
+            : (err?.message || "Market data unavailable"),
+          fxStatus: status === 404 ? undefined : "unavailable"
         },
-        502,
+        status,
         request
       );
     }
