@@ -1,245 +1,18 @@
 /* ==========================================================================
-   12. AUTOMATED REGRESSION SELF-TESTS
-   ========================================================================== */
-async function runFinanceGRSelfTests() {
-  const results = [];
-  const assert = (name, cond, detail = "") => {
-    results.push({ name, passed: Boolean(cond), detail });
-  };
-
-  // Test 1: MCC Extraction & Categorization
-  const mcc = extractMccCode("PRONTO 2024 ATHINA 18,28 EUR 441029xxxxxx0295 5441 GOOGLE-PAY / PO26319000610554");
-  const mccCat = categorizeByMcc(mcc);
-  assert("ISO 18245 MCC Parser (5441 -> Τρόφιμα)", mcc === "5441" && mccCat?.category === "Τρόφιμα", `Got MCC=${mcc}, Cat=${mccCat?.category}`);
-
-  // Test 2: Piraeus Bank Patterns
-  const p1 = autoCategorizeDescription("ΥΠΕΡ ΜΑΝΩΛΑΣ ΔΗΜΗΤΡΙΟΣ", -25);
-  const p2 = autoCategorizeDescription("B/O ΓΟΥΛΗΣ ΘΕΟΦΙΛΟΣ", 40);
-  const p3 = autoCategorizeDescription("5029120147486 ΔΑΝΕΙΟ", -180);
-  assert("Μοτίβα Πειραιώς (ΥΠΕΡ / B/O / Λογαριασμοί)", p1.category === "Διασκέδαση" && p2.category === "Επιστροφή Χρημάτων" && p3.category === "Λογαριασμοί");
-
-  // Test 3: Flexible Amount & Date Parsers
-  assert(
-    "Parser Ποσών (Ελληνικά χιλιάδες, US & Παρενθέσεις)",
-    parseFlexibleAmount("1.234,56 €") === 1234.56 && parseFlexibleAmount("1.500") === 1500 && parseFlexibleAmount("(45,50)") === -45.5
-  );
-  assert(
-    "Parser Ημερομηνιών (GR, Excel & Απόρριψη 31/02)",
-    parseFlexibleDate("21/11/2026") === "2026-11-21" && parseFlexibleDate(46347) === "2026-11-21" && parseFlexibleDate("31/02/2026") === null
-  );
-
-  // Test 4: Net Worth calculations (cumulative, period-independent and no double counting)
-  const backupData = deepClone(data);
-  try {
-    const soloSplit = { hasPartner: false, myName: "Εσύ", partnerName: "", myPct: 100, partnerPct: 0 };
-    const coupleSplit = { hasPartner: true, myName: "Εσύ", partnerName: "Σύντροφος", myPct: 60, partnerPct: 40 };
-    const asOf = today();
-
-    // Cash savings are moved to the reserve bucket; the cumulative flow excludes them.
-    data = createDefaultState();
-    data.transactions = [
-      { id: "nw-income", owner: "me", type: "income", amount: 1000, date: asOf },
-      { id: "nw-expense", owner: "me", type: "expense", amount: 500, date: asOf },
-      { id: "nw-saving", owner: "me", type: "saving", category: "Αποταμίευση", amount: 200, date: asOf }
-    ];
-    const cashSave = computeNetWorthSnapshot("all", soloSplit, asOf);
-    assert("Net Worth: cumulative cash saving is not double-counted", cashSave.netWorth === 500 && cashSave.cashReserve === 200 && cashSave.cashFlow === 300,
-      `Expected NW=500, reserve=200, flow=300; got ${JSON.stringify(cashSave)}`);
-
-    // Goal and investment transfers are offset by the corresponding asset balances.
-    data = createDefaultState();
-    data.goals = [{ id: "g1", title: "Test Goal", target: 500, saved: 200 }];
-    data.portfolioAssets = [{ id: "a1", name: "ETF", current: 150 }];
-    data.transactions = [
-      { id: "nw-income", owner: "me", type: "income", amount: 1000, date: asOf },
-      { id: "nw-expense", owner: "me", type: "expense", amount: 500, date: asOf },
-      { id: "nw-goal", owner: "me", type: "saving", category: "Κουμπαράς Στόχου", linkedGoalId: "g1", amount: 200, date: asOf },
-      { id: "nw-invest", owner: "me", type: "saving", category: "Επένδυση", amount: 150, date: asOf }
-    ];
-    const assets = computeNetWorthSnapshot("all", soloSplit, asOf);
-    assert("Net Worth: goal and investment transfers reconcile with asset balances", assets.netWorth === 500 && assets.goalsTotal === 200 && assets.portfolioTotal === 150 && assets.cashFlow === 150,
-      `Expected NW=500; got ${JSON.stringify(assets)}`);
-
-    // The total must not change when the user changes the reporting period; the snapshot has no period input.
-    const sameSnapshot = computeNetWorthSnapshot("all", soloSplit, asOf);
-    assert("Net Worth: independent from selected month/cycle/year", sameSnapshot.netWorth === assets.netWorth);
-
-    // Withdrawals move value from reserve to cash flow; internal transfers are excluded.
-    data = createDefaultState();
-    data.profile.initialSavings = 100;
-    data.transactions = [
-      { id: "nw-withdrawal", owner: "me", type: "withdrawal", category: "Ανάληψη", amount: 40, date: asOf },
-      { id: "nw-internal", owner: "me", type: "income", amount: 900, date: asOf, isInternalTransfer: true },
-      { id: "nw-future", owner: "me", type: "income", amount: 700, date: "2999-01-01" }
-    ];
-    const transfer = computeNetWorthSnapshot("all", soloSplit, asOf);
-    assert("Net Worth: withdrawals, internal transfers and future transactions", transfer.netWorth === 100 && transfer.cashReserve === 60 && transfer.cashFlow === 40,
-      `Expected NW=100, reserve=60, flow=40; got ${JSON.stringify(transfer)}`);
-
-    // Couple filters retain existing member-scope behavior and allocate shared transactions.
-    data = createDefaultState();
-    data.transactions = [
-      { id: "nw-me", owner: "me", type: "income", amount: 1000, date: asOf },
-      { id: "nw-partner", owner: "partner", type: "income", amount: 500, date: asOf },
-      { id: "nw-shared", owner: "me", type: "expense", amount: 100, date: asOf, isShared: true }
-    ];
-    const partner = computeNetWorthSnapshot("partner", coupleSplit, asOf);
-    const shared = computeNetWorthSnapshot("shared", coupleSplit, asOf);
-    assert("Net Worth: partner view applies partner share to shared transactions", partner.netWorth === 460 && partner.cashReserve === 0,
-      `Expected partner flow=460; got ${JSON.stringify(partner)}`);
-    assert("Net Worth: shared view includes only shared transactions", shared.netWorth === -100 && shared.cashReserve === 0,
-      `Expected shared balance=-100; got ${JSON.stringify(shared)}`);
-
-    // Negative balances remain visible; no zero clamp is applied to net worth.
-    data = createDefaultState();
-    data.transactions = [{ id: "nw-negative", owner: "me", type: "expense", amount: 125, date: asOf }];
-    const negative = computeNetWorthSnapshot("all", soloSplit, asOf);
-    assert("Net Worth: negative result remains visible", negative.netWorth === -125,
-      `Expected -125; got ${negative.netWorth}`);
-
-    // Entity Array Merge (Offline Laptop + Mobile)
-    const mergedGoals = mergeEntitiesById(
-      [{ id: "g_mob", title: "Mobile Goal", target: 300, saved: 50 }],
-      [{ id: "g_lap", title: "Laptop Goal", target: 800, saved: 100 }],
-      {},
-      true
-    );
-    assert("Firebase Entity Array Merge (Offline συγχώνευση)", mergedGoals.length === 2);
-
-    // Duplicate check distinguishes expense vs refund (income) of same amount on same day
-    data = createDefaultState();
-    data.transactions = [{ id: "dup-exp", owner: "me", type: "expense", amount: 50, date: asOf, description: "Skroutz" }];
-    const dupRefund = isDuplicateTransaction(asOf, 50, "Skroutz", "", [], null, "income");
-    const dupSame = isDuplicateTransaction(asOf, 50, "Skroutz", "", [], null, "expense");
-    assert("Έλεγχος Διπλοεγγραφών (Διαχωρισμός αγοράς vs επιστροφής)", !dupRefund && Boolean(dupSame));
-
-    // Recurring deduplication: existing manual/bank tx prevents duplicate (Πάγιο) creation & bank import detects existing (Πάγιο)
-    const curYm = currentYearMonth();
-    data = createDefaultState();
-    data.transactions = [
-      { id: "rent-bank", owner: "me", type: "expense", category: "Στέγαση", amount: 400, date: `${curYm}-02`, description: "Μεταφορά Ιδιοκτήτη" }
-    ];
-    data.recurring = [
-      { id: "rec-rent", title: "Ενοίκιο", type: "expense", category: "Στέγαση", amount: 400, day: 1, isShared: false, skippedMonths: {} }
-    ];
-    const addedDup = applyRecurringTransactionsForMonth(curYm);
-    data.transactions = [
-      { id: "auto-rent", owner: "me", type: "expense", category: "Στέγαση", amount: 400, date: `${curYm}-01`, description: "Ενοίκιο (Πάγιο)", recurringId: "rec-rent" }
-    ];
-    const bankHitRec = isDuplicateTransaction(`${curYm}-06`, 400, "ΜΕΤΑΦΟΡΑ ΙΔΙΟΚΤΗΤΗ", "", [], null, "expense", "Στέγαση");
-    assert(
-      "Αποτροπή Διπλοκαταχώρησης Παγίων (Χειροκίνητο & Bank Import)",
-      !addedDup && Boolean(bankHitRec),
-      `addedDup=${addedDup}, bankHitRec=${Boolean(bankHitRec)}`
-    );
-
-    // Annual Bill Multi-Year Rollover
-    const rolledDate = advanceDueDateToFuture("2024-02-29", "2026-11-23");
-    assert("Μετακύλιση Ετήσιας Υποχρέωσης (29/02 -> 2027-02-28)", rolledDate === "2027-02-28", `Got ${rolledDate}`);
-
-    // View-Aware Budgets & 3-Month Historical Auto-Budget Allocation
-    data = createDefaultState();
-    data.profile.monthlyIncome = 1500;
-    data.profile.savingGoal = 300;
-    data.profile.partnerName = "Μαρία";
-    data.profile.partnerIncome = 1000;
-    data.recurring = [
-      { id: "r1", title: "Ενοίκιο", type: "expense", category: "Στέγαση", amount: 600, day: 1, isShared: true }
-    ];
-    data.transactions = [
-      { id: "h1", owner: "me", type: "expense", category: "Τρόφιμα", amount: 300, date: "2026-10-10", isShared: false },
-      { id: "h2", owner: "me", type: "expense", category: "Διασκέδαση", amount: 150, date: "2026-10-12", isShared: false }
-    ];
-    const planMe = computeAutoBudgetPlan({ scope: "me", split: coupleSplit, includeAnnual: false, asOfDate: "2026-11-23" });
-    const planAll = computeAutoBudgetPlan({ scope: "all", split: coupleSplit, includeAnnual: false, asOfDate: "2026-11-23" });
-    getBudgetsMapForView("me")["Τρόφιμα"] = 250;
-    getBudgetsMapForView("all")["Τρόφιμα"] = 500;
-    assert(
-      "Αυτόματος Προϋπολογισμός (3μηνο, Πάγια, €5 & Ξεχωριστά Όρια Ζευγαριού)",
-      planMe.proposedBudgets["Στέγαση"] >= 360 &&
-      planAll.proposedBudgets["Στέγαση"] >= 600 &&
-      planMe.proposedBudgets["Τρόφιμα"] % 5 === 0 &&
-      planMe.proposedBudgets["Τρόφιμα"] === 300 &&
-      getBudgetsMapForView("me")["Τρόφιμα"] === 250 &&
-      getBudgetsMapForView("all")["Τρόφιμα"] === 500,
-      `meRent=${planMe.proposedBudgets["Στέγαση"]}, allRent=${planAll.proposedBudgets["Στέγαση"]}, meFood=${planMe.proposedBudgets["Τρόφιμα"]}`
-    );
-  } finally {
-    data = backupData;
-  }
-
-  // Test 4b: whole-word bonus detection, unclamped reserve in Net Worth, effective-rate simulator maths
-  assert("Bonus keywords: «ΘΕΟΔΩΡΟΣ» δεν είναι δώρο, «ΔΩΡΟ ΠΑΣΧΑ» είναι",
-    !hasBonusKeyword(normalizeText("ΜΙΣΘΟΔΟΣΙΑ ΘΕΟΔΩΡΟΣ ΑΕ")) && hasBonusKeyword(normalizeText("ΔΩΡΟ ΠΑΣΧΑ")));
-  const backupData2 = deepClone(data);
-  try {
-    data = createDefaultState();
-    data.transactions = [{ id: "nw-wd", owner: "me", type: "withdrawal", category: "Ανάληψη", amount: 40, date: today() }];
-    const wd = computeNetWorthSnapshot("all", { hasPartner: false, myPct: 100, partnerPct: 0 }, today());
-    assert("Net Worth: ανάληψη χωρίς προηγούμενη αποταμίευση δεν δημιουργεί αξία", wd.netWorth === 0, `Expected 0; got ${wd.netWorth}`);
-  } finally {
-    data = backupData2;
-  }
-  assert("Προσομοιωτής: 12 μηνιαίες περίοδοι = ακριβώς η ετήσια απόδοση", Math.abs(Math.pow(1 + Math.pow(1.04, 1 / 12) - 1, 12) - 1.04) < 1e-12);
-
-  // Test 4c: Smart Shared vs Personal classification (supermarket >= 10€ vs micro-spend < 10€, bakery, utility vs personal bill, saved rent transfer rule)
-  const backupRules = deepClone(data.merchantRules || {});
-  try {
-    data.merchantRules = {};
-    const smBig = autoCategorizeDescription("ΣΚΛΑΒΕΝΙΤΗΣ ΑΘΗΝΑ", -45.00);
-    const smSmall = autoCategorizeDescription("ΣΚΛΑΒΕΝΙΤΗΣ ΑΘΗΝΑ", -6.50);
-    const bakery = autoCategorizeDescription("ΒΕΝΕΤΗΣ ΦΟΥΡΝΟΣ", -14.00);
-    const utilHouse = autoCategorizeDescription("ΔΕΗ ΡΕΥΜΑ", -95.00);
-    const billPersonal = autoCategorizeDescription("ΑΑΔΕ ΕΦΟΡΙΑ", -120.00);
-    const landlordKey = extractMerchantKey("ΥΠΕΡ ΠΑΠΑΔΟΠΟΥΛΟΣ ΓΕΩΡΓΙΟΣ");
-    data.merchantRules[landlordKey] = { category: "Στέγαση", isShared: true };
-    const rentTransfer = autoCategorizeDescription("ΥΠΕΡ ΠΑΠΑΔΟΠΟΥΛΟΣ ΓΕΩΡΓΙΟΣ", -550.00);
-    assert(
-      "Έξυπνος Διαχωρισμός Κοινών (Σούπερ Μάρκετ, Φούρνος, Λογαριασμοί & Κανόνας Ενοικίου)",
-      smBig.category === "Τρόφιμα" && smBig.isShared === true &&
-      smSmall.category === "Τρόφιμα" && smSmall.isShared === false &&
-      bakery.category === "Τρόφιμα" && bakery.isShared === false &&
-      utilHouse.category === "Λογαριασμοί" && utilHouse.isShared === true &&
-      billPersonal.category === "Λογαριασμοί" && billPersonal.isShared === false &&
-      rentTransfer.category === "Στέγαση" && rentTransfer.isShared === true,
-      `smBig=${smBig.isShared}, smSmall=${smSmall.isShared}, bakery=${bakery.isShared}, util=${utilHouse.isShared}, personal=${billPersonal.isShared}, rent=${rentTransfer.category}/${rentTransfer.isShared}`
-    );
-  } finally {
-    data.merchantRules = backupRules;
-  }
-
-  // Test 5: AES-256-GCM Cloud Sync Encryption Round-Trip
-  try {
-    const sampleObj = { test: "FinanceGR_OK", amount: 123.45 };
-    const enc = await encryptRoomPayload(sampleObj, "FG-TEST-9999", "654321");
-    const dec = await decryptRoomPayload(enc, "FG-TEST-9999", "654321");
-    assert("AES-256-GCM Cloud Encryption Round-Trip", dec.test === "FinanceGR_OK" && dec.amount === 123.45);
-  } catch (e) {
-    assert("AES-256-GCM Cloud Encryption Round-Trip", false, e.message);
-  }
-
-  return results;
-}
-
-async function runAndShowSelfTests() {
-  const results = await runFinanceGRSelfTests();
-  const passedCount = results.filter(r => r.passed).length;
-  const lines = results.map(r => `${r.passed ? "✅" : "❌"} ${r.name}${!r.passed && r.detail ? ` (${r.detail})` : ""}`).join("\n");
-  showModal(
-    `Αποτέλεσμα Ελέγχων: ${passedCount} / ${results.length} επιτυχείς\n\n${lines}`,
-    false,
-    null,
-    "🧪 Έλεγχος Υγείας Συστήματος (Self-Test)"
-  );
-}
-
-/* ==========================================================================
    13. MASTER RENDER LOOP
    ========================================================================== */
 function render() {
   applyThemeAndPrivacy();
   updateBackupStatusUI();
   populatePeriodSelectors();
+  const teleCb = document.getElementById("anonymousTelemetryToggle");
+  if (teleCb) {
+    teleCb.checked = data.settings?.anonymousTelemetryEnabled !== false;
+  }
+  const demoBanner = document.getElementById("demoModeActiveBanner");
+  if (demoBanner) {
+    demoBanner.style.display = data.settings?.isDemoData ? "flex" : "none";
+  }
   renderFirstUseGuide();
 
   const split = getCoupleSplit();
@@ -287,6 +60,8 @@ function render() {
   setTextSafe("nwPortfolio", money(portfolioTotal));
   setTextSafe("nwCashLabel", "💵 Σωρευτική Ταμειακή Ροή");
   setTextSafe("nwMonthCash", money(cashFlow));
+  const liabTot = Number(netWorthSnapshot.liabilitiesTotal) || 0;
+  setTextSafe("nwLiabilities", liabTot > 0 ? `-${money(liabTot)}` : money(0));
 
   // 4 Main KPIs + Hero Stat Chips (Savings Rate & Emergency Runway)
   const netSaving = Math.max(0, totals.saving - totals.withdrawal);
@@ -412,8 +187,11 @@ function render() {
   renderGoals();
   renderAnnualBills();
   renderPortfolio();
+  if (typeof renderLiabilities === "function") renderLiabilities();
+
   renderEReceiptsTracker();
   renderMerchantRulesManager();
+  if (typeof updateTickerGuardUI === "function") updateTickerGuardUI();
 }
 
 /* ==========================================================================
@@ -422,14 +200,11 @@ function render() {
 let appInitialized = false;
 
 async function syncCycleNow(silent = true) {
-  if (!data.settings?.cloudSync?.enabled) return false;
-  const pullResult = await pullCloudSyncNow(silent);
-  // Never push local state after a failed/locked/decryption-error pull: doing so could overwrite remote data.
-  if (!["synced", "not_found"].includes(pullResult)) return false;
+  if (!data.settings?.cloudSync?.enabled) return;
+  await pullCloudSyncNow(silent);
   if (data.settings?.cloudSync?.pendingPush || dirtyTxIds.size > 0 || fullSyncNeeded) {
-    return await pushCloudSyncNow();
+    await pushCloudSyncNow();
   }
-  return true;
 }
 
 async function initFinanceGRApp() {
@@ -470,12 +245,13 @@ async function initFinanceGRApp() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      closeMobileMoreDrawer();
       const customModal = document.getElementById("customModal");
       if (customModal && customModal.style.display === "flex") {
         customModal.style.display = "none";
         return;
       }
-      ["transactionModal", "paydayModal", "bankImportModal", "cloudSyncModal", "coupleMergeModal", "shareModal"].forEach(id => {
+      ["transactionModal", "paydayModal", "bankImportModal", "cloudSyncModal", "coupleMergeModal", "shareModal", "liabilityPaymentModal", "privacySecurityModal", "welcomeSetupModal"].forEach(id => {
         const el = document.getElementById(id);
         if (el && el.style.display === "flex") el.style.display = "none";
       });
@@ -497,6 +273,13 @@ async function initFinanceGRApp() {
   const addedCur = applyRecurringTransactionsForMonth(currentYearMonth());
   if (addedPrev || addedCur) {
     persist(true, true);
+  }
+
+  if (typeof initFirebaseAuthIfConfigured === "function") {
+    initFirebaseAuthIfConfigured();
+  }
+  if (typeof trackZeroKnowledgeEvent === "function") {
+    trackZeroKnowledgeEvent("session_start", { oncePerSession: true });
   }
 
   render();

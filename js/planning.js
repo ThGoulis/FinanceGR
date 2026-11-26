@@ -101,6 +101,7 @@ function setPlanningSubfilter(key) {
 }
 
 let pendingAutoBudgetPlan = null;
+let selectedAutoBudgetCategories = null;
 
 function getActiveBudgetScope(splitOverride = null) {
   const split = splitOverride || getCoupleSplit();
@@ -141,6 +142,14 @@ function computeAutoBudgetPlan(options = {}) {
   const scope = options.scope || getActiveBudgetScope(split);
   const includeAnnual = options.includeAnnual !== undefined ? Boolean(options.includeAnnual) : true;
   const refDate = parseIsoDate(options.asOfDate || today()) || new Date();
+  const currentMap = getBudgetsMapForView(scope);
+
+  // Selected categories (defaults to all EXPENSE_CATEGORIES for backwards compatibility)
+  const selectedSet = options.selectedCategories instanceof Set
+    ? new Set(Array.from(options.selectedCategories).filter(c => EXPENSE_CATEGORIES.includes(c)))
+    : (Array.isArray(options.selectedCategories)
+      ? new Set(options.selectedCategories.filter(c => EXPENSE_CATEGORIES.includes(c)))
+      : new Set(EXPENSE_CATEGORIES));
 
   // 1. Collect last 3 completed calendar months (with fallback to current month if needed)
   const monthSamples = [];
@@ -181,7 +190,6 @@ function computeAutoBudgetPlan(options = {}) {
     if (amt <= 0) return;
 
     if (r.type === "income") {
-      // Avoid double-counting salary if it is already declared in profile.monthlyIncome
       const isProfileSalaryDup = r.category === "Μισθός" && Number(data.profile.monthlyIncome) > 0;
       if (!isProfileSalaryDup && (scope === "all" || scope === "me")) recurringIncomeSum += amt;
       return;
@@ -221,7 +229,19 @@ function computeAutoBudgetPlan(options = {}) {
     });
   }
 
-  const totalFloors = Number(Object.values(floorsByCat).reduce((s, v) => s + v, 0).toFixed(2));
+  // Separate locked (unselected) budgets from selected floors
+  let lockedBudgetsTotal = 0;
+  let selectedFloorsTotal = 0;
+  EXPENSE_CATEGORIES.forEach(cat => {
+    if (selectedSet.has(cat)) {
+      selectedFloorsTotal += floorsByCat[cat];
+    } else {
+      lockedBudgetsTotal += Math.max(0, Number(currentMap[cat]) || 0);
+    }
+  });
+  lockedBudgetsTotal = Number(lockedBudgetsTotal.toFixed(2));
+  selectedFloorsTotal = Number(selectedFloorsTotal.toFixed(2));
+  const totalFloors = selectedFloorsTotal;
 
   // 3. Income base & savings commitment for the selected scope
   const incomeActiveMonths = monthSamples.filter(m => m.income > 0);
@@ -231,7 +251,7 @@ function computeAutoBudgetPlan(options = {}) {
 
   let monthlyIncomeBase = 0;
   if (scope === "shared") {
-    monthlyIncomeBase = 0; // Shared expenses have no dedicated income pool
+    monthlyIncomeBase = 0;
   } else if (!split.hasPartner || scope === "me") {
     monthlyIncomeBase = (Number(data.profile.monthlyIncome) || 0) + recurringIncomeSum;
   } else if (scope === "partner") {
@@ -249,100 +269,115 @@ function computeAutoBudgetPlan(options = {}) {
     : 0;
 
   const isSharedUncapped = scope === "shared" || monthlyIncomeBase <= 0;
-  const availableForExpenses = isSharedUncapped ? 0 : Math.max(0, Number((monthlyIncomeBase - savingsCommitment).toFixed(2)));
-  const deficit = isSharedUncapped ? 0 : Math.max(0, Number((totalFloors - availableForExpenses).toFixed(2)));
-  const remainingPool = isSharedUncapped ? 0 : Math.max(0, Number((availableForExpenses - totalFloors).toFixed(2)));
+  const availableForAllExpenses = isSharedUncapped ? 0 : Math.max(0, Number((monthlyIncomeBase - savingsCommitment).toFixed(2)));
+  const availableForSelected = isSharedUncapped ? 0 : Math.max(0, Number((availableForAllExpenses - lockedBudgetsTotal).toFixed(2)));
+  const deficit = isSharedUncapped ? 0 : Math.max(0, Number((selectedFloorsTotal + lockedBudgetsTotal - availableForAllExpenses).toFixed(2)));
+  const remainingPool = isSharedUncapped ? 0 : Math.max(0, Number((availableForSelected - selectedFloorsTotal).toFixed(2)));
 
-  // 4. Allocate across categories
+  // 4. Allocate ONLY across selected categories
   const rawBudgets = {};
   let usedFallback503020 = false;
   let compressed = false;
 
-  if (isSharedUncapped) {
-    EXPENSE_CATEGORIES.forEach(cat => {
-      rawBudgets[cat] = Math.max(floorsByCat[cat], histAvgByCat[cat]);
-    });
-  } else if (remainingPool <= 0) {
-    EXPENSE_CATEGORIES.forEach(cat => {
-      rawBudgets[cat] = floorsByCat[cat];
-    });
-  } else {
-    const varNeeds = {};
-    let sumVar = 0;
-    EXPENSE_CATEGORIES.forEach(cat => {
-      const v = Math.max(0, histAvgByCat[cat] - floorsByCat[cat]);
-      varNeeds[cat] = v;
-      sumVar += v;
-    });
+  EXPENSE_CATEGORIES.forEach(cat => {
+    if (!selectedSet.has(cat)) {
+      rawBudgets[cat] = Math.max(0, Number(currentMap[cat]) || 0);
+    }
+  });
 
-    if (sumVar > 0) {
-      if (sumVar <= remainingPool) {
-        // Keep realistic 3-month historical averages instead of artificially inflating to remainingPool
-        EXPENSE_CATEGORIES.forEach(cat => {
-          rawBudgets[cat] = floorsByCat[cat] + varNeeds[cat];
-        });
+  const selectedList = EXPENSE_CATEGORIES.filter(cat => selectedSet.has(cat));
+
+  if (selectedList.length > 0) {
+    if (isSharedUncapped) {
+      selectedList.forEach(cat => {
+        rawBudgets[cat] = Math.max(floorsByCat[cat], histAvgByCat[cat]);
+      });
+    } else if (remainingPool <= 0) {
+      selectedList.forEach(cat => {
+        rawBudgets[cat] = floorsByCat[cat];
+      });
+    } else {
+      const varNeeds = {};
+      let sumVar = 0;
+      selectedList.forEach(cat => {
+        const v = Math.max(0, histAvgByCat[cat] - floorsByCat[cat]);
+        varNeeds[cat] = v;
+        sumVar += v;
+      });
+
+      if (sumVar > 0) {
+        if (sumVar <= remainingPool) {
+          selectedList.forEach(cat => {
+            rawBudgets[cat] = floorsByCat[cat] + varNeeds[cat];
+          });
+        } else {
+          const weights = {};
+          compressed = true;
+          let weightSum = 0;
+          selectedList.forEach(cat => {
+            const factor = WANTS_CATEGORIES.includes(cat) ? 0.7 : 1.0;
+            weights[cat] = varNeeds[cat] * factor;
+            weightSum += weights[cat];
+          });
+          selectedList.forEach(cat => {
+            const extra = weightSum > 0 ? (remainingPool * weights[cat]) / weightSum : 0;
+            rawBudgets[cat] = floorsByCat[cat] + extra;
+          });
+        }
       } else {
-        // Data-driven 3-month historical weights; compress Wants harder than Needs when overspending
-        const weights = {};
-        compressed = true;
-        let weightSum = 0;
-        EXPENSE_CATEGORIES.forEach(cat => {
-          const factor = WANTS_CATEGORIES.includes(cat) ? 0.7 : 1.0;
-          weights[cat] = varNeeds[cat] * factor;
-          weightSum += weights[cat];
-        });
-        EXPENSE_CATEGORIES.forEach(cat => {
-          const extra = weightSum > 0 ? (remainingPool * weights[cat]) / weightSum : 0;
+        usedFallback503020 = true;
+        const defaultWeights = {
+          "Στέγαση": floorsByCat["Στέγαση"] > 0 ? 0 : 20,
+          "Τρόφιμα": 24,
+          "Λογαριασμοί": 12,
+          "Μεταφορές": 10,
+          "Υγεία": 6,
+          "Διασκέδαση": 16,
+          "Έκτακτο έξοδο": 6,
+          "Άλλο": 4,
+          "Ανάληψη": 2
+        };
+        const weightSum = selectedList.reduce((s, cat) => s + (defaultWeights[cat] || 0), 0);
+        selectedList.forEach(cat => {
+          const extra = weightSum > 0 ? (remainingPool * (defaultWeights[cat] || 0)) / weightSum : 0;
           rawBudgets[cat] = floorsByCat[cat] + extra;
         });
       }
-    } else {
-      // Fallback 50/30/20 default weights when there is no spending history
-      usedFallback503020 = true;
-      const defaultWeights = {
-        "Στέγαση": floorsByCat["Στέγαση"] > 0 ? 0 : 20,
-        "Τρόφιμα": 24,
-        "Λογαριασμοί": 12,
-        "Μεταφορές": 10,
-        "Υγεία": 6,
-        "Διασκέδαση": 16,
-        "Έκτακτο έξοδο": 6,
-        "Άλλο": 4,
-        "Ανάληψη": 2
-      };
-      const weightSum = Object.values(defaultWeights).reduce((s, v) => s + v, 0);
-      EXPENSE_CATEGORIES.forEach(cat => {
-        const extra = weightSum > 0 ? (remainingPool * (defaultWeights[cat] || 0)) / weightSum : 0;
-        rawBudgets[cat] = floorsByCat[cat] + extra;
-      });
     }
   }
 
-  // 5. Round to multiples of €5 while respecting floors
+  // 5. Round selected categories to multiples of €5 while respecting floors
   const proposedBudgets = {};
   EXPENSE_CATEGORIES.forEach(cat => {
-    const floorMin = floorsByCat[cat] > 0 ? Math.ceil(floorsByCat[cat] / 5) * 5 : 0;
-    proposedBudgets[cat] = Math.max(floorMin, roundToFive(rawBudgets[cat]));
+    if (!selectedSet.has(cat)) {
+      proposedBudgets[cat] = Math.max(0, Number(currentMap[cat]) || 0);
+    } else {
+      const floorMin = floorsByCat[cat] > 0 ? Math.ceil(floorsByCat[cat] / 5) * 5 : 0;
+      proposedBudgets[cat] = Math.max(floorMin, roundToFive(rawBudgets[cat]));
+    }
   });
 
-  if (!isSharedUncapped && deficit === 0 && availableForExpenses > 0 && (compressed || usedFallback503020)) {
-    const targetRounded = Math.floor(availableForExpenses / 5) * 5;
-    const currentSum = Object.values(proposedBudgets).reduce((s, v) => s + v, 0);
-    const residual = targetRounded - currentSum;
+  if (!isSharedUncapped && deficit === 0 && availableForSelected > 0 && selectedList.length > 0 && (compressed || usedFallback503020)) {
+    const targetRounded = Math.floor(availableForSelected / 5) * 5;
+    const currentSelectedSum = selectedList.reduce((s, cat) => s + proposedBudgets[cat], 0);
+    const residual = targetRounded - currentSelectedSum;
     if (residual !== 0) {
-      const sinkCat = proposedBudgets["Έκτακτο έξοδο"] + residual >= Math.ceil(floorsByCat["Έκτακτο έξοδο"] / 5) * 5
-        ? "Έκτακτο έξοδο"
-        : "Άλλο";
-      const sinkFloor = floorsByCat[sinkCat] > 0 ? Math.ceil(floorsByCat[sinkCat] / 5) * 5 : 0;
-      if (proposedBudgets[sinkCat] + residual >= sinkFloor) {
+      const preferredSinks = ["Έκτακτο έξοδο", "Άλλο", ...selectedList];
+      const sinkCat = preferredSinks.find(c => {
+        if (!selectedSet.has(c)) return false;
+        const floorMin = floorsByCat[c] > 0 ? Math.ceil(floorsByCat[c] / 5) * 5 : 0;
+        return proposedBudgets[c] + residual >= floorMin;
+      });
+      if (sinkCat) {
         proposedBudgets[sinkCat] += residual;
       }
     }
   }
 
-  const totalProposed = Object.values(proposedBudgets).reduce((s, v) => s + v, 0);
-  const unallocatedSurplus = !isSharedUncapped && availableForExpenses > totalProposed
-    ? Number((availableForExpenses - totalProposed).toFixed(2))
+  const totalProposedSelected = selectedList.reduce((s, cat) => s + proposedBudgets[cat], 0);
+  const totalProposed = EXPENSE_CATEGORIES.reduce((s, cat) => s + proposedBudgets[cat], 0);
+  const unallocatedSurplus = !isSharedUncapped && availableForAllExpenses > totalProposed
+    ? Number((availableForAllExpenses - totalProposed).toFixed(2))
     : 0;
   const cfg = data.settings?.cloudSync;
   const sharedOnlyWarning = Boolean(
@@ -356,18 +391,21 @@ function computeAutoBudgetPlan(options = {}) {
   return {
     scope,
     scopeLabel: getBudgetScopeLabel(scope, split),
+    selectedCategories: Array.from(selectedSet),
     activeMonthsCount: activeMonths.length,
     usedFallback503020,
     compressed,
     isSharedUncapped,
     monthlyIncomeBase: Number(monthlyIncomeBase.toFixed(2)),
     savingsCommitment: Number(savingsCommitment.toFixed(2)),
+    lockedBudgetsTotal,
     totalFloors,
     annualReserveTotal: Number(annualReserveTotal.toFixed(2)),
     remainingPool,
     deficit,
     unallocatedSurplus,
     totalHistExpense: Number(totalHistExpense.toFixed(2)),
+    totalProposedSelected,
     totalProposed,
     floorsByCat,
     histAvgByCat,
@@ -376,15 +414,52 @@ function computeAutoBudgetPlan(options = {}) {
   };
 }
 
-function previewAutoBudgetAllocation() {
+function toggleAutoBudgetCategory(cat, checked) {
+  if (!selectedAutoBudgetCategories) {
+    selectedAutoBudgetCategories = new Set(EXPENSE_CATEGORIES);
+  }
+  if (checked) selectedAutoBudgetCategories.add(cat);
+  else selectedAutoBudgetCategories.delete(cat);
+  previewAutoBudgetAllocation(true);
+}
+
+function setAutoBudgetCategoryPreset(preset) {
+  const scope = getActiveBudgetScope();
+  const currentMap = getBudgetsMapForView(scope);
+
+  if (preset === "all") {
+    selectedAutoBudgetCategories = new Set(EXPENSE_CATEGORIES);
+  } else if (preset === "none") {
+    selectedAutoBudgetCategories = new Set();
+  } else if (preset === "needs") {
+    selectedAutoBudgetCategories = new Set(NEEDS_CATEGORIES);
+  } else if (preset === "wants") {
+    selectedAutoBudgetCategories = new Set(WANTS_CATEGORIES);
+  } else if (preset === "empty") {
+    selectedAutoBudgetCategories = new Set(
+      EXPENSE_CATEGORIES.filter(cat => !(Number(currentMap[cat]) > 0))
+    );
+  }
+  previewAutoBudgetAllocation(true);
+}
+
+function previewAutoBudgetAllocation(keepSelection = false) {
   const includeAnnual = Boolean(document.getElementById("autoBudgetIncludeAnnual")?.checked);
-  const plan = computeAutoBudgetPlan({ includeAnnual });
+  if (!keepSelection || !selectedAutoBudgetCategories) {
+    selectedAutoBudgetCategories = new Set(EXPENSE_CATEGORIES);
+  }
+
+  const plan = computeAutoBudgetPlan({
+    includeAnnual,
+    selectedCategories: selectedAutoBudgetCategories
+  });
   pendingAutoBudgetPlan = plan;
 
   const box = document.getElementById("autoBudgetPreviewBox");
   if (!box) return;
 
   const currentMap = getBudgetsMapForView(plan.scope);
+  const selectedCount = selectedAutoBudgetCategories.size;
   const sourceBadge = plan.usedFallback503020
     ? `<span class="badge withdrawal">⚖️ Fallback 50/30/20 (χωρίς 3μηνο ιστορικό)</span>`
     : `<span class="badge income">📊 Βάσει 3μηνου ιστορικού (${plan.activeMonthsCount} ${plan.activeMonthsCount === 1 ? "μήνας" : "μήνες"})</span>`;
@@ -394,34 +469,44 @@ function previewAutoBudgetAllocation() {
     warnings.push(`<div class="small" style="color:var(--warn); font-weight:600; margin-top:6px;">⚠️ Το Cloud Sync είναι σε λειτουργία «Μόνο Κοινά» — τα ατομικά έξοδα του/της συντρόφου δεν περιλαμβάνονται εδώ. Για πλήρη ακρίβεια, άλλαξε προβολή σε <strong>👤 Εσύ</strong>.</div>`);
   }
   if (plan.deficit > 0) {
-    warnings.push(`<div class="small" style="color:var(--danger); font-weight:700; margin-top:6px;">⚠️ Τα πάγια + αποταμίευση υπερβαίνουν το εισόδημα κατά ${money(plan.deficit)}. Κλειδώθηκαν μόνο τα ελάχιστα όρια παγίων.</div>`);
+    warnings.push(`<div class="small" style="color:var(--danger); font-weight:700; margin-top:6px;">⚠️ Τα πάγια + κλειδωμένα όρια + αποταμίευση υπερβαίνουν το εισόδημα κατά ${money(plan.deficit)}. Κλειδώθηκαν μόνο τα ελάχιστα όρια παγίων.</div>`);
   }
   if (plan.compressed) {
-    warnings.push(`<div class="small" style="color:var(--primary); margin-top:4px;">ℹ️ Εφαρμόστηκε έξυπνη συμπίεση (περισσότερο στις Επιθυμίες, λιγότερο στις Ανάγκες) για να κλείσει το πλάνο εντός εισοδήματος.</div>`);
+    warnings.push(`<div class="small" style="color:var(--primary); margin-top:4px;">ℹ️ Εφαρμόστηκε έξυπνη συμπίεση στις επιλεγμένες κατηγορίες για να κλείσει το πλάνο εντός εισοδήματος.</div>`);
   }
   if (plan.unallocatedSurplus > 0) {
     warnings.push(`<div class="small" style="color:var(--accent); font-weight:600; margin-top:4px;">🐷 Αδιάθετο πλεόνασμα ${money(plan.unallocatedSurplus)}/μήνα (διαθέσιμο για επιπλέον αποταμίευση).</div>`);
   }
 
+  const lockedPart = plan.lockedBudgetsTotal > 0 ? ` − Κλειδωμένα: <strong>${money(plan.lockedBudgetsTotal)}</strong>` : "";
   const summaryLine = plan.isSharedUncapped
-    ? `Εύρος: <strong>${escapeHtml(plan.scopeLabel)}</strong> • Πάγια: <strong>${money(plan.totalFloors)}</strong> • Σύνολο Προτεινόμενων Ορίων: <strong>${money(plan.totalProposed)}</strong>`
-    : `Εισόδημα: <strong>${money(plan.monthlyIncomeBase)}</strong> − Αποταμίευση: <strong>${money(plan.savingsCommitment)}</strong> − Πάγια${plan.annualReserveTotal > 0 ? " & Ετήσια" : ""}: <strong>${money(plan.totalFloors)}</strong> = Διαθέσιμο Μεταβλητών: <strong>${money(plan.remainingPool)}</strong>`;
+    ? `Εύρος: <strong>${escapeHtml(plan.scopeLabel)}</strong> • Πάγια (επιλεγμένων): <strong>${money(plan.totalFloors)}</strong> • Σύνολο Ορίων: <strong>${money(plan.totalProposed)}</strong>`
+    : `Εισόδημα: <strong>${money(plan.monthlyIncomeBase)}</strong> − Αποταμίευση: <strong>${money(plan.savingsCommitment)}</strong>${lockedPart} − Πάγια${plan.annualReserveTotal > 0 ? " & Ετήσια" : ""}: <strong>${money(plan.totalFloors)}</strong> = Διαθέσιμο: <strong>${money(plan.remainingPool)}</strong>`;
 
   const rowsHtml = EXPENSE_CATEGORIES.map(cat => {
+    const isChecked = selectedAutoBudgetCategories.has(cat);
     const oldVal = Number(currentMap[cat]) || 0;
     const newVal = Number(plan.proposedBudgets[cat]) || 0;
     const floorVal = Number(plan.floorsByCat[cat]) || 0;
     const histVal = Number(plan.histAvgByCat[cat]) || 0;
     const diff = newVal - oldVal;
     const diffStr = diff === 0 ? "" : ` <span style="color:${diff > 0 ? "var(--warn)" : "var(--accent)"};">(${diff > 0 ? "+" : ""}${money(diff)})</span>`;
+
+    const rightSide = isChecked
+      ? `<span class="small">${money(oldVal)} →</span> <strong>${money(newVal)}</strong>${diffStr}`
+      : `<span class="small">🔒 Διατηρείται (${oldVal > 0 ? money(oldVal) : "Χωρίς όριο"})</span>`;
+
     return `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px;">
-        <div>
-          <strong>${escapeHtml(cat)}</strong>
-          <span class="small">${floorVal > 0 ? ` • Πάγια: ${money(floorVal)}` : ""}${histVal > 0 ? ` • Μ.Ο. 3μ: ${money(histVal)}` : ""}</span>
-        </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; ${isChecked ? "" : "opacity:0.6;"}">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;">
+          <input type="checkbox" ${isChecked ? "checked" : ""} data-abcat="${escapeHtml(cat)}" onchange="toggleAutoBudgetCategory(this.dataset.abcat, this.checked)" />
+          <div>
+            <strong>${escapeHtml(cat)}</strong>
+            <span class="small">${floorVal > 0 ? ` • Πάγια: ${money(floorVal)}` : ""}${histVal > 0 ? ` • Μ.Ο. 3μ: ${money(histVal)}` : ""}</span>
+          </div>
+        </label>
         <div class="privacy-sensitive" style="white-space:nowrap;">
-          <span class="small">${money(oldVal)} →</span> <strong>${money(newVal)}</strong>${diffStr}
+          ${rightSide}
         </div>
       </div>
     `;
@@ -436,14 +521,24 @@ function previewAutoBudgetAllocation() {
       </div>
       <button type="button" class="secondary small-btn" onclick="closeAutoBudgetPreview()" aria-label="Κλείσιμο προεπισκόπησης">✕</button>
     </div>
+
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px;">
+      <span class="small" style="font-weight:600;">Επιλογή κατηγοριών:</span>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('all')">☑️ Όλες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('needs')">🏠 Ανάγκες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('wants')">🎉 Επιθυμίες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('empty')">🆕 Μόνο κενές (€0)</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('none')">⬜ Καμία</button>
+    </div>
+
     <div class="small" style="margin-bottom:6px;">${summaryLine}</div>
     ${warnings.join("")}
     <div style="margin:10px 0;">${rowsHtml}</div>
     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-      <span class="small">Σύνολο προτεινόμενων μηνιαίων ορίων: <strong>${money(plan.totalProposed)}</strong> (στρογγυλοποίηση €5)</span>
+      <span class="small">Σύνολο ορίων (${selectedCount}/${EXPENSE_CATEGORIES.length} επιλεγμένες): <strong>${money(plan.totalProposed)}</strong></span>
       <div style="display:flex; gap:8px;">
         <button type="button" class="secondary small-btn" onclick="closeAutoBudgetPreview()">Ακύρωση</button>
-        <button type="button" class="accent small-btn" onclick="applyAutoBudgetAllocation()">✅ Εφαρμογή Ορίων</button>
+        <button type="button" class="accent small-btn" ${selectedCount === 0 ? "disabled" : ""} onclick="applyAutoBudgetAllocation()">✅ Εφαρμογή σε ${selectedCount} ${selectedCount === 1 ? "κατηγορία" : "κατηγορίες"}</button>
       </div>
     </div>
   `;
@@ -451,6 +546,7 @@ function previewAutoBudgetAllocation() {
 
 function closeAutoBudgetPreview() {
   pendingAutoBudgetPlan = null;
+  selectedAutoBudgetCategories = null;
   const box = document.getElementById("autoBudgetPreviewBox");
   if (box) {
     box.style.display = "none";
@@ -461,15 +557,18 @@ function closeAutoBudgetPreview() {
 function applyAutoBudgetAllocation() {
   if (!pendingAutoBudgetPlan) return;
   const plan = pendingAutoBudgetPlan;
+  const chosen = Array.isArray(plan.selectedCategories) ? plan.selectedCategories : EXPENSE_CATEGORIES;
+  if (chosen.length === 0) return;
+
   const targetMap = getBudgetsMapForView(plan.scope);
-  EXPENSE_CATEGORIES.forEach(cat => {
+  chosen.forEach(cat => {
     targetMap[cat] = Number(plan.proposedBudgets[cat]) || 0;
   });
   data.settings.stateUpdatedAt = Date.now();
   closeAutoBudgetPreview();
   persist();
   render();
-  showToast(`✅ Τα μηνιαία όρια ενημερώθηκαν για: ${plan.scopeLabel}!`);
+  showToast(`✅ Ενημερώθηκαν ${chosen.length} κατηγορίες για: ${plan.scopeLabel}!`);
 }
 
 function renderBudgets(totals) {

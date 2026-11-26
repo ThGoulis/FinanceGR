@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8" />
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://lh3.googleusercontent.com; frame-src https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://financegr-quotes.tgoulis.workers.dev https://europe-west1-financegr-sync.cloudfunctions.net https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://firebaseinstallations.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) { document.documentElement.innerHTML = ""; } }</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>FinanceGR — Restricted Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .adm-tabs-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .adm-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .adm-tab-btn:hover {
+    background: var(--card-soft);
+    color: var(--text);
+  }
+  .adm-tab-btn.active {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    color: var(--text);
+  }
+  .adm-tab-panel {
+    display: none;
+  }
+  .adm-tab-panel.active {
+    display: block;
+  }
+  .adm-kpi-clickable {
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease;
+  }
+  .adm-kpi-clickable:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+  }
+  .adm-infra-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .adm-kv-list {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+    font-size: 12.5px;
+  }
+  .adm-kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .adm-kv-row:last-child {
+    border-bottom: none;
+  }
+  .adm-kv-key {
+    color: var(--muted);
+  }
+  .adm-kv-val {
+    font-weight: 600;
+    text-align: right;
+  }
+  .adm-links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .adm-ext-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--card-soft);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .adm-ext-link:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+</style>
+<script defer crossorigin="anonymous" referrerpolicy="strict-origin-when-cross-origin" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script defer crossorigin="anonymous" referrerpolicy="strict-origin-when-cross-origin" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+</head>
+<body class="dark">
+  <!-- LOCKED AUTH GATE (ONLY VIEW VISIBLE UNTIL SERVER-SIDE ADMIN VERIFICATION PASSES) -->
+  <main id="adminLoginGate" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div class="panel" style="max-width:420px; width:100%; text-align:center; padding:28px 24px;">
+      <div class="brand-logo" style="margin:0 auto 14px; width:46px; height:46px; font-size:20px;">🛡️</div>
+      <h2 style="margin:0 0 6px; font-size:20px;">Περιορισμένη Πρόσβαση</h2>
+      <p class="small" style="margin:0 0 18px;">Απαιτείται επαλήθευση εξουσιοδοτημένου διαχειριστή μέσω Google &amp; Firebase Admin SDK.</p>
+      <div id="adminGateMessage" class="banner warn" style="display:none; text-align:left; margin-bottom:14px;"></div>
+      <button type="button" id="adminGoogleLoginBtn" class="accent" style="width:100%;" onclick="adminSignInWithGoogle()">🔑 Σύνδεση Διαχειριστή (Google)</button>
+      <div style="margin-top:14px;">
+        <a href="./" class="small" style="color:var(--muted); text-decoration:none;">← Επιστροφή στην εφαρμογή</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- VERIFIED ADMIN DASHBOARD (HIDDEN BY DEFAULT, POPULATED ONLY AFTER SERVER 200 OK) -->
+  <div id="adminConsoleApp" style="display:none; max-width:1220px; margin:0 auto; padding:20px 18px 48px;">
+    <!-- Top Bar -->
+    <header class="panel" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="brand-logo" style="width:40px; height:40px;">🛡️</div>
+        <div>
+          <h2 style="margin:0; font-size:19px;">FinanceGR — Admin Console</h2>
+          <div class="small" id="adminIdentityLine">Επαληθευμένος Διαχειριστής</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <span class="small" id="admLastSyncTime" style="opacity:0.75;">—</span>
+        <button type="button" class="secondary small-btn" onclick="switchAdminTab('health'); runAdminSystemHealthCheck()">🧪 Έλεγχος Υγείας</button>
+        <button type="button" class="secondary small-btn" onclick="loadAdminOverview()">🔄 Ανανέωση</button>
+        <a href="./" class="secondary small-btn" style="display:inline-flex; align-items:center; text-decoration:none; padding:6px 12px; border-radius:10px; border:1px solid var(--border); color:var(--text); font-size:12.5px; font-weight:600;">🏠 Εφαρμογή</a>
+        <button type="button" class="danger small-btn" onclick="adminSignOut()">🚪 Έξοδος</button>
+      </div>
+    </header>
+
+    <div id="adminStatusToast" class="banner info" style="display:none; margin-bottom:14px;"></div>
+
+    <!-- Global Clickable KPIs -->
+    <div class="grid-4" style="margin-bottom:14px;">
+      <div class="kpi-card adm-kpi-clickable" onclick="switchAdminTab('rooms')" title="Μετάβαση σε Δωμάτια &amp; Μέλη">
+        <div class="kpi-label"><span>☁️ Σύνολο Δωματίων</span></div>
+        <div class="metric" id="admKpiTotalRooms">0</div>
+        <div class="small" id="admKpiRoomsSplit">Auth: 0 • Μοναδικοί χρήστες: 0</div>
+      </div>
+      <div class="kpi-card adm-kpi-clickable" onclick="switchAdminTab('users')" title="Μετάβαση σε Χρήστες &amp; Quota">
+        <div class="kpi-label"><span>👥 Εγγεγραμμένα Μέλη</span></div>
+        <div class="metric accent" id="admKpiTotalMembers">0</div>
+        <div class="small" id="admKpiInactiveSub">Ανενεργοί &gt;30ημ: 0</div>
+      </div>
+      <div class="kpi-card adm-kpi-clickable" onclick="switchAdminTab('security')" title="Μετάβαση σε Audit Log">
+        <div class="kpi-label"><span>🛡️ Ειδοποιήσεις Ασφαλείας</span></div>
+        <div class="metric" id="admKpiSecurityAlerts">0</div>
+        <div class="small" id="admKpiSecuritySub">403 / 429 στο Audit Log</div>
+      </div>
+      <div class="kpi-card adm-kpi-clickable" onclick="switchAdminTab('security')" title="Μετάβαση σε Σφάλματα Parser">
+        <div class="kpi-label"><span>⚠️ Σφάλματα Parser</span></div>
+        <div class="metric" id="admKpiParserErrors">0</div>
+        <div class="small" id="admKpiCloudflareSub">Cloudflare Worker: Έλεγχος...</div>
+      </div>
+    </div>
+
+    <!-- Tabbed Navigation Bar -->
+    <nav class="adm-tabs-bar" role="tablist" aria-label="Ενότητες Διαχείρισης">
+      <button type="button" class="adm-tab-btn active" data-adm-tab="overview" onclick="switchAdminTab('overview')">
+        <span>🔥</span><span>Υποδομή (Blaze / CF / Firebase)</span>
+      </button>
+      <button type="button" class="adm-tab-btn" data-adm-tab="rooms" onclick="switchAdminTab('rooms')">
+        <span>🏠</span><span>Δωμάτια &amp; Μέλη</span>
+        <span class="badge" id="admTabBadgeRooms" style="font-size:10px; padding:1px 6px;">0</span>
+      </button>
+      <button type="button" class="adm-tab-btn" data-adm-tab="users" onclick="switchAdminTab('users')">
+        <span>👤</span><span>Χρήστες &amp; Quota</span>
+      </button>
+      <button type="button" class="adm-tab-btn" data-adm-tab="security" onclick="switchAdminTab('security')">
+        <span>🛡️</span><span>Ασφάλεια &amp; Parser</span>
+        <span class="badge" id="admTabBadgeSecurity" style="font-size:10px; padding:1px 6px; display:none;">0</span>
+      </button>
+      <button type="button" class="adm-tab-btn" data-adm-tab="analytics" onclick="switchAdminTab('analytics')">
+        <span>📊</span><span>Analytics (14ημ)</span>
+      </button>
+      <button type="button" class="adm-tab-btn" data-adm-tab="health" onclick="switchAdminTab('health')">
+        <span>🧪</span><span>Έλεγχος Υγείας</span>
+      </button>
+    </nav>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 1: INFRASTRUCTURE (BLAZE, FIREBASE & CLOUDFLARE)                 -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-overview" class="adm-tab-panel active">
+      <div class="adm-infra-grid">
+        <!-- Card 1: Firebase & Blaze Plan -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-header" style="margin-bottom:8px;">
+            <div>
+              <h3 class="panel-title">🔥 Firebase &amp; Blaze Plan</h3>
+              <div class="small">Cloud Functions 2nd Gen, RTDB &amp; Cost-Safety Guards</div>
+            </div>
+            <span class="badge income" id="admInfraPlanBadge">Blaze</span>
+          </div>
+          <div class="adm-kv-list">
+            <div class="adm-kv-row"><span class="adm-kv-key">Project / Region</span><span class="adm-kv-val" id="admInfraProjectRegion">financegr-sync • europe-west1</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Node Runtime</span><span class="adm-kv-val" id="admInfraRuntime">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Cost-Safety Cap</span><span class="adm-kv-val" id="admInfraCostCap">maxInstances: 2 • 256MiB • 15s</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Όριο Rooms / Χρήστη</span><span class="adm-kv-val" id="admInfraRoomQuota">5 rooms</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Beta Allowlist</span><span class="adm-kv-val" id="admInfraBetaMode">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">RTDB Metadata Size</span><span class="adm-kv-val" id="admInfraRtdbSize">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Blaze Free Tier</span><span class="adm-kv-val" style="font-size:11.5px;">2M fn/μήνα • 1GB RTDB • 10GB/μήνα</span></div>
+          </div>
+          <div class="adm-links-row">
+            <a class="adm-ext-link" href="https://console.firebase.google.com/project/financegr-sync/usage/details" target="_blank" rel="noopener noreferrer">💳 Blaze Usage &amp; Billing ↗</a>
+            <a class="adm-ext-link" href="https://console.firebase.google.com/project/financegr-sync/functions" target="_blank" rel="noopener noreferrer">⚡ Functions &amp; Logs ↗</a>
+            <a class="adm-ext-link" href="https://console.firebase.google.com/project/financegr-sync/database/financegr-sync-default-rtdb/data" target="_blank" rel="noopener noreferrer">🗄️ RTDB ↗</a>
+            <a class="adm-ext-link" href="https://console.firebase.google.com/project/financegr-sync/authentication/users" target="_blank" rel="noopener noreferrer">🔑 Auth Users ↗</a>
+          </div>
+        </div>
+
+        <!-- Card 2: Cloudflare Quotes Worker -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-header" style="margin-bottom:8px;">
+            <div>
+              <h3 class="panel-title">⚡ Cloudflare Worker (Quotes &amp; FX)</h3>
+              <div class="small">financegr-quotes.tgoulis.workers.dev</div>
+            </div>
+            <button type="button" class="secondary small-btn" id="admProbeCfBtn" onclick="probeCloudflareWorkerStatus()">🔄 Probe</button>
+          </div>
+          <div class="adm-kv-list">
+            <div class="adm-kv-row"><span class="adm-kv-key">Κατάσταση Live</span><span class="adm-kv-val" id="admCfLiveStatus"><span class="badge">⏳ Έλεγχος...</span></span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Απόκριση (Latency)</span><span class="adm-kv-val" id="admCfLatency">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Auth &amp; Rate Limit</span><span class="adm-kv-val">Google RS256 • 30 req/min/user</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Πηγή FX / Freshness</span><span class="adm-kv-val" id="admCfFxSource">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Ισοτιμίες (προς EUR)</span><span class="adm-kv-val" id="admCfFxRates">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Cache TTL</span><span class="adm-kv-val">Quotes: 5λ • FX: 6ώ</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Cloudflare Free Tier</span><span class="adm-kv-val" style="font-size:11.5px;">100.000 req/ημέρα • 10ms CPU</span></div>
+          </div>
+          <div class="adm-links-row">
+            <a class="adm-ext-link" href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">☁️ Cloudflare Dashboard ↗</a>
+            <a class="adm-ext-link" href="https://github.com/thgoulis/FinanceGR/actions" target="_blank" rel="noopener noreferrer">🤖 GitHub Actions CI ↗</a>
+          </div>
+        </div>
+
+        <!-- Card 3: Security & Zero-Knowledge Guarantees -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-header" style="margin-bottom:8px;">
+            <div>
+              <h3 class="panel-title">🔐 Ασφάλεια &amp; Zero-Knowledge</h3>
+              <div class="small">Αρχιτεκτονικές εγγυήσεις &amp; όρια προστασίας</div>
+            </div>
+            <span class="badge income">AES-256-GCM</span>
+          </div>
+          <div class="adm-kv-list">
+            <div class="adm-kv-row"><span class="adm-kv-key">Κρυπτογράφηση Δεδομένων</span><span class="adm-kv-val">AES-256-GCM (PBKDF2 100k)</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Ανάγνωση Admin</span><span class="adm-kv-val">Μόνο roomIndex (0 πρόσβαση σε txs)</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">RTDB Payload Limits</span><span class="adm-kv-val">State ≤ 500KB • Tx ≤ 25KB</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Κλειδωμένοι Κόμβοι</span><span class="adm-kv-val">roomIndex, AuditLog, Telemetry</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Google Auth Free Tier</span><span class="adm-kv-val">50.000 MAU δωρεάν</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Ενεργοί Admin Emails</span><span class="adm-kv-val" id="admInfraAdminCount">—</span></div>
+            <div class="adm-kv-row"><span class="adm-kv-key">Τελευταίος Έλεγχος Server</span><span class="adm-kv-val" id="admInfraServerTs">—</span></div>
+          </div>
+          <div class="adm-links-row">
+            <a class="adm-ext-link" href="https://console.firebase.google.com/project/financegr-sync/overview" target="_blank" rel="noopener noreferrer">🔥 Firebase Console ↗</a>
+            <a class="adm-ext-link" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">📊 GCP Budgets &amp; Alerts ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact Operational Tip -->
+      <div class="banner info" style="font-size:12.5px;">
+        💡 <strong>Συμβουλή Blaze Cost-Safety:</strong> Όρισε ένα Budget Alert €1–€5 στο <em>GCP Budgets &amp; Alerts</em> ώστε να λαμβάνεις email αν ποτέ ξεπεραστεί το δωρεάν όριο. Τα <code>maxInstances: 2</code>, το όριο <code>5 rooms/χρήστη</code> και ο rate limiter του Cloudflare Worker προστατεύουν ήδη αυτόματα τον λογαριασμό σου.
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 2: ROOMS & MEMBER MANAGEMENT                                     -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-rooms" class="adm-tab-panel">
+      <!-- All Rooms Overview & Multi-User Moderation -->
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">🏠 Όλα τα Δωμάτια Βάσης (Multi-User Διαχείριση)</h3>
+            <div class="small">Αναζήτηση ανά Room ID ή email μέλους, επιλογή για διαχείριση ρόλων και καθαρισμός δοκιμαστικών δωματίων.</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <input type="text" id="admRoomSearchInput" placeholder="🔍 Αναζήτηση Room ID ή email..." oninput="renderRoomsOverviewTable()" style="min-width:220px;" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Room ID</th>
+                <th>Τύπος</th>
+                <th>Μέλη (Emails)</th>
+                <th>Κατάσταση</th>
+                <th>Τελευταία Ενημέρωση</th>
+                <th style="text-align:right;">Διαχείριση</th>
+              </tr>
+            </thead>
+            <tbody id="admRoomsTbody">
+              <tr><td colspan="6" class="small">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Room Selector & Member Management -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">🪪 Διαχείριση Μελών &amp; Δικαιωμάτων ανά Δωμάτιο</h3>
+            <div class="small">Επίλεξε δωμάτιο για προβολή, πρόσκληση, αλλαγή ρόλου (Owner / Editor / Viewer) ή αφαίρεση μέλους.</div>
+          </div>
+          <select id="admRoomSelect" onchange="renderSelectedRoomMembers()" style="min-width:220px;"></select>
+        </div>
+
+        <div id="admInviteBox" class="kpi-card" style="background:var(--card-soft); margin-bottom:14px; padding:14px;">
+          <div class="form-row" style="margin-bottom:0; align-items:end;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="admInviteEmail">Email Νέου Μέλους</label>
+              <input type="email" id="admInviteEmail" placeholder="π.χ. user@gmail.com" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="admInviteRole">Ρόλος</label>
+              <select id="admInviteRole">
+                <option value="editor">✏️ Editor (Ανάγνωση &amp; Εγγραφή)</option>
+                <option value="viewer">👁️ Viewer (Μόνο Ανάγνωση)</option>
+                <option value="owner">👑 Owner (Πλήρης Διαχείριση)</option>
+              </select>
+            </div>
+            <div>
+              <button type="button" class="accent" style="width:100%;" onclick="admAddMember()">➕ Προσθήκη Μέλους</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Μέλος (Email / UID)</th>
+                <th>Ρόλος</th>
+                <th>Ημ/νία Εγγραφής</th>
+                <th style="text-align:right;">Ενέργειες</th>
+              </tr>
+            </thead>
+            <tbody id="admMembersTbody">
+              <tr><td colspan="4" class="small">Επίλεξε δωμάτιο...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 3: USERS & QUOTA                                                 -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-users" class="adm-tab-panel">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">👤 Χρήση &amp; Quota ανά Χρήστη</h3>
+            <div class="small">Παρακολούθηση ορίου δωματίων ανά λογαριασμό και εντοπισμός ανενεργών χρηστών (&gt;30 / &gt;60 ημέρες).</div>
+          </div>
+          <select id="admQuotaFilterSelect" onchange="renderUsersQuotaTable()" style="min-width:190px;">
+            <option value="all">Όλοι οι χρήστες</option>
+            <option value="at_quota">⚠️ Στο όριο Quota</option>
+            <option value="inactive">🕒 Ανενεργοί (&gt;30 ημέρες)</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Χρήστης (Email / UID)</th>
+                <th>Χρήση Quota (Rooms)</th>
+                <th>Owned Rooms</th>
+                <th>Τελευταία Δραστηριότητα</th>
+                <th>Κατάσταση</th>
+              </tr>
+            </thead>
+            <tbody id="admUsersQuotaTbody">
+              <tr><td colspan="5" class="small">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 4: SECURITY AUDIT LOG & ANONYMOUS PARSER ERRORS                  -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-security" class="adm-tab-panel">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">🛡️ Audit Log Ασφαλείας</h3>
+            <div class="small">Ιστορικό κρίσιμων ενεργειών (δημιουργία/διαγραφή rooms, αλλαγές ρόλων, αποκλεισμοί 403 &amp; όρια 429).</div>
+          </div>
+          <select id="admAuditFilterSelect" onchange="renderAuditLogTable()" style="min-width:190px;">
+            <option value="all">Όλα τα συμβάντα</option>
+            <option value="security">🚨 Μόνο Security (403/429)</option>
+            <option value="changes">🪪 Αλλαγές Rooms &amp; Μελών</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ημ/νία &amp; Ώρα</th>
+                <th>Επίπεδο</th>
+                <th>Ενέργεια</th>
+                <th>Χρήστης</th>
+                <th>Room</th>
+                <th>Λεπτομέρειες</th>
+              </tr>
+            </thead>
+            <tbody id="admAuditLogTbody">
+              <tr><td colspan="6" class="small">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">⚠️ Ανώνυμο Telemetry Σφαλμάτων Parser</h3>
+            <div class="small">Καταγράφει μόνο τράπεζα, τύπο αρχείου &amp; κωδικό σφάλματος (ποτέ ονόματα αρχείων, ποσά ή περιγραφές).</div>
+          </div>
+          <button type="button" class="danger small-btn" onclick="admClearParserErrors()">🧹 Καθαρισμός Σφαλμάτων</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ημ/νία &amp; Ώρα</th>
+                <th>Τράπεζα</th>
+                <th>Αρχείο</th>
+                <th>Κωδικός Σφάλματος</th>
+                <th>Γραμμές</th>
+                <th>Έκδοση</th>
+              </tr>
+            </thead>
+            <tbody id="admParserErrorsTbody">
+              <tr><td colspan="6" class="small">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 5: ZERO-KNOWLEDGE PRODUCT ANALYTICS (14 DAYS)                    -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-analytics" class="adm-tab-panel">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">📊 Zero-Knowledge Product Analytics (Τελευταίες 14 Ημέρες)</h3>
+            <div class="small">Μόνο συγκεντρωτικοί ημερήσιοι μετρητές χρήσης — μηδενικά προσωπικά στοιχεία ή οικονομικά ποσά.</div>
+          </div>
+        </div>
+        <div class="grid-4" style="margin-bottom:12px;">
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>👋 Συνεδρίες</span></div>
+            <div class="metric" id="admAnaSessions">0</div>
+          </div>
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>🚀 Onboarding / Demo</span></div>
+            <div class="metric accent" id="admAnaOnboarding">0 / 0</div>
+          </div>
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>🏦 Bank Imports</span></div>
+            <div class="metric" id="admAnaImports">0</div>
+          </div>
+          <div class="kpi-card" style="background:var(--card-soft);">
+            <div class="kpi-label"><span>☁️ Cloud Sync συνδέσεις</span></div>
+            <div class="metric" id="admAnaCloudSync">0</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ημερομηνία</th>
+                <th>Συνεδρίες</th>
+                <th>Onboarding</th>
+                <th>Demo</th>
+                <th>Bank Imports</th>
+                <th>Cloud Sync</th>
+              </tr>
+            </thead>
+            <tbody id="admAnalyticsTbody">
+              <tr><td colspan="6" class="small">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 6: SYSTEM HEALTH CHECK (SELF-TEST & LIVE PROBES)                 -->
+    <!-- ==================================================================== -->
+    <section id="admPanel-health" class="adm-tab-panel">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">🧪 Έλεγχος Υγείας Συστήματος (Self-Test &amp; Live Probes)</h3>
+            <div class="small">Αποκλειστικά για διαχειριστή: εκτελεί τους ελέγχους λογιστικής/parser/AES-256-GCM και δοκιμάζει ζωντανά το Cloudflare Worker &amp; FX API.</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span class="badge" id="admHealthSummaryBadge" style="display:none;">—</span>
+            <button type="button" class="accent small-btn" id="admRunHealthBtn" onclick="runAdminSystemHealthCheck()">🧪 Εκτέλεση Πλήρους Ελέγχου</button>
+          </div>
+        </div>
+
+        <div id="admHealthResultsBox" class="small" style="color:var(--muted);">
+          Πάτησε <strong>«🧪 Εκτέλεση Πλήρους Ελέγχου»</strong> για να τρέξουν οι έλεγχοι πυρήνα (MCC, Πειραιώς, Net Worth, Πιστωτικές, AES-256-GCM) και ο ζωντανός έλεγχος Cloudflare Worker / FX.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/state.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-auth.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/periods-ui.js"></script>
+  <script src="js/bank-import.js"></script>
+  <script src="js/planning.js"></script>
+  <script src="js/wealth.js"></script>
+  <script src="js/self-tests.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

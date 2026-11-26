@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Secrets & local env (NEVER commit!)
+.env
+.env.*
+functions/.env
+functions/.env.*
+!.env.example
+!functions/.env.example
+
+# Firebase & Emulator logs
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+.firebase/
+
+# Playwright & test artifacts
+playwright-report/
+test-results/
+blob-report/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/*.log

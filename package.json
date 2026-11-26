@@ -1,8 +1,16 @@
 {
   "name": "financegr",
+  "version": "2.5.0",
   "private": true,
-  "version": "1.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
-    "test": "node --test tests/*.test.cjs"
+    "check": "node scripts/verify-integrity.cjs",
+    "test": "node scripts/run-tests.cjs",
+    "test:all": "npm run check && npm test",
+    "test:emulator": "node --test tests/emulator/rules.emulator.test.cjs",
+    "test:e2e": "npx playwright test",
+    "serve": "node scripts/serve-static.cjs"
   }
 }

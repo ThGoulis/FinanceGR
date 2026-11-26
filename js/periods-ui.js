@@ -218,11 +218,34 @@ function getPeriodTotals(startIso, endIso, memberView = "all", split = null) {
     if (t.type === "income") {
       acc.income += amt;
     } else if (t.type === "expense") {
-      acc.expense += amt;
-      if (t.unexpected) acc.unexpected += amt;
-      if (NEEDS_CATEGORIES.includes(t.category)) acc.needs += amt;
-      if (WANTS_CATEGORIES.includes(t.category)) acc.wants += amt;
-      acc.byCategory[t.category] = (acc.byCategory[t.category] || 0) + amt;
+      const linkedLiab = t.linkedLiabilityId
+        ? (data.liabilities || []).find(l => l && l.id === t.linkedLiabilityId)
+        : null;
+      const isCreditCardPayment = Boolean(
+        t.linkedLiabilityId &&
+        (t.linkedLiabilityType === "Credit Card" || linkedLiab?.type === "Credit Card")
+      );
+      if (isCreditCardPayment) {
+        // Credit card purchases are already counted in period expenses when bought.
+        // Only the interest portion of a card payment is a new period expense; principal is debt repayment.
+        const rawTotal = Math.max(0.01, Number(t.amount) || amt);
+        const scale = amt / rawTotal;
+        const principalPart = roundMoney(Math.max(0, Number(t.liabilityPrincipal) || 0) * scale);
+        const interestPart = roundMoney(Math.max(0, Number(t.liabilityInterest) || 0) * scale);
+        acc.creditCardRepayment += principalPart;
+        if (interestPart > 0) {
+          acc.expense += interestPart;
+          if (NEEDS_CATEGORIES.includes(t.category)) acc.needs += interestPart;
+          if (WANTS_CATEGORIES.includes(t.category)) acc.wants += interestPart;
+          acc.byCategory[t.category] = (acc.byCategory[t.category] || 0) + interestPart;
+        }
+      } else {
+        acc.expense += amt;
+        if (t.unexpected) acc.unexpected += amt;
+        if (NEEDS_CATEGORIES.includes(t.category)) acc.needs += amt;
+        if (WANTS_CATEGORIES.includes(t.category)) acc.wants += amt;
+        acc.byCategory[t.category] = (acc.byCategory[t.category] || 0) + amt;
+      }
     } else if (t.type === "saving") {
       acc.saving += amt;
       if (t.category === "Επένδυση") {
@@ -247,6 +270,7 @@ function getPeriodTotals(startIso, endIso, memberView = "all", split = null) {
     withdrawal: 0,
     needs: 0,
     wants: 0,
+    creditCardRepayment: 0,
     byCategory: {}
   });
 }
@@ -281,6 +305,9 @@ function computeLifetimeCashFlow(memberView = "all", split = null, asOfDate = to
   );
   const txs = filterTransactionsByMemberView(eligible, memberView, activeSplit);
   const total = txs.reduce((sum, t) => {
+    // Credit card purchases increase the card liability instead of reducing bank cash immediately.
+    // Excluding them from lifetime cashFlow prevents double-counting in Net Worth (Assets - Liabilities).
+    if (t.paidByCreditCardId) return sum;
     const amount = getEffectiveTxAmountForMemberView(t, memberView, activeSplit);
     if (!Number.isFinite(amount) || amount <= 0) return sum;
     if (t.type === "income" || t.type === "withdrawal") return sum + amount;
@@ -297,14 +324,16 @@ function computeNetWorthSnapshot(memberView = "all", split = null, asOfDate = to
   const includePrimaryUserAssets = !partnerOnly && !sharedOnly;
   const cashReserve = includePrimaryUserAssets ? computeCashReserveBalance(asOfDate, true) : 0;
   const goalsTotal = includePrimaryUserAssets
-    ? (data.goals || []).reduce((sum, goal) => sum + (Number(goal.saved) || 0), 0)
+    ? fromCents((data.goals || []).reduce((sumCents, goal) => sumCents + toCents(goal.saved), 0))
     : 0;
   const portfolioTotal = includePrimaryUserAssets
-    ? (data.portfolioAssets || []).reduce((sum, asset) => sum + (Number(asset.current) || 0), 0)
+    ? fromCents((data.portfolioAssets || []).reduce((sumCents, asset) => sumCents + toCents(asset.current), 0))
     : 0;
   const cashFlow = computeLifetimeCashFlow(memberView, activeSplit, asOfDate);
-  const netWorth = Number((cashReserve + goalsTotal + portfolioTotal + cashFlow).toFixed(2));
-  return { asOfDate, cashReserve, goalsTotal, portfolioTotal, cashFlow, netWorth };
+  const liabilitiesTotal = computeLiabilitiesBalance(asOfDate, memberView, activeSplit);
+  const assetsTotalCents = toCents(cashReserve) + toCents(goalsTotal) + toCents(portfolioTotal) + toCents(cashFlow);
+  const netWorth = fromCents(assetsTotalCents - toCents(liabilitiesTotal));
+  return { asOfDate, cashReserve, goalsTotal, portfolioTotal, cashFlow, liabilitiesTotal, netWorth };
 }
 
 function matchRecurringItemsForMonth(ym, txPool = null, splitOverride = null) {
@@ -434,7 +463,11 @@ function switchTab(tabName) {
     btn.setAttribute("aria-selected", active ? "true" : "false");
   });
   document.querySelectorAll(".mob-nav-item").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.tab === tabName);
+    const isWealthGroup = btn.dataset.tab === "wealth" && ["wealth", "loans", "cards"].includes(tabName);
+    btn.classList.toggle("active", btn.dataset.tab === tabName || isWealthGroup);
+  });
+  document.querySelectorAll("[data-mwealth]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mwealth === tabName);
   });
   const topSettingsBtn = document.getElementById("topSettingsBtn");
   if (topSettingsBtn) {
@@ -447,6 +480,12 @@ function switchTab(tabName) {
   if (tabName === "wealth") {
     renderPortfolio();
     renderWealthSimulator();
+  } else if (tabName === "loans") {
+    if (typeof renderLoansTab === "function") renderLoansTab();
+  } else if (tabName === "cards") {
+    if (typeof renderCreditCardsTab === "function") renderCreditCardsTab();
+  } else if (tabName === "settings") {
+    if (typeof renderEReceiptsTracker === "function") renderEReceiptsTracker();
   }
 }
 
@@ -573,3 +612,23 @@ function loadDemoData() {
   );
 }
 
+
+
+function toggleMobileMoreDrawer(forceOpen = null) {
+  const backdrop = document.getElementById("mobileMoreDrawerBackdrop");
+  const btn = document.getElementById("mobileMenuBtn");
+  if (!backdrop) return;
+  const currentlyOpen = backdrop.classList.contains("open");
+  const nextOpen = forceOpen !== null ? Boolean(forceOpen) : !currentlyOpen;
+  backdrop.classList.toggle("open", nextOpen);
+  if (btn) btn.setAttribute("aria-expanded", String(nextOpen));
+}
+
+function closeMobileMoreDrawer() {
+  toggleMobileMoreDrawer(false);
+}
+
+function mobileDrawerNavigateTab(tabName) {
+  closeMobileMoreDrawer();
+  switchTab(tabName);
+}

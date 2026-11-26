@@ -1,3 +1,83 @@
+
+/* ==========================================================================
+   FINANCIAL INTEGRITY HELPERS (CENTS, VALIDATION & LIABILITIES)
+   ========================================================================== */
+function toCents(val) {
+  const num = Number(val);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100);
+}
+
+function fromCents(cents) {
+  const n = Number(cents);
+  if (!Number.isFinite(n)) return 0;
+  return Number((n / 100).toFixed(2));
+}
+
+function roundMoney(val) {
+  return fromCents(toCents(val));
+}
+
+function validateFinancialAmount(val, { min = 0.01, max = 1e9, allowZero = false } = {}) {
+  const num = Number(val);
+  if (!Number.isFinite(num)) {
+    return { ok: false, value: 0, error: "Μη έγκυρο αριθμητικό ποσό." };
+  }
+  const rounded = roundMoney(num);
+  if (rounded < 0) {
+    return { ok: false, value: 0, error: "Το ποσό δεν μπορεί να είναι αρνητικό." };
+  }
+  if (!allowZero && rounded < min) {
+    return { ok: false, value: 0, error: `Το ποσό πρέπει να είναι τουλάχιστον ${money(min)}.` };
+  }
+  if (allowZero && rounded === 0) {
+    return { ok: true, value: 0, error: "" };
+  }
+  if (rounded > max) {
+    return { ok: false, value: 0, error: `Το ποσό υπερβαίνει το επιτρεπτό όριο (${money(max)}).` };
+  }
+  return { ok: true, value: rounded, error: "" };
+}
+
+function validateFinancialDate(dateIso) {
+  if (typeof dateIso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateIso.trim())) {
+    return { ok: false, value: "", error: "Μη έγκυρη μορφή ημερομηνίας." };
+  }
+  const clean = dateIso.trim();
+  const parsed = parseIsoDate(clean);
+  if (!parsed) {
+    return { ok: false, value: "", error: "Μη έγκυρη ημερομηνία ημερολογίου." };
+  }
+  return { ok: true, value: clean, error: "" };
+}
+
+function validateFinancialCategory(category, allowedList = ALL_CATEGORIES) {
+  const cat = String(category || "").trim();
+  if (!cat || !Array.isArray(allowedList) || !allowedList.includes(cat)) {
+    return { ok: false, value: "", error: "Μη έγκυρη κατηγορία συναλλαγής." };
+  }
+  return { ok: true, value: cat, error: "" };
+}
+
+function computeLiabilitiesBalance(asOfDate = today(), memberView = "all", split = null) {
+  const activeSplit = split || getCoupleSplit();
+  const partnerOnly = activeSplit.hasPartner && memberView === "partner";
+  const sharedOnly = activeSplit.hasPartner && memberView === "shared";
+  if (partnerOnly || sharedOnly) return 0;
+
+  const list = Array.isArray(data.liabilities) ? data.liabilities : [];
+  let totalCents = 0;
+  for (const l of list) {
+    if (!l || typeof l !== "object") continue;
+    if (l.startDate && typeof l.startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.startDate) && l.startDate > asOfDate) {
+      continue;
+    }
+    const bal = Math.max(0, roundMoney(l.remainingBalance ?? l.currentBalance ?? 0));
+    totalCents += toCents(bal);
+  }
+  return fromCents(totalCents);
+}
+
 /* ==========================================================================
    1. CONSTANTS, DEFAULTS & STATE MANAGEMENT
    ========================================================================== */
@@ -107,6 +187,7 @@ function createDefaultState() {
     goals: [],
     annualBills: [],
     portfolioAssets: [],
+    liabilities: [],
     merchantRules: {},
     ignoredSubscriptions: {},
     deletedTxIds: {},
@@ -117,12 +198,14 @@ function createDefaultState() {
       periodMode: "month",
       memberView: "all",
       planningSubfilter: "all",
+      wealthSubtab: "investments",
       privacyMode: false,
-      darkMode: false,
+      darkMode: true,
       firstUseDismissed: false,
       firstUseCollapsed: false,
       detectedSubsCollapsed: false,
       onboardingCompleted: false,
+      anonymousTelemetryEnabled: true,
       cloudSync: {
         enabled: false,
         roomCode: "",
@@ -220,6 +303,7 @@ function loadStateFromStorage() {
       goals: Array.isArray(parsed.goals) ? parsed.goals : [],
       annualBills: Array.isArray(parsed.annualBills) ? parsed.annualBills : [],
       portfolioAssets: Array.isArray(parsed.portfolioAssets) ? parsed.portfolioAssets : [],
+      liabilities: Array.isArray(parsed.liabilities) ? parsed.liabilities : [],
       merchantRules: parsed.merchantRules || {},
       ignoredSubscriptions: normalizedIgnored,
       deletedTxIds: parsed.deletedTxIds || {},
@@ -242,7 +326,6 @@ function loadStateFromStorage() {
 
 let data = loadStateFromStorage();
 let sessionHasUnsavedChanges = false;
-let localPersistenceStatus = "saved"; // saved | unsaved | error
 let cloudSyncStatus = "idle"; // idle | syncing | synced | error | locked
 let isCloudPullInFlight = false;
 let isCloudPushInFlight = false;
@@ -258,6 +341,8 @@ let categoryChartInstance = null;
 let trendChartInstance = null;
 let wealthChartInstance = null;
 let portfolioChartInstance = null;
+let loansChartInstance = null;
+let creditCardsChartInstance = null;
 let txSearchDebounceTimer = null;
 let bankSearchDebounceTimer = null;
 
@@ -276,7 +361,7 @@ function debouncedRenderBankPreviewTable() {
 }
 
 function persist(skipRemotePush = false, skipSessionDirty = false) {
-  let saved = false;
+  let savedOk = false;
   try {
     if (!skipRemotePush && data.settings?.cloudSync?.enabled) {
       data.settings.cloudSync.pendingPush = true;
@@ -288,7 +373,7 @@ function persist(skipRemotePush = false, skipSessionDirty = false) {
         try {
           if (activePin) sessionStorage.setItem(SESSION_PIN_KEY, activePin);
         } catch {
-          // Session-only PIN persistence is best effort; never copy it into localStorage.
+          // Ignore storage error
         }
         copyToSave.settings.cloudSync.pin = "";
         copyToSave.settings.cloudSync.roomPin = "";
@@ -298,30 +383,30 @@ function persist(skipRemotePush = false, skipSessionDirty = false) {
       }
     }
     const serialized = JSON.stringify(copyToSave);
-    // The current key is authoritative. Avoid writing the same full state twice.
     localStorage.setItem(STORAGE_KEY, serialized);
-    saved = true;
-    localPersistenceStatus = "saved";
-    sessionHasUnsavedChanges = false;
-    // Remove the duplicate legacy copy only after the canonical write succeeded.
-    try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch { /* non-fatal cleanup */ }
+    try {
+      if (localStorage.getItem(LEGACY_STORAGE_KEY) !== null) {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore legacy cleanup errors
+    }
+    savedOk = true;
   } catch (e) {
-    localPersistenceStatus = "error";
-    sessionHasUnsavedChanges = true;
     console.error("Failed to save state:", e);
     if (e && (e.name === "QuotaExceededError" || e.code === 22)) {
       showModal("⚠️ Ο χώρος αποθήκευσης του browser γέμισε! Κάνε εξαγωγή JSON Backup και διέγραψε παλιές περιττές κινήσεις.");
-    } else {
-      showToast("⚠️ Δεν αποθηκεύτηκαν οι αλλαγές τοπικά. Έλεγξε τις ρυθμίσεις αποθήκευσης του browser.");
     }
+    return false;
   }
-  if (!skipSessionDirty && !saved) sessionHasUnsavedChanges = true;
+  if (!skipSessionDirty) {
+    sessionHasUnsavedChanges = true;
+  }
   updateBackupStatusUI();
-  if (saved && !skipRemotePush && data.settings?.cloudSync?.enabled) {
-    // Remote sync is asynchronous; pendingPush remains true until the server confirms the write.
+  if (!skipRemotePush && data.settings?.cloudSync?.enabled) {
     pushCloudSyncNow();
   }
-  return saved;
+  return savedOk;
 }
 
 function recordEntityDeletion(id) {
@@ -338,9 +423,7 @@ function updateBackupStatusUI() {
   const isMobile = window.innerWidth <= 680;
   const activePin = getActiveCloudPin();
 
-  if (localPersistenceStatus === "error") {
-    btn.textContent = isMobile ? "⚠️" : "⚠️ Μη αποθηκευμένο τοπικά";
-  } else if (cfg?.enabled && cfg.roomCode) {
+  if (cfg?.enabled && cfg.roomCode) {
     if (cfg.sessionOnlyPin && !activePin) {
       btn.textContent = isMobile ? "🔒" : "🔒 Ξεκλείδωμα Sync";
     } else if (cloudSyncStatus === "syncing") {
@@ -351,7 +434,7 @@ function updateBackupStatusUI() {
       btn.textContent = isMobile ? "☁️" : `☁️ Sync (${cfg.roomCode})`;
     }
   } else {
-    btn.textContent = isMobile ? "💾" : (sessionHasUnsavedChanges ? "💾 Εκκρεμεί αποθήκευση" : "💾 Τοπικά αποθηκευμένο");
+    btn.textContent = isMobile ? "💾" : (sessionHasUnsavedChanges ? "💾 Αποθηκευμένο" : "💾 Τοπικό");
   }
 }
 

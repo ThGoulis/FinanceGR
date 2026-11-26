@@ -35,6 +35,24 @@ function syncCategoryDropdown(typeVal, selectedCat = "") {
   }
 }
 
+function syncTxCreditCardOptions(selectedCardId = "") {
+  const wrap = document.getElementById("txCreditCardWrap");
+  const sel = document.getElementById("txCreditCardId");
+  if (!wrap || !sel) return;
+  const txType = document.getElementById("txType")?.value || "expense";
+  const cards = (Array.isArray(data.liabilities) ? data.liabilities : []).filter(l => l && l.type === "Credit Card");
+  if (txType !== "expense" || cards.length === 0) {
+    wrap.style.display = "none";
+    sel.innerHTML = `<option value="">Όχι (Μετρητά / Χρεωστική)</option>`;
+    sel.value = "";
+    return;
+  }
+  wrap.style.display = "block";
+  sel.innerHTML = `<option value="">Όχι (Μετρητά / Χρεωστική)</option>` +
+    cards.map(c => `<option value="${escapeHtml(c.id)}">💳 ${escapeHtml(c.name)} (Υπόλοιπο: ${money(c.remainingBalance || 0)})</option>`).join("");
+  sel.value = selectedCardId && cards.some(c => c.id === selectedCardId) ? selectedCardId : "";
+}
+
 function selectTransactionType(typeVal) {
   const hidden = document.getElementById("txType");
   if (hidden) hidden.value = typeVal;
@@ -44,6 +62,7 @@ function selectTransactionType(typeVal) {
   syncCategoryDropdown(typeVal);
   const unexpWrap = document.getElementById("unexpectedWrap");
   if (unexpWrap) unexpWrap.style.display = typeVal === "expense" ? "flex" : "none";
+  syncTxCreditCardOptions(document.getElementById("txCreditCardId")?.value || "");
   updateSharedTxPreview();
 }
 
@@ -109,6 +128,7 @@ function openTransactionModal(editId = null) {
     document.getElementById("unexpected").checked = Boolean(tx.unexpected);
     document.getElementById("txIsShared").checked = Boolean(tx.isShared && split.hasPartner);
     document.getElementById("txPaidBy").value = tx.paidBy || "me";
+    syncTxCreditCardOptions(tx.paidByCreditCardId || "");
   } else {
     setTextSafe("transactionFormTitle", "➕ Νέα Συναλλαγή");
     selectTransactionType("expense");
@@ -120,6 +140,7 @@ function openTransactionModal(editId = null) {
     const defaultCat = document.getElementById("category")?.value || "";
     document.getElementById("txIsShared").checked = Boolean(split.hasPartner && defaultCat === "Στέγαση");
     document.getElementById("txPaidBy").value = "me";
+    syncTxCreditCardOptions("");
   }
 
   updateSharedTxPreview();
@@ -141,82 +162,197 @@ function addTransaction(keepOpen = false) {
   const description = document.getElementById("description").value.trim() || category;
   const unexpected = type === "expense" && Boolean(document.getElementById("unexpected").checked);
 
-  if (!amount || amount <= 0) {
-    showModal("Πληκτρολόγησε ένα έγκυρο ποσό μεγαλύτερο από €0.");
+  const amtCheck = validateFinancialAmount(amount, { min: 0.01, max: 1e9 });
+  if (!amtCheck.ok) {
+    showModal(amtCheck.error);
     return;
   }
-  if (!date) {
-    showModal("Επίλεξε ημερομηνία συναλλαγής.");
+  const dateCheck = validateFinancialDate(date);
+  if (!dateCheck.ok) {
+    showModal(dateCheck.error);
     return;
   }
-  if (!parseFlexibleDate(date) || amount > 1e9) {
-    showModal("Έλεγξε την ημερομηνία και το ποσό (μέγιστο €1.000.000.000).");
+  const catCheck = validateFinancialCategory(category);
+  if (!catCheck.ok) {
+    showModal(catCheck.error);
     return;
   }
 
   const split = getCoupleSplit();
   const isShared = split.hasPartner && type === "expense" && Boolean(document.getElementById("txIsShared").checked);
   const paidBy = isShared ? (document.getElementById("txPaidBy").value || "me") : undefined;
+  const selectedCardId = type === "expense" ? String(document.getElementById("txCreditCardId")?.value || "").trim() : "";
+  const validCard = selectedCardId
+    ? (data.liabilities || []).find(l => l && l.id === selectedCardId && l.type === "Credit Card")
+    : null;
+  const paidByCreditCardId = validCard ? validCard.id : undefined;
+
+  const nowTs = Date.now();
+  const newAmt = amtCheck.value;
 
   if (editId) {
     const idx = data.transactions.findIndex(t => t.id === editId);
     if (idx !== -1) {
       const oldTx = data.transactions[idx];
-      const newAmt = Number(amount.toFixed(2));
       const oldEffect = oldTx.type === "saving" ? (Number(oldTx.amount) || 0) : (oldTx.type === "withdrawal" ? -(Number(oldTx.amount) || 0) : 0);
       const newEffect = type === "saving" ? newAmt : (type === "withdrawal" ? -newAmt : 0);
-      const effectDelta = Number((newEffect - oldEffect).toFixed(2));
+      const effectDelta = fromCents(toCents(newEffect) - toCents(oldEffect));
+      let nextDcaAddedUnits = oldTx.dcaAddedUnits;
+      let nextLinkedLiabilityId = oldTx.linkedLiabilityId;
+      let nextLiabilityPrincipal = oldTx.liabilityPrincipal;
+      let nextLiabilityInterest = oldTx.liabilityInterest;
+
       if (effectDelta !== 0) {
         if (oldTx.linkedGoalId) {
           const g = (data.goals || []).find(item => item.id === oldTx.linkedGoalId);
           if (g) {
-            g.saved = Math.max(0, Number(((Number(g.saved) || 0) + effectDelta).toFixed(2)));
-            data.settings.stateUpdatedAt = Date.now();
+            g.saved = Math.max(0, fromCents(toCents(g.saved || 0) + toCents(effectDelta)));
+            data.settings.stateUpdatedAt = nowTs;
           }
         }
         if (oldTx.linkedAnnualBillId) {
           const b = (data.annualBills || []).find(item => item.id === oldTx.linkedAnnualBillId);
           if (b) {
-            b.saved = Math.max(0, Number(((Number(b.saved) || 0) + effectDelta).toFixed(2)));
-            data.settings.stateUpdatedAt = Date.now();
+            b.saved = Math.max(0, fromCents(toCents(b.saved || 0) + toCents(effectDelta)));
+            data.settings.stateUpdatedAt = nowTs;
+          }
+        }
+        if (oldTx.linkedPortfolioAssetId) {
+          const asset = (data.portfolioAssets || []).find(a => a && a.id === oldTx.linkedPortfolioAssetId);
+          if (asset) {
+            const prevUnits = Math.max(0, Number(asset.units) || 0);
+            const unitPx = Number(oldTx.dcaUnitPriceEur) > 0
+              ? Number(oldTx.dcaUnitPriceEur)
+              : (Number(asset.lastUnitPriceEur) > 0 ? Number(asset.lastUnitPriceEur) : 0);
+            asset.invested = Math.max(0, fromCents(toCents(asset.invested || 0) + toCents(effectDelta)));
+            if (unitPx > 0 && prevUnits > 0) {
+              const deltaUnits = effectDelta / unitPx;
+              asset.units = Math.max(0, Number((prevUnits + deltaUnits).toFixed(8)));
+              const valuationPx = Number(asset.lastUnitPriceEur) > 0 ? Number(asset.lastUnitPriceEur) : unitPx;
+              asset.current = asset.units > 0 ? roundMoney(asset.units * valuationPx) : 0;
+              if (type === "saving") {
+                nextDcaAddedUnits = Number((newAmt / unitPx).toFixed(8));
+              }
+            } else {
+              asset.current = Math.max(0, fromCents(toCents(asset.current || 0) + toCents(effectDelta)));
+            }
+            asset._updatedAt = nowTs;
+            data.settings.stateUpdatedAt = nowTs;
           }
         }
       }
+
+      // Reconcile linked liability installment payment if edited
+      if (oldTx.linkedLiabilityId) {
+        const liab = (data.liabilities || []).find(l => l && l.id === oldTx.linkedLiabilityId);
+        const oldPrincipal = Math.max(0, roundMoney(oldTx.liabilityPrincipal || 0));
+        if (liab) {
+          if (type === "expense") {
+            const keptInterest = Math.min(newAmt, Math.max(0, roundMoney(oldTx.liabilityInterest || 0)));
+            const newPrincipal = fromCents(Math.max(0, toCents(newAmt) - toCents(keptInterest)));
+            const principalDeltaCents = toCents(newPrincipal) - toCents(oldPrincipal);
+            if (principalDeltaCents !== 0) {
+              liab.remainingBalance = fromCents(Math.max(0, toCents(liab.remainingBalance || 0) - principalDeltaCents));
+              if (liab.type === "Credit Card" && Number(liab.installmentBalance) > liab.remainingBalance) {
+                liab.installmentBalance = liab.remainingBalance;
+              }
+              liab._updatedAt = nowTs;
+              data.settings.stateUpdatedAt = nowTs;
+            }
+            nextLiabilityPrincipal = newPrincipal;
+            nextLiabilityInterest = keptInterest;
+          } else {
+            // Changed away from expense: restore old principal to liability
+            if (oldPrincipal > 0) {
+              liab.remainingBalance = fromCents(toCents(liab.remainingBalance || 0) + toCents(oldPrincipal));
+              liab._updatedAt = nowTs;
+              data.settings.stateUpdatedAt = nowTs;
+            }
+            nextLinkedLiabilityId = undefined;
+            nextLiabilityPrincipal = undefined;
+            nextLiabilityInterest = undefined;
+          }
+        }
+      }
+
+      // Reconcile credit card purchase balance if old or new tx is charged to a credit card
+      const oldCardId = oldTx.type === "expense" ? (oldTx.paidByCreditCardId || "") : "";
+      const newCardId = paidByCreditCardId || "";
+      if (oldCardId && oldCardId === newCardId) {
+        const amtDeltaCents = toCents(newAmt) - toCents(oldTx.amount || 0);
+        if (amtDeltaCents !== 0) {
+          const card = (data.liabilities || []).find(l => l && l.id === newCardId);
+          if (card) {
+            card.remainingBalance = fromCents(Math.max(0, toCents(card.remainingBalance || 0) + amtDeltaCents));
+            card._updatedAt = nowTs;
+            data.settings.stateUpdatedAt = nowTs;
+          }
+        }
+      } else {
+        if (oldCardId) {
+          const oldCard = (data.liabilities || []).find(l => l && l.id === oldCardId);
+          if (oldCard) {
+            oldCard.remainingBalance = fromCents(Math.max(0, toCents(oldCard.remainingBalance || 0) - toCents(oldTx.amount || 0)));
+            oldCard._updatedAt = nowTs;
+            data.settings.stateUpdatedAt = nowTs;
+          }
+        }
+        if (newCardId) {
+          const newCard = (data.liabilities || []).find(l => l && l.id === newCardId);
+          if (newCard) {
+            newCard.remainingBalance = fromCents(toCents(newCard.remainingBalance || 0) + toCents(newAmt));
+            newCard._updatedAt = nowTs;
+            data.settings.stateUpdatedAt = nowTs;
+          }
+        }
+      }
+
       data.transactions[idx] = {
         ...oldTx,
         type,
         amount: newAmt,
         date,
         category,
-        source,
+        source: validCard ? validCard.name : source,
         description,
         unexpected,
         isShared,
         paidBy,
-        _updatedAt: Date.now()
+        paidByCreditCardId,
+        dcaAddedUnits: nextDcaAddedUnits,
+        linkedLiabilityId: nextLinkedLiabilityId,
+        liabilityPrincipal: nextLiabilityPrincipal,
+        liabilityInterest: nextLiabilityInterest,
+        _updatedAt: nowTs
       };
       markTxDirty(editId);
     }
     showToast("✅ Η συναλλαγή ενημερώθηκε!");
   } else {
     const newId = generateId("tx");
+    if (validCard) {
+      validCard.remainingBalance = fromCents(toCents(validCard.remainingBalance || 0) + toCents(newAmt));
+      validCard._updatedAt = nowTs;
+      data.settings.stateUpdatedAt = nowTs;
+    }
     data.transactions.push({
       id: newId,
       owner: "me",
       type,
-      amount: Number(amount.toFixed(2)),
+      amount: newAmt,
       date,
       category,
-      source,
+      source: validCard ? validCard.name : source,
       description,
       unexpected,
       isShared,
       paidBy,
+      paidByCreditCardId,
       settled: false,
-      _updatedAt: Date.now()
+      _updatedAt: nowTs
     });
     markTxDirty(newId);
-    showToast("✅ Η συναλλαγή καταχωρίστηκε!");
+    showToast(validCard ? `✅ Καταχωρίστηκε αγορά με ${validCard.name}!` : "✅ Η συναλλαγή καταχωρίστηκε!");
   }
 
   if (description && description !== category && description.length >= 3 && category !== "Άλλο" && category !== "Άλλο Έσοδο") {
@@ -240,40 +376,105 @@ function addTransaction(keepOpen = false) {
   }
 }
 
+function reverseLinkedEntityEffectsForTx(tx, nowTs = Date.now()) {
+  if (!tx || typeof tx !== "object") return false;
+  let entityStateChanged = false;
+
+  if (tx.recurringId && tx.date && tx.date.length >= 7) {
+    const rec = (data.recurring || []).find(r => r && r.id === tx.recurringId);
+    if (rec) {
+      if (!rec.skippedMonths || typeof rec.skippedMonths !== "object") rec.skippedMonths = {};
+      rec.skippedMonths[tx.date.slice(0, 7)] = true;
+      entityStateChanged = true;
+    }
+  }
+
+  const reverseDelta = tx.type === "saving" ? -(Number(tx.amount) || 0) : (tx.type === "withdrawal" ? (Number(tx.amount) || 0) : 0);
+
+  if (tx.linkedGoalId && reverseDelta !== 0) {
+    const g = (data.goals || []).find(item => item && item.id === tx.linkedGoalId);
+    if (g) {
+      g.saved = Math.max(0, fromCents(toCents(g.saved || 0) + toCents(reverseDelta)));
+      entityStateChanged = true;
+    }
+  }
+
+  if (tx.linkedAnnualBillId && reverseDelta !== 0) {
+    const b = (data.annualBills || []).find(item => item && item.id === tx.linkedAnnualBillId);
+    if (b) {
+      b.saved = Math.max(0, fromCents(toCents(b.saved || 0) + toCents(reverseDelta)));
+      entityStateChanged = true;
+    }
+  }
+
+  if (tx.linkedPortfolioAssetId && reverseDelta !== 0) {
+    const asset = (data.portfolioAssets || []).find(a => a && a.id === tx.linkedPortfolioAssetId);
+    if (asset) {
+      asset.invested = Math.max(0, fromCents(toCents(asset.invested || 0) + toCents(reverseDelta)));
+      const prevUnits = Math.max(0, Number(asset.units) || 0);
+      const removedUnits = Number(tx.dcaAddedUnits) > 0
+        ? Number(tx.dcaAddedUnits)
+        : (Number(tx.dcaUnitPriceEur) > 0 ? Math.abs(reverseDelta) / Number(tx.dcaUnitPriceEur) : 0);
+      if (prevUnits > 0 && removedUnits > 0) {
+        const nextUnits = Math.max(0, Number((prevUnits - (tx.type === "saving" ? removedUnits : -removedUnits)).toFixed(8)));
+        const valuationPx = Number(asset.lastUnitPriceEur) > 0
+          ? Number(asset.lastUnitPriceEur)
+          : (Number(tx.dcaUnitPriceEur) > 0 ? Number(tx.dcaUnitPriceEur) : (prevUnits > 0 ? (Number(asset.current) || 0) / prevUnits : 0));
+        asset.units = nextUnits;
+        asset.current = nextUnits > 0 && valuationPx > 0 ? roundMoney(nextUnits * valuationPx) : 0;
+      } else {
+        asset.current = Math.max(0, fromCents(toCents(asset.current || 0) + toCents(reverseDelta)));
+      }
+      asset._updatedAt = nowTs;
+      entityStateChanged = true;
+    }
+  }
+
+  if (tx.linkedLiabilityId && Number(tx.liabilityPrincipal) > 0) {
+    const l = (data.liabilities || []).find(item => item && item.id === tx.linkedLiabilityId);
+    if (l) {
+      l.remainingBalance = fromCents(toCents(l.remainingBalance || 0) + toCents(tx.liabilityPrincipal));
+      if (l.type === "Credit Card" && Number(tx.liabilityInstallmentPrincipal) > 0) {
+        l.installmentBalance = Math.min(
+          l.remainingBalance,
+          fromCents(toCents(l.installmentBalance || 0) + toCents(tx.liabilityInstallmentPrincipal))
+        );
+        if (l.installmentRemainingCount !== undefined) {
+          l.installmentRemainingCount = Math.round(Number(l.installmentRemainingCount) || 0) + 1;
+        }
+      }
+      l._updatedAt = nowTs;
+      entityStateChanged = true;
+    }
+  }
+
+  if (tx.paidByCreditCardId && Number(tx.amount) > 0) {
+    const card = (data.liabilities || []).find(item => item && item.id === tx.paidByCreditCardId);
+    if (card) {
+      if (tx.type === "expense") {
+        card.remainingBalance = fromCents(Math.max(0, toCents(card.remainingBalance || 0) - toCents(tx.amount)));
+      } else if (tx.type === "income") {
+        card.remainingBalance = fromCents(toCents(card.remainingBalance || 0) + toCents(tx.amount));
+      }
+      card._updatedAt = nowTs;
+      entityStateChanged = true;
+    }
+  }
+
+  return entityStateChanged;
+}
+
 function deleteTransaction(txId) {
   const tx = data.transactions.find(t => t.id === txId);
   if (!tx) return;
   showModal(`Διαγραφή συναλλαγής «${tx.description}» (${money(tx.amount)});`, true, (ok) => {
     if (!ok) return;
-    let entityStateChanged = false;
-    if (tx.recurringId && tx.date && tx.date.length >= 7) {
-      const rec = (data.recurring || []).find(r => r.id === tx.recurringId);
-      if (rec) {
-        if (!rec.skippedMonths || typeof rec.skippedMonths !== "object") rec.skippedMonths = {};
-        rec.skippedMonths[tx.date.slice(0, 7)] = true;
-        entityStateChanged = true;
-      }
-    }
-    const reverseDelta = tx.type === "saving" ? -(Number(tx.amount) || 0) : (tx.type === "withdrawal" ? (Number(tx.amount) || 0) : 0);
-    if (tx.linkedGoalId && reverseDelta !== 0) {
-      const g = (data.goals || []).find(item => item.id === tx.linkedGoalId);
-      if (g) {
-        g.saved = Math.max(0, Number(((Number(g.saved) || 0) + reverseDelta).toFixed(2)));
-        entityStateChanged = true;
-      }
-    }
-    if (tx.linkedAnnualBillId && reverseDelta !== 0) {
-      const b = (data.annualBills || []).find(item => item.id === tx.linkedAnnualBillId);
-      if (b) {
-        b.saved = Math.max(0, Number(((Number(b.saved) || 0) + reverseDelta).toFixed(2)));
-        entityStateChanged = true;
-      }
-    }
-    if (entityStateChanged) {
-      data.settings.stateUpdatedAt = Date.now();
+    const nowTs = Date.now();
+    if (reverseLinkedEntityEffectsForTx(tx, nowTs)) {
+      data.settings.stateUpdatedAt = nowTs;
     }
     data.transactions = data.transactions.filter(t => t.id !== txId);
-    data.deletedTxIds[txId] = Date.now();
+    data.deletedTxIds[txId] = nowTs;
     markTxDirty(txId);
     persist();
     render();
@@ -513,6 +714,15 @@ function deleteBulkSelectedTx() {
     if (!ok) return;
     const nowTs = Date.now();
     const toRemove = new Set(selectedTxIds);
+    let anyEntityChanged = false;
+    (data.transactions || []).forEach(t => {
+      if (t && toRemove.has(t.id) && reverseLinkedEntityEffectsForTx(t, nowTs)) {
+        anyEntityChanged = true;
+      }
+    });
+    if (anyEntityChanged) {
+      data.settings.stateUpdatedAt = nowTs;
+    }
     data.transactions = (data.transactions || []).filter(t => !toRemove.has(t.id));
     toRemove.forEach(id => {
       data.deletedTxIds[id] = nowTs;

@@ -304,6 +304,14 @@ function sanitizeImportedTransaction(rawTx) {
     linkedGoalId: typeof rawTx.linkedGoalId === "string" ? rawTx.linkedGoalId : undefined,
     linkedAnnualBillId: typeof rawTx.linkedAnnualBillId === "string" ? rawTx.linkedAnnualBillId : undefined,
     linkedPortfolioAssetId: typeof rawTx.linkedPortfolioAssetId === "string" ? rawTx.linkedPortfolioAssetId : undefined,
+    dcaAddedUnits: Number.isFinite(Number(rawTx.dcaAddedUnits)) && Number(rawTx.dcaAddedUnits) > 0 ? Number(rawTx.dcaAddedUnits) : undefined,
+    dcaUnitPriceEur: Number.isFinite(Number(rawTx.dcaUnitPriceEur)) && Number(rawTx.dcaUnitPriceEur) > 0 ? Number(rawTx.dcaUnitPriceEur) : undefined,
+    linkedLiabilityId: typeof rawTx.linkedLiabilityId === "string" ? rawTx.linkedLiabilityId : undefined,
+    linkedLiabilityType: ["Loan", "Credit Card", "Other"].includes(rawTx.linkedLiabilityType) ? rawTx.linkedLiabilityType : undefined,
+    liabilityPrincipal: Number.isFinite(Number(rawTx.liabilityPrincipal)) && Number(rawTx.liabilityPrincipal) >= 0 ? Number(Number(rawTx.liabilityPrincipal).toFixed(2)) : undefined,
+    liabilityInterest: Number.isFinite(Number(rawTx.liabilityInterest)) && Number(rawTx.liabilityInterest) >= 0 ? Number(Number(rawTx.liabilityInterest).toFixed(2)) : undefined,
+    liabilityInstallmentPrincipal: Number.isFinite(Number(rawTx.liabilityInstallmentPrincipal)) && Number(rawTx.liabilityInstallmentPrincipal) > 0 ? Number(Number(rawTx.liabilityInstallmentPrincipal).toFixed(2)) : undefined,
+    paidByCreditCardId: typeof rawTx.paidByCreditCardId === "string" ? rawTx.paidByCreditCardId : undefined,
     _updatedAt: Number(rawTx._updatedAt) || Date.now()
   };
 }
@@ -389,6 +397,31 @@ function cleanAsset(a) {
   if (_num(a.lastPriceUpdatedAt) > 0) out.lastPriceUpdatedAt = _num(a.lastPriceUpdatedAt);
   return out;
 }
+function cleanLiability(l) {
+  const name = _str(l.name, 80);
+  if (!name) return null;
+  const type = ["Loan", "Credit Card", "Other"].includes(l.type) ? l.type : "Other";
+  const out = {
+    id: _str(l.id, 80) || generateId("liab"),
+    name,
+    type,
+    initialAmount: _clamp(l.initialAmount, 0, 1e9),
+    remainingBalance: _clamp(l.remainingBalance ?? l.currentBalance, 0, 1e9),
+    interestRate: _clamp(l.interestRate, 0, 100),
+    monthlyPayment: _clamp(l.monthlyPayment, 0, 1e9)
+  };
+  if (typeof l.startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.startDate)) out.startDate = l.startDate;
+  if (typeof l.endDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.endDate)) out.endDate = l.endDate;
+  if (_num(l.creditLimit) > 0) out.creditLimit = _clamp(l.creditLimit, 0, 1e9);
+  if (_num(l.installmentBalance) > 0) out.installmentBalance = _clamp(l.installmentBalance, 0, 1e9);
+  if (_num(l.statementDay) >= 1 && _num(l.statementDay) <= 31) out.statementDay = Math.round(_num(l.statementDay));
+  if (_num(l.dueDay) >= 1 && _num(l.dueDay) <= 31) out.dueDay = Math.round(_num(l.dueDay));
+  if (_num(l.installmentMonthly) > 0) out.installmentMonthly = _clamp(l.installmentMonthly, 0, 1e9);
+  if (_num(l.installmentRemainingCount) > 0) out.installmentRemainingCount = Math.min(120, Math.round(_num(l.installmentRemainingCount)));
+  if (_num(l.reserveOffsetAmount) > 0) out.reserveOffsetAmount = _clamp(l.reserveOffsetAmount, 0, 1e9);
+  return out;
+}
+
 function sanitizeRemoteTx(raw) {
   const c = sanitizeImportedTransaction(raw);
   if (!c) return null;
@@ -440,6 +473,7 @@ function importJSON() {
             goals: cleanList(parsed.goals, cleanGoal),
             annualBills: cleanList(parsed.annualBills, cleanBill),
             portfolioAssets: cleanList(parsed.portfolioAssets, cleanAsset),
+            liabilities: cleanList(parsed.liabilities, cleanLiability),
             merchantRules: cleanRules(parsed.merchantRules),
             ignoredSubscriptions: Array.isArray(parsed.ignoredSubscriptions)
               ? cleanFlags(Object.fromEntries(parsed.ignoredSubscriptions.slice(0, 2000).map(k => [String(k), true])))
@@ -554,6 +588,7 @@ function completeWelcomeSetup() {
   document.getElementById("welcomeSetupModal").style.display = "none";
   persist();
   render();
+  if (typeof trackZeroKnowledgeEvent === "function") trackZeroKnowledgeEvent("onboarding_completed");
 }
 
 function skipWelcomeSetup() {
@@ -595,3 +630,149 @@ function confirmResetAllData() {
   }, "⚠️ Διαγραφή Όλων των Δεδομένων");
 }
 
+function openPrivacySecurityModal() {
+  const m = document.getElementById("privacySecurityModal");
+  if (m) m.style.display = "flex";
+}
+
+function closePrivacySecurityModal() {
+  const m = document.getElementById("privacySecurityModal");
+  if (m) m.style.display = "none";
+}
+
+function startWithBankStatementImport() {
+  data.settings.onboardingCompleted = true;
+  const wm = document.getElementById("welcomeSetupModal");
+  if (wm) wm.style.display = "none";
+  persist(true, true);
+  render();
+  if (typeof openBankImportModal === "function") {
+    openBankImportModal();
+  }
+}
+
+function loadDemoShowcaseData() {
+  const ym = currentYearMonth();
+  const prevDate = new Date();
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+  const nowTs = Date.now();
+
+  const demo = createDefaultState();
+  demo.profile.userName = "Αλέξανδρος (Demo)";
+  demo.profile.monthlyIncome = 1450;
+  demo.profile.savingGoal = 300;
+  demo.profile.paydayDay = 25;
+  demo.profile.typicalPayday = 25;
+  demo.profile.initialSavings = 2400;
+
+  demo.budgets = {
+    "Στέγαση": 480,
+    "Τρόφιμα": 260,
+    "Λογαριασμοί": 140,
+    "Μεταφορές": 110,
+    "Διασκέδαση": 150,
+    "Υγεία": 60
+  };
+
+  demo.recurring = [
+    { id: generateId("rec"), title: "Ενοίκιο", type: "expense", category: "Στέγαση", amount: 450, day: 1, isShared: false, skippedMonths: {} },
+    { id: generateId("rec"), title: "Σταθερό Internet & Κινητή", type: "expense", category: "Λογαριασμοί", amount: 42, day: 10, isShared: false, skippedMonths: {} }
+  ];
+
+  demo.goals = [
+    { id: generateId("goal"), title: "🛡️ Ταμείο Έκτακτης Ανάγκης", target: 5000, saved: 2850, deadline: "" },
+    { id: generateId("goal"), title: "✈️ Καλοκαιρινές Διακοπές", target: 1200, saved: 550, deadline: "" }
+  ];
+
+  demo.portfolioAssets = [
+    {
+      id: "demo_etf_vuaa",
+      name: "Vanguard S&P 500 UCITS ETF",
+      ticker: "VUAA.MI",
+      type: "ETF",
+      units: 32,
+      invested: 3200,
+      current: 3616,
+      lastUnitPriceEur: 113.0,
+      _updatedAt: nowTs
+    },
+    {
+      id: "demo_etf_xeon",
+      name: "Xtrackers II EUR Overnight Rate",
+      ticker: "XEON.DE",
+      type: "Κατάθεση / XEON",
+      units: 10,
+      invested: 1420,
+      current: 1455,
+      lastUnitPriceEur: 145.5,
+      _updatedAt: nowTs
+    }
+  ];
+
+  demo.liabilities = [
+    {
+      id: "demo_loan_1",
+      name: "Δάνειο Οχήματος",
+      type: "Loan",
+      initialAmount: 8000,
+      remainingBalance: 5200,
+      interestRate: 5.8,
+      monthlyPayment: 215,
+      _updatedAt: nowTs
+    },
+    {
+      id: "demo_card_1",
+      name: "Πειραιώς Visa",
+      type: "Credit Card",
+      creditLimit: 2500,
+      initialAmount: 2500,
+      remainingBalance: 340,
+      installmentBalance: 240,
+      installmentMonthly: 40,
+      installmentRemainingCount: 6,
+      interestRate: 17.5,
+      _updatedAt: nowTs
+    }
+  ];
+
+  demo.transactions = [
+    { id: generateId("tx"), owner: "me", type: "income", category: "Μισθός", amount: 1450, date: `${prevYm}-25`, description: "Μισθοδοσία", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Στέγαση", amount: 450, date: `${ym}-01`, description: "Ενοίκιο Διαμερίσματος", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Τρόφιμα", amount: 84.50, date: `${ym}-03`, description: "Σκλαβενίτης Supermarket", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Λογαριασμοί", amount: 68.20, date: `${ym}-05`, description: "ΔΕΗ Λογαριασμός", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Μεταφορές", amount: 45.00, date: `${ym}-07`, description: "Shell Καύσιμα", source: "Revolut", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "saving", category: "Επένδυση", amount: 200, date: `${ym}-10`, description: "DCA: Vanguard S&P 500 UCITS ETF", linkedPortfolioAssetId: "demo_etf_vuaa", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Διασκέδαση", amount: 36.80, date: `${ym}-12`, description: "Εστιατόριο & Καφές", source: "Revolut", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Υγεία", amount: 24.00, date: `${ym}-14`, description: "Φαρμακείο", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Τρόφιμα", amount: 62.30, date: `${ym}-16`, description: "ΑΒ Βασιλόπουλος", source: "Πειραιώς", _updatedAt: nowTs },
+    { id: generateId("tx"), owner: "me", type: "expense", category: "Διασκέδαση", amount: 55.00, date: `${ym}-18`, description: "Αγορά με Κάρτα", paidByCreditCardId: "demo_card_1", source: "Πειραιώς Visa", _updatedAt: nowTs }
+  ];
+
+  demo.settings.onboardingCompleted = true;
+  demo.settings.isDemoData = true;
+  demo.settings.periodMode = "month";
+  demo.settings.stateUpdatedAt = nowTs;
+
+  data = demo;
+  const wm = document.getElementById("welcomeSetupModal");
+  if (wm) wm.style.display = "none";
+  persist(true, true);
+  render();
+  if (typeof trackZeroKnowledgeEvent === "function") trackZeroKnowledgeEvent("demo_loaded");
+  showToast("👀 Φορτώθηκαν ενδεικτικά Demo δεδομένα! Μπορείς να τα καθαρίσεις ανά πάσα στιγμή.");
+}
+
+function clearDemoDataAndStartFresh(openBankImportAfter = false) {
+  const fresh = createDefaultState();
+  fresh.settings.onboardingCompleted = true;
+  fresh.settings.isDemoData = false;
+  fresh.settings.stateUpdatedAt = Date.now();
+  data = fresh;
+  persist(true, true);
+  render();
+  showToast("🧹 Τα Demo δεδομένα καθαρίστηκαν!");
+  if (openBankImportAfter && typeof openBankImportModal === "function") {
+    openBankImportModal();
+  }
+}

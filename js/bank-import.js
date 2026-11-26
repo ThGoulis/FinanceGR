@@ -22,7 +22,10 @@ function categorizeByMcc(mccStr) {
   const code = Number(mccStr);
   if (!Number.isFinite(code) || code <= 0) return null;
 
-  if ([5411, 5422, 5441, 5451, 5462, 5499].includes(code)) {
+  if (code === 6211) {
+    return { category: "Επένδυση", isShared: false, confidence: "high", forceType: "saving" };
+  }
+  if ([5411, 5422, 5441, 5451, 5462, 5499, 5994].includes(code)) {
     return { category: "Τρόφιμα", isShared: code === 5411 || code === 5422, confidence: "high" };
   }
   if (code === 5912 || code === 5975 || code === 5976 || code === 742 || (code >= 8011 && code <= 8099)) {
@@ -51,11 +54,12 @@ function categorizeByMcc(mccStr) {
     return { category: "Ανάληψη", isShared: false, confidence: "high" };
   }
   if (
-    [5811, 5812, 5813, 5814, 7832, 7841, 5941, 5942, 5945, 5947, 5992, 5995, 5732, 5733, 5734, 5735, 7230, 7298].includes(code) ||
+    [4722, 5811, 5812, 5813, 5814, 5818, 7832, 7841, 5941, 5942, 5945, 5947, 5992, 5995, 5732, 5733, 5734, 5735, 7230, 7298].includes(code) ||
     (code >= 7911 && code <= 7999) ||
     (code >= 5611 && code <= 5699) ||
     (code >= 3501 && code <= 3999) ||
-    code === 7011
+    code === 7011 ||
+    code === 7032
   ) {
     return { category: "Διασκέδαση", isShared: false, confidence: "high" };
   }
@@ -66,7 +70,7 @@ function categorizeByMcc(mccStr) {
 function extractMerchantKey(rawDesc) {
   let cleaned = String(rawDesc || "")
     .replace(/\b\d{4,6}[x*]{4,}\d{2,4}\b/gi, " ")
-    .replace(/\b\d+[.,]\d{2}\s*(?:eur|€|usd|gbp)?\b/gi, " ")
+    .replace(/(?<![\p{L}\p{N}])\d+[.,]\d{2}\s*(?:eur|€|usd|gbp)?(?![\p{L}\p{N}])/giu, " ")
     .replace(/\b(?:po|rf|ref|id)\d{5,}\b/gi, " ")
     .replace(/\b(?:google[\s-]*pay|apple[\s-]*pay|samsung[\s-]*pay|contactless)\b/gi, " ");
 
@@ -86,7 +90,8 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     return {
       category: rule.category,
       isShared: Boolean(rule.isShared),
-      confidence: "high"
+      confidence: "high",
+      ...(rule.category === "Επένδυση" ? { forceType: "saving" } : {})
     };
   }
 
@@ -112,12 +117,26 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     return { category: "Άλλο Έσοδο", isShared: false, confidence: "low" };
   }
 
-  if (/^υπερ(?![\p{L}\p{N}])/u.test(norm)) {
-    return { category: "Διασκέδαση", isShared: false, confidence: "high" };
+  if (/^(rf\d{2,}|\d{6,})/.test(norm) || /\brf\d{10,}\b/.test(norm)) {
+    return { category: "Λογαριασμοί", isShared: false, confidence: "high" };
   }
 
-  if (/^(rf\d{2,}|\d{6,})/.test(norm)) {
-    return { category: "Λογαριασμοί", isShared: false, confidence: "high" };
+  // Priority 1: ATM / Cash withdrawals BEFORE transport keywords (e.g. "ATM ... METRO SEPOLIA")
+  const mccEarly = extractMccCode(rawTrimmed);
+  if (
+    mccEarly === "6010" ||
+    mccEarly === "6011" ||
+    /(?<![\p{L}\p{N}])(αναληψη|analipsi|atm|cash\s*withdrawal)(?![\p{L}\p{N}])/u.test(norm)
+  ) {
+    return { category: "Ανάληψη", isShared: false, confidence: "high", ...(mccEarly ? { mcc: mccEarly } : {}) };
+  }
+
+  // Priority 2: Investment / Brokerage platforms (Trading 212, IBKR, DEGIRO, Freedom24, MCC 6211) -> saving
+  if (
+    mccEarly === "6211" ||
+    /(trading\s*212|interactive\s*brokers|\bibkr\b|degiro|freedom24|etoro|vanguard|xtb\b)/i.test(norm)
+  ) {
+    return { category: "Επένδυση", isShared: false, confidence: "high", forceType: "saving", ...(mccEarly ? { mcc: mccEarly } : {}) };
   }
 
   const absAmt = Math.abs(Number(amount) || 0);
@@ -142,9 +161,9 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
       cat: "Τρόφιμα",
       shared: false
     },
-    // Στέγαση & εξοπλισμός σπιτιού (Κοινό)
+    // Στέγαση, κοινόχρηστα, διαχείριση πολυκατοικίας & εξοπλισμός σπιτιού (Κοινό)
     {
-      re: /(ενοικιο|κοινοχρηστ|κοινοχρ|πολυκατοικ|rent|leroy\s*merlin|praktiker|ikea|jysk|υδραυλικ|ηλεκτρολογ)/,
+      re: /(ενοικιο|κοινοχρηστ|κοινοχρ|διαχειριση|πολυκατοικ|rent|leroy\s*merlin|praktiker|ikea|jysk|υδραυλικ|ηλεκτρολογ)/,
       cat: "Στέγαση",
       shared: true
     },
@@ -156,7 +175,7 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
     },
     // Προσωπικοί λογαριασμοί, εφορία, ασφάλειες, κούριερ & κινητή
     {
-      re: /(telekom|telco|cosmote|vodafone|\bnova\b|\bwind\b|δανειο|loan|ααδε|aade|taxisnet|εφκα|efka|δημος|ενφια|τελη κυκλοφ|κτηματολογ|(?:^|\s)(?:διας|dias)(?=\s|$)|παγια εντολη|interamerican|εθνικη ασφαλιστικ|generali|allianz|ergo|eurolife|groupama|hellas\s*direct|anytime|acs\b|γενικη ταχυδρομ|speedex|ελτα|elta|box\s*now)/,
+      re: /(telekom|telco|cosmote|vodafone|\bnova\b|\bwind\b|δανειο|loan|ααδε|aade|taxisnet|εφκα|efka|δημος|ενφια|τελη κυκλοφ|κτηματολογ|(?:^|\s)(?:διας|dias)(?=\s|$)|παγια εντολη|προμηθεια εμβασματος|εξοδα αποστολης|τραπεζικες προμηθειες|εξοφληση λογαριασμου|\binsu\b|agency\s*solutions|interamerican|εθνικη ασφαλιστικ|generali|allianz|ergo|eurolife|groupama|hellas\s*direct|anytime|acs\b|γενικη ταχυδρομ|speedex|ελτα|elta|box\s*now)/,
       cat: "Λογαριασμοί",
       shared: false
     },
@@ -200,8 +219,11 @@ function autoCategorizeDescription(desc, amount, bankHintCat = "") {
   if (hintNorm) {
     if (hintNorm.includes("σουπερ") || hintNorm.includes("τροφιμ") || hintNorm.includes("grocer")) return applySharedPolicy({ category: "Τρόφιμα", isShared: true, confidence: "high" });
     if (hintNorm.includes("ενεργ") || hintNorm.includes("utilit")) return { category: "Λογαριασμοί", isShared: true, confidence: "high" };
-    if (hintNorm.includes("λογαριασμ") || hintNorm.includes("τηλεπικοιν")) return { category: "Λογαριασμοί", isShared: false, confidence: "high" };
-    if (hintNorm.includes("μεταφορ") || hintNorm.includes("καυσιμ") || hintNorm.includes("αυτοκινητ") || hintNorm.includes("transport") || hintNorm.includes("travel")) return { category: "Μεταφορές", isShared: false, confidence: "high" };
+    if (hintNorm.includes("λογαριασμ") || hintNorm.includes("τηλεπικοιν") || hintNorm.includes("ασφαλ") || hintNorm.includes("προμηθ") || hintNorm.includes("υποχρεωσ") || hintNorm.includes("φορ")) return { category: "Λογαριασμοί", isShared: false, confidence: "high" };
+    const isMoneyTransferHint = hintNorm.includes("μετρητ") || hintNorm.includes("εμβασμ") || hintNorm.includes("ανακατανομ");
+    if ((!isMoneyTransferHint && (hintNorm.includes("μετακινησ") || hintNorm.includes("εισιτηρι") || hintNorm.includes("μεταφορ"))) || hintNorm.includes("καυσιμ") || hintNorm.includes("αυτοκινητ") || hintNorm.includes("transport") || hintNorm.includes("travel")) {
+      return { category: "Μεταφορές", isShared: false, confidence: "high" };
+    }
     if (hintNorm.includes("υγει") || hintNorm.includes("φαρμακ") || hintNorm.includes("health")) return { category: "Υγεία", isShared: false, confidence: "high" };
     if (hintNorm.includes("διασκεδ") || hintNorm.includes("εστιασ") || hintNorm.includes("φαγητ") || hintNorm.includes("entertain") || hintNorm.includes("restaurant") || hintNorm.includes("shopping")) return { category: "Διασκέδαση", isShared: false, confidence: "high" };
     if (hintNorm.includes("στεγασ") || hintNorm.includes("ενοικ") || hintNorm.includes("home")) return { category: "Στέγαση", isShared: true, confidence: "high" };
@@ -307,15 +329,68 @@ function parseFlexibleAmount(raw) {
   return negative ? -Math.abs(num) : num;
 }
 
+function extractBankRefCode(rawText) {
+  const s = String(rawText || "");
+  if (!s) return "";
+  // Piraeus / Greek banks unique transaction reference codes (PO, MB, AT, EB, DD, PX, F26TI, F928TO, MIBREM, WINBREM, PRS payroll)
+  const m = s.match(/(?:\/\s*|\b)((?:PO|MB|AT|EB|DD|PX)\d{10,}|F\d{2,3}[A-Z]{2}\d{8,}|(?:MIBREM|WINBREM)\d{6,}|PRS\d{8}-[A-Z0-9-]+)\b/i);
+  return m ? m[1].toUpperCase() : "";
+}
+
+function greekToLatinApprox(str) {
+  const map = {
+    "α": "a", "β": "v", "γ": "g", "δ": "d", "ε": "e", "ζ": "z", "η": "i", "θ": "th",
+    "ι": "i", "κ": "k", "λ": "l", "μ": "m", "ν": "n", "ξ": "x", "ο": "o", "π": "p",
+    "ρ": "r", "σ": "s", "ς": "s", "τ": "t", "υ": "y", "φ": "f", "χ": "ch", "ψ": "ps", "ω": "o"
+  };
+  return normalizeText(str)
+    .replace(/ου/g, "ou")
+    .replace(/αι/g, "ai")
+    .replace(/ει/g, "ei")
+    .replace(/οι/g, "oi")
+    .replace(/μπ/g, "b")
+    .replace(/ντ/g, "nt")
+    .replace(/γκ/g, "g")
+    .replace(/[α-ως]/g, ch => map[ch] || ch);
+}
+
+function isSelfTransferDescription(normDesc) {
+  if (!normDesc) return false;
+  if (normDesc.includes("μεταφορα απο κλεισιμο λογαριασμου")) return true;
+
+  const userNameRaw = String(data.profile?.userName || "").trim();
+  if (!userNameRaw) return false;
+
+  const isTransferLine = /(εξερχομενο εμβασμα|εισερχομενο εμβασμα|μεταφορα σε λογ|μεταφορα απο λογ|υπερ\s|b\s*\/\s*o\s)/i.test(normDesc);
+  if (!isTransferLine) return false;
+
+  const nameTokensGr = normalizeText(userNameRaw).split(/\s+/).filter(t => t.length >= 3);
+  if (nameTokensGr.length < 2) return false;
+
+  const nameTokensLat = greekToLatinApprox(userNameRaw).split(/\s+/).filter(t => t.length >= 3);
+  const descLat = greekToLatinApprox(normDesc);
+
+  const matchGr = nameTokensGr.every(tok => new RegExp(`(?<![a-zα-ω0-9])${tok}(?![a-zα-ω0-9])`, "i").test(normDesc));
+  const matchLat = nameTokensLat.length >= 2 && nameTokensLat.every(tok => new RegExp(`(?<![a-z0-9])${tok}(?![a-z0-9])`, "i").test(descLat));
+  return matchGr || matchLat;
+}
+
 function isDuplicateTransaction(dateIso, amountAbs, desc, originalDesc = "", extraPool = [], consumedExistingIds = null, txType = null, category = null) {
   const keyA = extractMerchantKey(desc);
   const keyB = originalDesc ? extractMerchantKey(originalDesc) : "";
+  const newRefCode = extractBankRefCode(originalDesc || desc);
   const pool = [...(data.transactions || []), ...extraPool];
 
   const found = pool.find(existing => {
     if (consumedExistingIds && existing.id && consumedExistingIds.has(existing.id)) return false;
     if (txType && existing.type && existing.type !== txType) return false;
     if (Math.abs((Number(existing.amount) || 0) - amountAbs) > 0.01) return false;
+
+    const exRefCode = extractBankRefCode(existing.originalBankDesc || existing.description || "");
+    if (newRefCode && exRefCode) {
+      // Both transactions carry a unique bank reference ID AND match type & amount
+      return newRefCode === exRefCode;
+    }
 
     const isAutoRecurring = Boolean(existing.recurringId);
     const sameMonth = (existing.date || "").slice(0, 7) === (dateIso || "").slice(0, 7);
@@ -346,6 +421,193 @@ function isDuplicateTransaction(dateIso, amountAbs, desc, originalDesc = "", ext
   return found;
 }
 
+
+const DEBT_DETECTION_PATTERNS = [
+  { kind: "loan", label: "🏦 Δάνειο", regex: /(?<![\p{L}\p{N}])(δανειο|δανειου|δανειων|στεγαστικ[α-ω]*|καταναλωτικ[α-ω]*|τοκοχρεολυτικ[α-ω]*|εξοφληση δανει[α-ω]*|loan|mortgage|repayment)(?![\p{L}\p{N}])/iu },
+  { kind: "credit_card", label: "💳 Πιστωτική Κάρτα", regex: /(?<![\p{L}\p{N}])(πιστωτικ[α-ω]*|εξοφληση καρτας|πληρωμη καρτας|εξοφληση visa|εξοφληση mastercard|credit card|card payment|visa payment|mastercard payment)(?![\p{L}\p{N}])/iu },
+  { kind: "installment", label: "📅 Δόση / BNPL", regex: /(?<![\p{L}\p{N}])(δοση|δοσεις|δοσης|ατοκες δοσεις|ρυθμιση οφειλ[α-ω]*|δοσεις εφοριας|κεαο|klarna|tbi bank|tbi|finloup|installment|instalment|bnpl)(?![\p{L}\p{N}])/iu }
+];
+
+function detectDebtOrInstallmentCharge(rawDesc, fullDesc, txType, amountAbs) {
+  if (txType !== "expense") return null;
+  const norm = normalizeText(`${rawDesc || ""} ${fullDesc || ""}`);
+  if (!norm) return null;
+
+  const liabilities = Array.isArray(data.liabilities) ? data.liabilities : [];
+  let matchedLiability = null;
+
+  for (const l of liabilities) {
+    if (!l || !l.id) continue;
+    const lNorm = normalizeText(l.name || "");
+    const nameHit = lNorm.length >= 4 && norm.includes(lNorm);
+    const monthlyHit = Number(l.monthlyPayment) > 0 && Math.abs(Number(l.monthlyPayment) - Number(amountAbs || 0)) <= 1.0;
+    if (nameHit || (monthlyHit && DEBT_DETECTION_PATTERNS.some(p => p.regex.test(norm)))) {
+      matchedLiability = l;
+      break;
+    }
+  }
+
+  for (const pat of DEBT_DETECTION_PATTERNS) {
+    if (pat.regex.test(norm)) {
+      return {
+        isDebt: true,
+        kind: pat.kind,
+        label: pat.label,
+        matchedLiabilityId: matchedLiability ? matchedLiability.id : ""
+      };
+    }
+  }
+
+  if (matchedLiability) {
+    return {
+      isDebt: true,
+      kind: matchedLiability.type === "Credit Card" ? "credit_card" : (matchedLiability.type === "Loan" ? "loan" : "installment"),
+      label: getLiabilityTypeLabel(matchedLiability.type),
+      matchedLiabilityId: matchedLiability.id
+    };
+  }
+
+  return null;
+}
+
+function updateBankRowDebtAction(rowId, actionVal) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (!row) return;
+  row.debtAction = actionVal || "expense";
+  if (row.debtAction === "skip") {
+    row.selected = false;
+    row.statusTag = "skipped";
+    row.statusReason = "⏭️ Εξαίρεση δόσης/οφειλής";
+  } else if (row.debtAction.startsWith("link:")) {
+    row.selected = true;
+    const liabId = row.debtAction.slice(5);
+    const liab = (data.liabilities || []).find(l => l.id === liabId);
+    if (liab && Number(liab.interestRate) > 0 && Number(liab.remainingBalance) > 0 && !row.debtInterestTouched) {
+      row.debtInterest = Math.min(row.amount, roundMoney((Number(liab.remainingBalance) * (Number(liab.interestRate) / 100)) / 12));
+    }
+    row.statusTag = "new";
+    row.statusReason = liab ? `🔗 Αποπληρωμή: ${liab.name}` : "🔗 Σύνδεση Οφειλής";
+  } else {
+    row.selected = true;
+    row.statusTag = "review";
+    row.statusReason = row.debtInfo ? `${row.debtInfo.label} (Έλεγχος)` : "✅ Νέα κίνηση";
+  }
+  renderBankPreviewTable();
+}
+
+function updateBankRowDebtInterest(rowId, val) {
+  const row = bankPreviewRows.find(r => r.rowId === rowId);
+  if (!row) return;
+  row.debtInterestTouched = true;
+  row.debtInterest = Math.min(row.amount, Math.max(0, roundMoney(Number(val) || 0)));
+}
+
+
+function detectSelfTransferCandidatesInRows(previewRows) {
+  if (!Array.isArray(previewRows) || previewRows.length === 0) return [];
+  if (String(data.profile?.userName || "").trim()) return [];
+
+  const stopTokens = new Set(["υπερ", "εξερχομενο", "εισερχομενο", "εμβασμα", "μεταφορα", "λογ", "τριτου", "απο", "προς", "eur", "ltd", "ae", "ike", "oe", "ee", "sa", "bank", "revolut", "trading", "markets"]);
+  const buckets = new Map();
+
+  for (const r of previewRows) {
+    if (!r || r.statusTag === "skipped") continue;
+    const raw = `${r.description || ""} ${r.originalBankDesc || ""}`;
+    const m = raw.match(/(?:ΥΠΕΡ|B\/O|\d{10,})\s+([A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ]{3,}(?:\s+[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ]{3,}){1,2})/i);
+    if (!m) continue;
+    const rawName = m[1].trim();
+    const toks = normalizeText(rawName).split(/\s+/).filter(t => t.length >= 3 && !stopTokens.has(t));
+    if (toks.length < 2) continue;
+
+    // Canonical Latin sorted key groups "ΓΟΥΛΗΣ ΘΕΟΦΙΛΟΣ" and "THEOFILOS GOULIS" together
+    const latToks = greekToLatinApprox(toks.join(" ")).split(/\s+/).filter(t => t.length >= 3).sort();
+    if (latToks.length < 2) continue;
+    const canonKey = latToks.join("|");
+
+    if (!buckets.has(canonKey)) {
+      buckets.set(canonKey, { displayName: rawName, count: 0, totalAmt: 0, rowIds: [] });
+    }
+    const b = buckets.get(canonKey);
+    b.count++;
+    b.totalAmt = roundMoney(b.totalAmt + (Number(r.amount) || 0));
+    b.rowIds.push(r.rowId);
+    if (/[α-ωάέήίόύώ]/i.test(rawName)) {
+      b.displayName = rawName;
+    }
+  }
+
+  return Array.from(buckets.values())
+    .filter(b => b.count >= 3 && b.totalAmt >= 100)
+    .sort((a, b) => (b.totalAmt - a.totalAmt) || (b.count - a.count))
+    .slice(0, 2);
+}
+
+function applyDetectedAccountHolder(displayName) {
+  const cleanName = String(displayName || "").trim();
+  if (!cleanName) return;
+  data.profile.userName = cleanName;
+  data.settings.stateUpdatedAt = Date.now();
+
+  let markedCount = 0;
+  bankPreviewRows.forEach(r => {
+    if (!r || r.statusTag === "skipped") return;
+    const normDesc = normalizeText(`${r.description || ""} ${r.originalBankDesc || ""}`);
+    if (isSelfTransferDescription(normDesc)) {
+      r.selected = false;
+      r.statusTag = "skipped";
+      r.statusReason = "🔄 Εσωτερική μεταφορά (Δικός σου λογ.)";
+      markedCount++;
+    }
+  });
+
+  persist(true, true);
+  renderBankPreviewTable();
+  showToast(`✅ Αποθηκεύτηκε το όνομα «${cleanName}» και εξαιρέθηκαν ${markedCount} εσωτερικές μεταφορές!`);
+}
+
+
+function syncBankImportCreditCardBar() {
+  const bar = document.getElementById("bankCreditCardBar");
+  const sel = document.getElementById("bankCreditCardSelect");
+  const updWrap = document.getElementById("bankCreditCardUpdateBalWrap");
+  if (!bar || !sel) return;
+  const cards = (Array.isArray(data.liabilities) ? data.liabilities : []).filter(l => l && l.type === "Credit Card");
+  if (cards.length === 0) {
+    bar.style.display = "none";
+    sel.innerHTML = `<option value="">Όχι (Τραπεζικός Λογαριασμός / Χρεωστική)</option>`;
+    sel.value = "";
+    if (updWrap) updWrap.style.display = "none";
+    return;
+  }
+  const prev = sel.value || "";
+  bar.style.display = "block";
+  sel.innerHTML = `<option value="">Όχι (Τραπεζικός Λογαριασμός / Χρεωστική)</option>` +
+    cards.map(c => `<option value="${escapeHtml(c.id)}">💳 ${escapeHtml(c.name)} (Υπόλοιπο: ${money(c.remainingBalance || 0)})</option>`).join("");
+  sel.value = prev && cards.some(c => c.id === prev) ? prev : "";
+  if (updWrap) updWrap.style.display = sel.value ? "inline-flex" : "none";
+}
+
+function onBankCreditCardSelectChange() {
+  const sel = document.getElementById("bankCreditCardSelect");
+  const updWrap = document.getElementById("bankCreditCardUpdateBalWrap");
+  const isCardMode = Boolean(sel && sel.value);
+  if (updWrap) updWrap.style.display = isCardMode ? "inline-flex" : "none";
+
+  // In Credit Card statement mode, positive card-payment rows (e.g. "ΕΞΟΦΛΗΣΗ ΚΑΡΤΑΣ") are skipped to prevent double-counting
+  if (isCardMode && Array.isArray(bankPreviewRows)) {
+    bankPreviewRows.forEach(r => {
+      if (!r || r.type !== "income") return;
+      const norm = normalizeText(`${r.description || ""} ${r.originalBankDesc || ""}`);
+      if (/(εξοφληση|πληρωμη καρτας|payment|thank you|καταβολη|εναντι)/.test(norm)) {
+        r.selected = false;
+        r.statusTag = "skipped";
+        r.statusReason = "💳 Πληρωμή κάρτας (από τραπ. λογαριασμό)";
+      }
+    });
+    renderBankPreviewTable();
+  }
+}
+
 function openBankImportModal() {
   bankPreviewRows = [];
   bankUploadAttempted = false;
@@ -370,6 +632,7 @@ function openBankImportModal() {
     bulkSel.innerHTML = ALL_CATEGORIES.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
   }
   document.getElementById("bankPreviewBody").innerHTML = `<tr><td colspan="7" class="small">Επίλεξε ή σύρε εδώ ένα ή περισσότερα αρχεία κινήσεων (.xlsx, .xls, .csv) από Τράπεζα ή Revolut.</td></tr>`;
+  syncBankImportCreditCardBar();
   document.getElementById("bankImportModal").style.display = "flex";
 }
 
@@ -385,6 +648,7 @@ function getVisibleBankPreviewRows() {
 
   return bankPreviewRows.filter(r => {
     if (filter === "selected" && !r.selected) return false;
+    if (filter === "debt" && !r.debtInfo) return false;
     if (filter === "review" && r.statusTag !== "review") return false;
     if (filter === "skipped" && r.statusTag !== "skipped") return false;
     if (searchNorm) {
@@ -481,16 +745,36 @@ function renderBankPreviewTable() {
       const salariesFound = bankPreviewRows.filter(r => r.selected && r.type === "income" && r.category === "Μισθός");
       const autoCategorizedCount = bankPreviewRows.filter(r => r.statusTag === "new").length;
       const reviewCount = bankPreviewRows.filter(r => r.statusTag === "review").length;
+      const debtRows = bankPreviewRows.filter(r => r.debtInfo);
       summaryBar.innerHTML = `
         <div style="width:100%;">
           <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px;">
             <span><strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)</span>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <span class="badge income" style="cursor:pointer;" onclick="filterBankRowsByStatus('selected')" title="Προβολή επιλεγμένων">✅ Αυτόματες: ${autoCategorizedCount}</span>
+              ${debtRows.length > 0 ? `<span class="badge expense" style="cursor:pointer;" onclick="filterBankRowsByStatus('debt')" title="Κλικ για έλεγχο δόσεων, δανείων &amp; καρτών">🏦 Δόσεις/Δάνεια: ${debtRows.length}</span>` : ""}
               ${reviewCount > 0 ? `<span class="badge withdrawal" style="cursor:pointer;" onclick="filterBankRowsByStatus('review')" title="Κλικ για εμφάνιση μόνο όσων θέλουν έλεγχο">❓ Θέλουν έλεγχο: ${reviewCount}</span>` : ""}
             </div>
           </div>
+          ${debtRows.length > 0 ? `<div class="small" style="color:var(--warn); font-weight:700; margin-top:4px;">⚠️ Εντοπίστηκαν ${debtRows.length} πιθανές χρεώσεις δόσεων / δανείου / πιστωτικής. Έλεγξε αν συνδέονται με Οφειλή πριν την εισαγωγή.</div>` : ""}
           ${salariesFound.length > 0 ? `<div class="small" style="color:var(--accent); font-weight:700; margin-top:4px;">💰 Εντοπίστηκε Μισθοδοσία: ${salariesFound.map(s => `${s.date} (${money(s.amount)})`).join(", ")}</div>` : ""}
+          ${(() => {
+            const cands = detectSelfTransferCandidatesInRows(bankPreviewRows);
+            if (!cands.length) return "";
+            const top = cands[0];
+            const safeTop = escapeHtml(top.displayName);
+            const extraBtns = cands.slice(1).map(c => {
+              const s = escapeHtml(c.displayName);
+              return `<button type="button" class="secondary small-btn" data-holder="${s}" onclick="applyDetectedAccountHolder(this.dataset.holder)">Ή «${s}» (${c.count} • ${money(c.totalAmt)})</button>`;
+            }).join("");
+            return `<div class="small" style="margin-top:6px; padding:7px 10px; background:var(--card-soft); border:1px solid var(--primary); border-radius:9px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+              <span>👤 Εντοπίστηκαν <strong>${top.count}</strong> μεταφορές προς/από <strong>«${safeTop}»</strong> (${money(top.totalAmt)}). Είναι δικός σου λογαριασμός;</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="accent small-btn" data-holder="${safeTop}" onclick="applyDetectedAccountHolder(this.dataset.holder)">🔄 Εξαίρεση «${safeTop}»</button>
+                ${extraBtns}
+              </div>
+            </div>`;
+          })()}
         </div>
       `;
     } else if (bankUploadAttempted) {
@@ -529,7 +813,23 @@ function renderBankPreviewTable() {
           </div>
         </td>
         ${split.hasPartner ? `<td><input type="checkbox" ${r.isShared ? "checked" : ""} onchange="toggleBankRowShared('${r.rowId}', this.checked)" /></td>` : ""}
-        <td><span class="badge">${escapeHtml(r.statusReason)}</span></td>
+        <td>
+          <span class="badge ${r.debtInfo ? "expense" : ""}">${escapeHtml(r.statusReason)}</span>
+          ${r.debtInfo ? `
+            <div style="margin-top:4px; display:flex; flex-direction:column; gap:4px;">
+              <select onchange="updateBankRowDebtAction('${r.rowId}', this.value)" style="padding:3px 6px; font-size:11px; max-width:190px;">
+                <option value="expense" ${(r.debtAction || "expense") === "expense" ? "selected" : ""}>Κανονικό έξοδο</option>
+                ${(data.liabilities || []).map(l => `<option value="link:${escapeHtml(l.id)}" ${r.debtAction === `link:${l.id}` ? "selected" : ""}>🔗 Οφειλή: ${escapeHtml(l.name)}</option>`).join("")}
+                <option value="skip" ${r.debtAction === "skip" ? "selected" : ""}>⏭️ Εξαίρεση</option>
+              </select>
+              ${(r.debtAction || "").startsWith("link:") ? `
+                <label class="small" style="display:flex; align-items:center; gap:4px; font-size:10.5px;">
+                  Τόκοι (€): <input type="number" step="0.01" min="0" max="${r.amount}" value="${Number(r.debtInterest || 0).toFixed(2)}" onchange="updateBankRowDebtInterest('${r.rowId}', this.value)" style="width:68px; padding:2px 5px; font-size:11px;" />
+                </label>
+              ` : ""}
+            </div>
+          ` : ""}
+        </td>
         <td style="text-align:right; font-weight:700; color:${r.type === "income" ? "var(--accent)" : "var(--danger)"};">${r.type === "income" ? "+" : "-"}${money(r.amount)}</td>
       </tr>
     `;
@@ -851,13 +1151,28 @@ async function processBankFilesList(filesList) {
     document.getElementById("bankBulkActionsBar").style.display = allParsed.length > 0 ? "flex" : "none";
     if (allParsed.length === 0 && lastRawBankMatrix.length > 0) {
       document.getElementById("manualColumnMapperBox").style.display = "block";
+      if (typeof reportAnonymousParserError === "function") {
+        reportAnonymousParserError({
+          bankSource: detectedBankSource,
+          fileName: lastRawBankFileName,
+          errorCode: "ZERO_ROWS_DETECTED",
+          rowCount: lastRawBankMatrix.length
+        });
+      }
     }
     renderBankPreviewTable();
   } catch (err) {
     console.error("Bank import parse error:", err);
+    const firstFileName = Array.isArray(filesList) && filesList[0] ? (filesList[0].name || "") : "";
     if (err && err.message === "FILE_TOO_LARGE") {
+      if (typeof reportAnonymousParserError === "function") {
+        reportAnonymousParserError({ bankSource: detectedBankSource, fileName: firstFileName, errorCode: "FILE_TOO_LARGE", rowCount: 0 });
+      }
       showModal("Το αρχείο ξεπερνά το όριο των 12MB.");
     } else {
+      if (typeof reportAnonymousParserError === "function") {
+        reportAnonymousParserError({ bankSource: detectedBankSource, fileName: firstFileName, errorCode: "PARSE_EXCEPTION", rowCount: 0 });
+      }
       showModal("Δεν ήταν δυνατή η ανάγνωση του αρχείου. Βεβαιώσου ότι είναι έγκυρο .xlsx, .xls ή .csv.");
     }
   }
@@ -1009,14 +1324,16 @@ function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = [],
     if (signedAmt === null || Math.abs(signedAmt) < 0.005) continue;
 
     const absAmt = Number(Math.abs(signedAmt).toFixed(2));
-    const txType = signedAmt >= 0 ? "income" : "expense";
     const normDesc = normalizeText(fullBankFingerprint);
 
+    const isSelfTransfer = isSelfTransferDescription(normDesc);
     const isTopupOrInternal =
       currencyCode !== "EUR" ||
+      isSelfTransfer ||
       /(?<![\p{L}\p{N}])(top-up|topup|revolut\*\*|μεταφορα μεταξυ λογαριασμων|exchange)(?![\p{L}\p{N}])/u.test(normDesc);
 
     const autoCat = autoCategorizeDescription(fullBankFingerprint, signedAmt, bankHintCat);
+    const txType = (signedAmt < 0 && autoCat.forceType === "saving") ? "saving" : (signedAmt >= 0 ? "income" : "expense");
     const dupMatch = isDuplicateTransaction(dateIso, absAmt, rawDesc, fullBankFingerprint, intraBatchPool, localConsumed, txType, autoCat.category);
 
     let statusTag = "new";
@@ -1035,11 +1352,32 @@ function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = [],
       selected = false;
     } else if (isTopupOrInternal) {
       statusTag = "skipped";
-      statusReason = "🔄 Εσωτερική μεταφορά / Top-up";
+      statusReason = isSelfTransfer ? "🔄 Εσωτερική μεταφορά (Δικός σου λογ.)" : "🔄 Εσωτερική μεταφορά / Top-up";
       selected = false;
     } else if (autoCat.confidence === "low") {
       statusTag = "review";
       statusReason = "❓ Έλεγχος κατηγορίας";
+    }
+
+    const debtInfo = (statusTag !== "skipped")
+      ? detectDebtOrInstallmentCharge(rawDesc, fullBankFingerprint, txType, absAmt)
+      : null;
+    let debtAction = "expense";
+    let debtInterest = 0;
+
+    if (debtInfo) {
+      if (debtInfo.matchedLiabilityId) {
+        debtAction = `link:${debtInfo.matchedLiabilityId}`;
+        const matchedLiab = (data.liabilities || []).find(l => l.id === debtInfo.matchedLiabilityId);
+        if (matchedLiab && Number(matchedLiab.interestRate) > 0 && Number(matchedLiab.remainingBalance) > 0) {
+          debtInterest = Math.min(absAmt, roundMoney((Number(matchedLiab.remainingBalance) * (Number(matchedLiab.interestRate) / 100)) / 12));
+        }
+        statusTag = "review";
+        statusReason = matchedLiab ? `🔗 ${debtInfo.label}: ${matchedLiab.name}` : `${debtInfo.label} (Έλεγχος)`;
+      } else {
+        statusTag = "review";
+        statusReason = `${debtInfo.label} (Έλεγχος)`;
+      }
     }
 
     parsed.push({
@@ -1055,26 +1393,96 @@ function parseBankMatrix(rows, fileName, manualCols = null, intraBatchPool = [],
       source: activeSource,
       autoDetectedSource: fileDetectedSource,
       statusTag,
-      statusReason
+      statusReason,
+      debtInfo,
+      debtAction,
+      debtInterest,
+      debtInterestTouched: false
     });
   }
 
   return parsed;
 }
 
-function confirmBankImport() {
+function confirmBankImport(skipDebtPrompt = false) {
   if (document.activeElement && document.activeElement.tagName === "INPUT") {
     document.activeElement.blur();
   }
   const toImport = bankPreviewRows.filter(r => r.selected);
   if (toImport.length === 0) return;
 
+  const unlinkedDebtRows = toImport.filter(r => r.debtInfo && (r.debtAction || "expense") === "expense");
+  if (!skipDebtPrompt && unlinkedDebtRows.length > 0) {
+    const sampleLines = unlinkedDebtRows
+      .slice(0, 5)
+      .map(r => `• ${r.date} — ${r.description} (${money(r.amount)}) [${r.debtInfo.label}]`)
+      .join("\n");
+    const extraNote = unlinkedDebtRows.length > 5 ? `\n...και ${unlinkedDebtRows.length - 5} ακόμη.` : "";
+    const hasLiabilities = (data.liabilities || []).length > 0;
+    const tip = hasLiabilities
+      ? "Μπορείς να πατήσεις «Ακύρωση» και να τις συνδέσεις με τις Οφειλές σου ώστε να μειωθεί σωστά το υπόλοιπο κεφαλαίου (χωρίς διπλή επιβάρυνση στο Net Worth)."
+      : "Δεν έχεις καταχωρίσει ακόμη Οφειλές (tab Χαρτοφυλάκιο → Οφειλές). Αν πατήσεις «Εντάξει», θα εισαχθούν ως κανονικά έξοδα.";
+    showModal(
+      `Εντοπίστηκαν ${unlinkedDebtRows.length} πιθανές χρεώσεις δόσεων / δανείου / κάρτας:\n\n${sampleLines}${extraNote}\n\n${tip}\n\nΘέλεις να συνεχίσεις την εισαγωγή τους ως κανονικά έξοδα;`,
+      true,
+      (ok) => {
+        if (ok) confirmBankImport(true);
+      },
+      "🏦 Έλεγχος Δόσεων & Δανείων πριν την Εισαγωγή"
+    );
+    return;
+  }
+
   const split = getCoupleSplit();
   const nowTs = Date.now();
+  let linkedLiabCount = 0;
+  const statementCardId = String(document.getElementById("bankCreditCardSelect")?.value || "").trim();
+  const statementCard = statementCardId
+    ? (data.liabilities || []).find(l => l && l.id === statementCardId && l.type === "Credit Card")
+    : null;
+  const shouldUpdateCardBal = Boolean(statementCard && document.getElementById("bankCreditCardUpdateBal")?.checked);
 
   toImport.forEach(r => {
     const isShared = split.hasPartner && r.type === "expense" && Boolean(r.isShared);
     const newId = generateId("tx");
+    let linkedLiabilityId = undefined;
+    let linkedLiabilityType = undefined;
+    let liabilityPrincipal = undefined;
+    let liabilityInterest = undefined;
+    let paidByCreditCardId = undefined;
+
+    if (statementCard && (r.type === "expense" || r.type === "income")) {
+      paidByCreditCardId = statementCard.id;
+      if (shouldUpdateCardBal) {
+        if (r.type === "expense") {
+          statementCard.remainingBalance = fromCents(toCents(statementCard.remainingBalance || 0) + toCents(r.amount));
+        } else if (r.type === "income") {
+          statementCard.remainingBalance = fromCents(Math.max(0, toCents(statementCard.remainingBalance || 0) - toCents(r.amount)));
+        }
+        statementCard._updatedAt = nowTs;
+        data.settings.stateUpdatedAt = nowTs;
+      }
+    } else if (r.debtAction && r.debtAction.startsWith("link:")) {
+      const targetId = r.debtAction.slice(5);
+      const liab = (data.liabilities || []).find(l => l.id === targetId);
+      if (liab) {
+        const interestAmt = Math.min(r.amount, Math.max(0, roundMoney(Number(r.debtInterest) || 0)));
+        const rawPrincipal = fromCents(Math.max(0, toCents(r.amount) - toCents(interestAmt)));
+        const appliedPrincipal = Math.min(Math.max(0, roundMoney(liab.remainingBalance || 0)), rawPrincipal);
+        liab.remainingBalance = fromCents(Math.max(0, toCents(liab.remainingBalance || 0) - toCents(appliedPrincipal)));
+        if (liab.type === "Credit Card" && Number(liab.installmentBalance) > liab.remainingBalance) {
+          liab.installmentBalance = liab.remainingBalance;
+        }
+        liab._updatedAt = nowTs;
+        linkedLiabilityId = liab.id;
+        linkedLiabilityType = liab.type;
+        liabilityPrincipal = appliedPrincipal;
+        liabilityInterest = interestAmt;
+        linkedLiabCount++;
+        data.settings.stateUpdatedAt = nowTs;
+      }
+    }
+
     data.transactions.push({
       id: newId,
       owner: "me",
@@ -1084,11 +1492,16 @@ function confirmBankImport() {
       date: r.date,
       description: r.description,
       originalBankDesc: r.originalBankDesc,
-      source: r.source,
+      source: statementCard ? statementCard.name : r.source,
       unexpected: r.category === "Έκτακτο έξοδο",
       isShared,
       paidBy: isShared ? "me" : undefined,
       settled: false,
+      paidByCreditCardId,
+      linkedLiabilityId,
+      linkedLiabilityType,
+      liabilityPrincipal,
+      liabilityInterest,
       _updatedAt: nowTs
     });
     markTxDirty(newId);
@@ -1102,6 +1515,17 @@ function confirmBankImport() {
     }
   });
 
+  const importedSalaries = toImport
+    .filter(x => x.type === "income" && x.category === "Μισθός" && x.amount > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  let incomeAutoSetMsg = "";
+  if (importedSalaries.length > 0 && !(Number(data.profile.monthlyIncome) > 0)) {
+    const latestSalary = importedSalaries[importedSalaries.length - 1].amount;
+    data.profile.monthlyIncome = latestSalary;
+    data.settings.stateUpdatedAt = nowTs;
+    incomeAutoSetMsg = ` • Μισθός ορίστηκε σε ${money(latestSalary)}`;
+  }
+
   const latestImportDate = toImport.map(x => x.date).sort().pop();
   if (latestImportDate && data.settings.periodMode === "month") {
     document.getElementById("activeMonth").value = latestImportDate.slice(0, 7);
@@ -1110,6 +1534,8 @@ function confirmBankImport() {
   persist();
   closeBankImportModal();
   render();
-  showToast(`✅ Εισήχθησαν ${toImport.length} συναλλαγές από ${toImport[0].source}!`);
+  const liabSuffix = linkedLiabCount > 0 ? ` (${linkedLiabCount} συνδέθηκαν με Οφειλές)` : "";
+  if (typeof trackZeroKnowledgeEvent === "function") trackZeroKnowledgeEvent("bank_import_success");
+  showToast(`✅ Εισήχθησαν ${toImport.length} συναλλαγές από ${toImport[0].source}${liabSuffix}${incomeAutoSetMsg}!`);
 }
 

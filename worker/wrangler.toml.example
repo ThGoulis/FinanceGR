@@ -1,0 +1,7 @@
+# Example Cloudflare Worker configuration (replace placeholders before deployment)
+name = "financegr-quotes"
+main = "quotes-worker.js"
+compatibility_date = "2026-11-01"
+
+# Configure Cloudflare Rate Limiting Rules in the Cloudflare Dashboard
+# on the custom domain / worker route (e.g., 30 requests/minute per IP).

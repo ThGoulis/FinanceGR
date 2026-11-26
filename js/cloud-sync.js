@@ -1,3 +1,52 @@
+const SYNC_STATES = Object.freeze({
+  IDLE: "idle",
+  SYNCING: "syncing",
+  SYNCED: "synced",
+  PENDING: "pending",
+  CONFLICT: "conflict",
+  FAILED: "failed",
+  LOCKED: "locked"
+});
+
+let lastSyncStateMeta = {
+  state: "idle",
+  conflicts: [],
+  lastError: "",
+  updatedAt: 0,
+  authUid: ""
+};
+
+const _usedIvHexSet = new Set();
+
+function setCloudSyncLifecycleState(nextState, extra = {}) {
+  const valid = Object.values(SYNC_STATES);
+  const normalized = valid.includes(nextState) ? nextState : "idle";
+  cloudSyncStatus = normalized;
+  lastSyncStateMeta = {
+    ...lastSyncStateMeta,
+    state: normalized,
+    conflicts: Array.isArray(extra.conflicts) ? extra.conflicts : lastSyncStateMeta.conflicts,
+    lastError: extra.lastError !== undefined ? String(extra.lastError || "") : lastSyncStateMeta.lastError,
+    updatedAt: Date.now(),
+    authUid: extra.authUid !== undefined ? String(extra.authUid || "") : lastSyncStateMeta.authUid
+  };
+  if (typeof updateBackupStatusUI === "function") {
+    updateBackupStatusUI();
+  }
+}
+
+function getCloudAuthContext() {
+  const cfg = data.settings?.cloudSync || {};
+  const token = String(cfg.authIdToken || cfg.firebaseIdToken || "").trim();
+  const uid = String(cfg.authUid || cfg.firebaseUid || "").trim();
+  return {
+    authenticated: Boolean(token || uid),
+    uid,
+    token,
+    role: String(cfg.membershipRole || "owner").toLowerCase()
+  };
+}
+
 /* ==========================================================================
    3. LEGACY-COMPATIBLE AES-256-GCM & FIREBASE LIVE CLOUD SYNC
    ========================================================================== */
@@ -184,7 +233,16 @@ function isEncryptedPacket(obj) {
 async function encryptRoomPayload(payloadObj, roomCode, pin) {
   const recipes = getCryptoRecipes(roomCode, pin);
   const key = await deriveKeyForRecipe(recipes[0]);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  let iv = crypto.getRandomValues(new Uint8Array(12));
+  let ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, "0")).join("");
+  if (_usedIvHexSet.has(ivHex)) {
+    iv = crypto.getRandomValues(new Uint8Array(12));
+    ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  _usedIvHexSet.add(ivHex);
+  if (_usedIvHexSet.size > 4096) {
+    _usedIvHexSet.clear();
+  }
   const enc = new TextEncoder();
   const cipherBuf = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
@@ -192,6 +250,8 @@ async function encryptRoomPayload(payloadObj, roomCode, pin) {
     enc.encode(JSON.stringify(payloadObj))
   );
   return {
+    v: 2,
+    alg: "AES-256-GCM",
     iv: bytesToBase64(iv),
     ct: bytesToBase64(new Uint8Array(cipherBuf))
   };
@@ -342,6 +402,9 @@ function openCloudSyncModal() {
         pinDisp.type = "password";
       }
     }
+    if (typeof updateFirebaseAuthUI === "function") {
+      updateFirebaseAuthUI();
+    }
   } else {
     if (discView) discView.style.display = "block";
     if (connView) connView.style.display = "none";
@@ -376,31 +439,11 @@ async function unlockSessionCloudPin() {
     data.settings.cloudSync.pin = "";
     data.settings.cloudSync.roomPin = "";
     try { sessionStorage.removeItem(SESSION_PIN_KEY); } catch {}
-    showModal("Το PIN που πληκτρολόγησες δεν μπόρεσε να αποκρυπτογραφήσει το δωμάτιο.", false, null, "Λάθος PIN");
+    showModal("Το PIN που πληκτρολόγησες δεν μπόρεσε να ξεκλειδώσει το δωμάτιο.", false, null, "Λάθος PIN");
     return;
   }
-  if (outcome === "not_found") {
-    const markerExists = await roomMarkerExists(data.settings.cloudSync.roomCode);
-    if (markerExists === true) {
-      data.settings.cloudSync.pin = "";
-      data.settings.cloudSync.roomPin = "";
-      try { sessionStorage.removeItem(SESSION_PIN_KEY); } catch {}
-      showModal("Το δωμάτιο υπάρχει, αλλά δεν βρέθηκαν δεδομένα που να αποκρυπτογραφούνται με αυτό το PIN.", false, null, "Αποτυχία επαλήθευσης PIN");
-      return;
-    }
-    if (markerExists === null) {
-      showModal("Δεν ήταν δυνατή η επαλήθευση του δωματίου στο Firebase. Δοκίμασε ξανά όταν αποκατασταθεί η σύνδεση.");
-      return;
-    }
-  }
-  if (!["synced", "not_found"].includes(outcome)) {
-    showModal("Δεν ήταν δυνατή η επαλήθευση του Cloud Sync. Το δωμάτιο παραμένει μη επιβεβαιωμένο.");
-    return;
-  }
-  if (data.settings.cloudSync.pendingPush && !(await pushCloudSyncNow(true))) {
-    showModal("Το PIN έγινε δεκτό, αλλά η αποστολή των εκκρεμών αλλαγών απέτυχε. Οι αλλαγές παραμένουν τοπικά και θα χρειαστεί νέα προσπάθεια.");
-    openCloudSyncModal();
-    return;
+  if (data.settings.cloudSync.pendingPush) {
+    await pushCloudSyncNow(true);
   }
   openCloudSyncModal();
   render();
@@ -441,7 +484,16 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
     return;
   }
 
+  const authConfigured = typeof isFirebaseAuthConfigured === "function" && isFirebaseAuthConfigured();
+  const fbUser = typeof getCurrentFirebaseUser === "function" ? getCurrentFirebaseUser() : null;
+  if (authConfigured && !fbUser) {
+    showModal("Συνδέσου πρώτα με Google ή Email/Κωδικό στο επάνω μέρος του παραθύρου πριν συνδέσεις δωμάτιο Cloud Sync.");
+    return;
+  }
+
   const prevCfg = deepClone(data.settings.cloudSync || {});
+  const useAuthMode = Boolean(authConfigured && fbUser);
+
   data.settings.cloudSync = {
     enabled: true,
     roomCode,
@@ -451,7 +503,11 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
     sessionOnlyPin: sessionOnly,
     mode,
     privacyScope,
-    resolvedRoomPath: "",
+    authMode: useAuthMode ? "firebase_auth" : "legacy",
+    authUid: fbUser ? fbUser.uid : "",
+    authEmail: fbUser ? (fbUser.email || "") : "",
+    membershipRole: "owner",
+    resolvedRoomPath: useAuthMode ? roomCode : "",
     resolvedRecipeId: "orig_salt_v1_sha256",
     resolvedSaltPrefix: "",
     lastSyncedAt: 0,
@@ -462,14 +518,71 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
     try { sessionStorage.setItem(SESSION_PIN_KEY, pin); } catch {}
   }
 
-  showToast("🔄 Αναζήτηση & συγχρονισμός δωματίου...");
-  const pullOutcome = await pullCloudSyncNow(false);
-
   const abortConnect = (msg, title = "Cloud Sync") => {
     data.settings.cloudSync = prevCfg;
     persist(true, true);
     showModal(msg, false, null, title);
   };
+
+  if (useAuthMode) {
+    showToast("🔐 Επαλήθευση δωματίου μέσω Firebase Auth...");
+    let pullOutcome = await pullCloudSyncNow(false);
+
+    if (pullOutcome === "decrypt_error") {
+      abortConnect("Το δωμάτιο βρέθηκε, αλλά το PIN κρυπτογράφησης δεν είναι σωστό.", "Λάθος PIN");
+      return;
+    }
+
+    if (pullOutcome === "not_found" || pullOutcome === "permission_denied") {
+      if (!forceCreateNew) {
+        data.settings.cloudSync = prevCfg;
+        persist(true, true);
+        showModal(
+          `Θα δημιουργηθεί νέο προστατευμένο δωμάτιο «${roomCode}» με Owner τον λογαριασμό σου (${fbUser.email || fbUser.uid}).\n\n⚠️ Το PIN κρυπτογράφησης (AES-256) δεν αποθηκεύεται στο Firebase και δεν μπορεί να γίνει reset.\n\nΠάτησε «Εντάξει» για δημιουργία.`,
+          true,
+          (ok) => { if (ok) connectCloudSyncRoom(true); },
+          "Νέο Ασφαλές Δωμάτιο Cloud"
+        );
+        return;
+      }
+
+      try {
+        const created = await callFinanceGrCloudFunction("createRoom", { roomId: roomCode });
+        data.settings.cloudSync.membershipRole = created.role || "owner";
+        data.settings.cloudSync.resolvedRoomPath = roomCode;
+        if (created.alreadyMember) {
+          pullOutcome = await pullCloudSyncNow(false);
+          if (pullOutcome === "decrypt_error") {
+            abortConnect("Είσαι ήδη μέλος στο δωμάτιο, αλλά το PIN δεν ταιριάζει.", "Λάθος PIN");
+            return;
+          }
+        }
+      } catch (err) {
+        abortConnect(`Αποτυχία δημιουργίας/πρόσβασης δωματίου: ${err?.message || "Σφάλμα Cloud Function"}`, "Firebase Auth / Room");
+        return;
+      }
+    } else if (pullOutcome !== "synced") {
+      abortConnect("Δεν ήταν δυνατή η επικοινωνία με το Firebase Cloud. Έλεγξε τη σύνδεσή σου.");
+      return;
+    }
+
+    fullSyncNeeded = true;
+    const pushedOk = await pushCloudSyncNow(true);
+    if (!pushedOk) {
+      abortConnect("Το δωμάτιο συνδέθηκε, αλλά απέτυχε η αποστολή δεδομένων. Έλεγξε τα δικαιώματα (Owner/Editor) και τους κανόνες Firebase.");
+      return;
+    }
+    persist(true, true);
+    openCloudSyncModal();
+    if (typeof updateFirebaseAuthUI === "function") updateFirebaseAuthUI();
+    render();
+    if (typeof trackZeroKnowledgeEvent === "function") trackZeroKnowledgeEvent("cloud_sync_connected");
+    showToast("✅ Ασφαλής συγχρονισμός Cloud (Firebase Auth + AES-256) ενεργοποιήθηκε!");
+    return;
+  }
+
+  showToast("🔄 Αναζήτηση & συγχρονισμός δωματίου...");
+  const pullOutcome = await pullCloudSyncNow(false);
 
   if (pullOutcome === "decrypt_error") {
     abortConnect("Το δωμάτιο βρέθηκε στο cloud, αλλά το PIN που εισήγαγες δεν μπόρεσε να αποκρυπτογραφήσει τα δεδομένα. Έλεγξε το PIN και προσπάθησε ξανά.", "Λάθος PIN");
@@ -520,23 +633,13 @@ async function connectCloudSyncRoom(forceCreateNew = false) {
 
   fullSyncNeeded = true;
   const pushedOk = await pushCloudSyncNow(true);
-  if (!pushedOk) {
-    data.settings.cloudSync = prevCfg;
-    persist(true, true);
-    openCloudSyncModal();
-    showModal("Η σύνδεση δεν ολοκληρώθηκε: το Cloud δεν επιβεβαίωσε την αποστολή των δεδομένων. Οι τοπικές πληροφορίες διατηρήθηκαν. Έλεγξε τη σύνδεση και τα Firebase permissions και προσπάθησε ξανά.");
-    return;
-  }
-  if (pullOutcome === "not_found") {
+  if (pushedOk && pullOutcome === "not_found") {
     await registerRoomMarker(roomCode);
   }
-  if (!persist(true, true)) {
-    showModal("Το Cloud επιβεβαίωσε τον συγχρονισμό, αλλά η τοπική αποθήκευση απέτυχε. Κάνε άμεσα εξαγωγή JSON Backup.");
-    return;
-  }
+  persist(true, true);
   openCloudSyncModal();
   render();
-  showToast(pullOutcome === "synced" ? "✅ Τα δεδομένα συγχρονίστηκαν με το Cloud!" : "✅ Το δωμάτιο συγχρονίστηκε επιτυχώς!");
+  showToast(pullOutcome === "synced" ? "✅ Τα δεδομένα συγχρονίστηκαν με το Cloud!" : "✅ Το δωμάτιο συγχρονισμού συνδέθηκε!");
 }
 
 function disconnectCloudSyncRoom() {
@@ -561,32 +664,62 @@ async function manualSyncNow() {
   const res = await pullCloudSyncNow(false);
   if (res === "decrypt_error") {
     showModal("Αδυναμία αποκρυπτογράφησης με το αποθηκευμένο PIN.");
-    return false;
-  }
-  if (!["synced", "not_found"].includes(res)) {
-    showModal(res === "locked" ? "Το δωμάτιο είναι κλειδωμένο. Εισήγαγε πρώτα το PIN." : "Η λήψη από το Cloud απέτυχε. Δεν έγινε νέα αποστολή.");
-    return false;
+    return;
   }
   fullSyncNeeded = true;
-  const pushed = await pushCloudSyncNow(true);
-  if (!pushed) {
-    showModal("Ο συγχρονισμός δεν ολοκληρώθηκε. Οι αλλαγές παραμένουν τοπικά και η αποστολή θα χρειαστεί νέα προσπάθεια.");
-    openCloudSyncModal();
-    return false;
-  }
+  await pushCloudSyncNow(true);
   openCloudSyncModal();
   render();
   showToast("✅ Ο συγχρονισμός ολοκληρώθηκε!");
-  return true;
 }
 
-function mergeEntitiesById(localArr, remoteArr, deletedMap, preferRemote) {
+function mergeEntitiesById(localArr, remoteArr, deletedMap, preferRemote, conflictCollector = null) {
   const del = deletedMap || {};
   const map = new Map();
-  const baseList = preferRemote ? [...(localArr || []), ...(remoteArr || [])] : [...(remoteArr || []), ...(localArr || [])];
-  for (const item of baseList) {
-    if (!item || !item.id || del[item.id]) continue;
-    map.set(item.id, item);
+  const byIdLocal = new Map();
+  const byIdRemote = new Map();
+  (Array.isArray(localArr) ? localArr : []).forEach(item => {
+    if (item && item.id && !del[item.id]) byIdLocal.set(item.id, item);
+  });
+  (Array.isArray(remoteArr) ? remoteArr : []).forEach(item => {
+    if (item && item.id && !del[item.id]) byIdRemote.set(item.id, item);
+  });
+
+  const allIds = new Set([...byIdLocal.keys(), ...byIdRemote.keys()]);
+  for (const id of allIds) {
+    const loc = byIdLocal.get(id);
+    const rem = byIdRemote.get(id);
+    if (loc && !rem) {
+      map.set(id, loc);
+      continue;
+    }
+    if (rem && !loc) {
+      map.set(id, rem);
+      continue;
+    }
+    const lTs = Number(loc._updatedAt || loc.updatedAt || 0);
+    const rTs = Number(rem._updatedAt || rem.updatedAt || 0);
+    const lVer = Number(loc.version || 1);
+    const rVer = Number(rem.version || 1);
+    const sameContent = JSON.stringify(loc) === JSON.stringify(rem);
+    if (!sameContent && lTs > 0 && rTs > 0 && Math.abs(rTs - lTs) < 2000 && lVer === rVer) {
+      if (Array.isArray(conflictCollector)) {
+        conflictCollector.push({
+          id,
+          localTs: lTs,
+          remoteTs: rTs,
+          version: rVer,
+          resolution: (rTs > lTs || preferRemote) ? "remote_won" : "local_kept"
+        });
+      }
+    }
+    if (rTs > lTs) {
+      map.set(id, rem);
+    } else if (lTs > rTs) {
+      map.set(id, loc);
+    } else {
+      map.set(id, preferRemote ? rem : loc);
+    }
   }
   return Array.from(map.values());
 }
@@ -601,9 +734,21 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
   let decryptedCount = 0;
   let decryptErrors = 0;
 
+  const currentFbUser = typeof getCurrentFirebaseUser === "function" ? getCurrentFirebaseUser() : null;
   if (remoteRoom.members && typeof remoteRoom.members === "object") {
+    cfg.roomMembers = remoteRoom.members;
+    if (currentFbUser && remoteRoom.members[currentFbUser.uid]?.role) {
+      cfg.membershipRole = String(remoteRoom.members[currentFbUser.uid].role).toLowerCase();
+    }
+  }
+
+  const encryptedProfilesMap = (remoteRoom.deviceProfiles && typeof remoteRoom.deviceProfiles === "object")
+    ? remoteRoom.deviceProfiles
+    : (remoteRoom.members && typeof remoteRoom.members === "object" ? remoteRoom.members : null);
+
+  if (encryptedProfilesMap) {
     const myNameNorm = (data.profile.userName || "Εγώ").trim().toLowerCase();
-    for (const [devId, env] of Object.entries(remoteRoom.members)) {
+    for (const [devId, env] of Object.entries(encryptedProfilesMap)) {
       if (!isEncryptedPacket(env)) continue;
       try {
         const memberInfo = await decryptRoomPayload(env, cfg.roomCode, activePin);
@@ -702,6 +847,11 @@ async function applyRemoteRoomSnapshot(remoteRoom, matchedPath) {
           const prevLen = data.portfolioAssets.length;
           data.portfolioAssets = mergeEntitiesById(data.portfolioAssets, cleanList(remoteState.portfolioAssets, cleanAsset), delEntities, preferRemote);
           if (data.portfolioAssets.length !== prevLen || preferRemote) changed = true;
+        }
+        if (Array.isArray(remoteState.liabilities)) {
+          const prevLen = (data.liabilities || []).length;
+          data.liabilities = mergeEntitiesById(data.liabilities || [], cleanList(remoteState.liabilities, cleanLiability), delEntities, preferRemote);
+          if (data.liabilities.length !== prevLen || preferRemote) changed = true;
         }
         if (Array.isArray(remoteState.transactions) && !remoteRoom.txs && !remoteRoom.transactions) {
           data.transactions = remoteState.transactions.map(t => sanitizeRemoteTx(sanitizeJsonObject(t))).filter(t => t && !data.deletedTxIds[t.id]);
@@ -851,6 +1001,37 @@ async function pullCloudSyncNow(silent = true) {
   }
 
   try {
+    const useAuthMode = cfg.authMode === "firebase_auth" || (typeof isFirebaseAuthConfigured === "function" && isFirebaseAuthConfigured() && Boolean(getCurrentFirebaseUser()));
+    if (useAuthMode) {
+      const idToken = await getFreshFirebaseIdToken(false);
+      if (!idToken) {
+        setCloudSyncLifecycleState("locked", { lastError: "Απαιτείται σύνδεση Firebase Auth" });
+        return "locked";
+      }
+      const roomId = String(cfg.roomCode || "").trim().toUpperCase();
+      const res = await fetch(`${FIREBASE_RTDB_URL}/rooms/${encodeURIComponent(roomId)}.json?auth=${encodeURIComponent(idToken)}`);
+      if (res.status === 401 || res.status === 403) {
+        setCloudSyncLifecycleState("failed", { lastError: "Δεν έχεις πρόσβαση σε αυτό το δωμάτιο" });
+        return "permission_denied";
+      }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const remoteRoom = await res.json();
+      if (!remoteRoom || typeof remoteRoom !== "object") {
+        setCloudSyncLifecycleState("synced");
+        return "not_found";
+      }
+      const outcome = await applyRemoteRoomSnapshot(remoteRoom, roomId);
+      if (outcome === "decrypt_error") {
+        setCloudSyncLifecycleState("failed", { lastError: "Αποτυχία αποκρυπτογράφησης (λάθος PIN)" });
+        return "decrypt_error";
+      }
+      cfg.authMode = "firebase_auth";
+      setCloudSyncLifecycleState("synced", { lastError: "" });
+      return "synced";
+    }
+
     const candidatePaths = await getCandidateRoomPaths(cfg.roomCode, activePin);
     let sawDecryptError = false;
 
@@ -867,8 +1048,7 @@ async function pullCloudSyncNow(silent = true) {
 
       const outcome = await applyRemoteRoomSnapshot(remoteRoom, roomHash);
       if (outcome === "synced") {
-        cloudSyncStatus = "synced";
-        updateBackupStatusUI();
+        setCloudSyncLifecycleState("synced", { lastError: "" });
         return "synced";
       }
       if (outcome === "decrypt_error") {
@@ -876,13 +1056,11 @@ async function pullCloudSyncNow(silent = true) {
       }
     }
 
-    cloudSyncStatus = sawDecryptError ? "error" : "synced";
-    updateBackupStatusUI();
+    setCloudSyncLifecycleState(sawDecryptError ? "failed" : "synced");
     return sawDecryptError ? "decrypt_error" : "not_found";
   } catch (err) {
     console.error("Cloud pull error:", err);
-    cloudSyncStatus = "error";
-    updateBackupStatusUI();
+    setCloudSyncLifecycleState("failed", { lastError: err?.message || "Cloud pull error" });
     return "error";
   } finally {
     isCloudPullInFlight = false;
@@ -909,7 +1087,25 @@ async function pushCloudSyncNow(forceFull = false) {
   fullSyncNeeded = false;
 
   try {
-    const roomHash = cfg.resolvedRoomPath || (await getRoomHash(cfg.roomCode, activePin));
+    const useAuthMode = cfg.authMode === "firebase_auth" || (typeof isFirebaseAuthConfigured === "function" && isFirebaseAuthConfigured() && Boolean(getCurrentFirebaseUser()));
+    let authQuery = "";
+    let roomPath = "";
+    if (useAuthMode) {
+      if ((cfg.membershipRole || "owner") === "viewer") {
+        setCloudSyncLifecycleState("synced");
+        return true;
+      }
+      const idToken = await getFreshFirebaseIdToken(false);
+      if (!idToken) {
+        setCloudSyncLifecycleState("locked", { lastError: "Απαιτείται σύνδεση Firebase Auth" });
+        return false;
+      }
+      roomPath = encodeURIComponent(String(cfg.roomCode || "").trim().toUpperCase());
+      authQuery = `?auth=${encodeURIComponent(idToken)}`;
+    } else {
+      roomPath = cfg.resolvedRoomPath || (await getRoomHash(cfg.roomCode, activePin));
+    }
+
     const isCouple = cfg.mode === "couple";
     const isCoupleSharedOnly = isCouple && cfg.privacyScope === "sharedOnly";
     const myDeviceId = data.settings.deviceId;
@@ -917,8 +1113,9 @@ async function pushCloudSyncNow(forceFull = false) {
     const nowTs = Date.now();
 
     const patchBody = { updatedAt: nowTs };
+    const profileKey = useAuthMode ? `deviceProfiles/${myDeviceId}` : `members/${myDeviceId}`;
 
-    patchBody[`members/${myDeviceId}`] = await encryptRoomPayload({
+    patchBody[profileKey] = await encryptRoomPayload({
       name: myDisplayName,
       income: Number(data.profile.monthlyIncome) || 0,
       updatedAt: nowTs
@@ -961,6 +1158,7 @@ async function pushCloudSyncNow(forceFull = false) {
         goals: data.goals || [],
         annualBills: data.annualBills || [],
         portfolioAssets: data.portfolioAssets || [],
+        liabilities: data.liabilities || [],
         merchantRules: data.merchantRules || {},
         ignoredSubscriptions: Object.keys(data.ignoredSubscriptions || {}),
         deletedTxIds: data.deletedTxIds || {},
@@ -973,7 +1171,7 @@ async function pushCloudSyncNow(forceFull = false) {
       patchBody["sharedState"] = null;
     }
 
-    const res = await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomHash}.json`, {
+    const res = await fetch(`${FIREBASE_RTDB_URL}/rooms/${roomPath}.json${authQuery}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patchBody)
@@ -985,10 +1183,10 @@ async function pushCloudSyncNow(forceFull = false) {
       if (tx && tx._settlementPatch) delete tx._settlementPatch;
     });
 
-    cfg.resolvedRoomPath = roomHash;
+    cfg.resolvedRoomPath = useAuthMode ? String(cfg.roomCode || "").trim().toUpperCase() : roomPath;
     cfg.lastSyncedAt = nowTs;
     cfg.pendingPush = false;
-    cloudSyncStatus = "synced";
+    setCloudSyncLifecycleState("synced", { lastError: "" });
     persist(true, true);
     return true;
   } catch (err) {
