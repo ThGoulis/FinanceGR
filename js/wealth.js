@@ -276,7 +276,7 @@ async function runLiveTickerTest() {
         const safeSug = escapeHtml(suggested);
         out.innerHTML = `❌ Δεν βρέθηκε το <strong>${escapeHtml(ticker)}</strong> (${errMsg}). ` +
           `Το Yahoo Finance χρησιμοποιεί διαφορετική κατάληξη — θέλεις να δοκιμάσεις ` +
-          `<button type="button" class="secondary small-btn" style="padding:2px 8px; font-size:11.5px; margin-left:4px;" data-sym="${safeSug}" data-click="quickTestTicker">🔍 ${safeSug}</button>;`;
+          `<button type="button" class="secondary small-btn" style="padding:2px 8px; font-size:11.5px; margin-left:4px;" data-sym="${safeSug}" onclick="quickTestTicker(this.dataset.sym)">🔍 ${safeSug}</button>;`;
       } else {
         out.textContent = `❌ Δεν βρέθηκε τιμή για ${ticker} (${err?.message || "Σφάλμα σύνδεσης"}). Δοκίμασε VUAA.MI, VWCE.DE ή OPAP.AT.`;
       }
@@ -834,8 +834,8 @@ function renderPortfolio() {
             <strong>${escapeHtml(a.name)}</strong> ${tickerBadge} ${statusBadge} ${dayBadge}
           </div>
           <div style="display:flex; gap:4px; flex-shrink:0;">
-            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" data-click="editPortfolioAsset" aria-label="Επεξεργασία θέσης" title="Επεξεργασία μεριδίων / κεφαλαίου">✏️</button>
-            <button type="button" class="danger small-btn" data-aid="${escapeHtml(a.id)}" data-click="deletePortfolioAsset" aria-label="Διαγραφή θέσης" title="Διαγραφή">🗑️</button>
+            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" onclick="editPortfolioAsset(this.dataset.aid)" aria-label="Επεξεργασία θέσης" title="Επεξεργασία μεριδίων / κεφαλαίου">✏️</button>
+            <button type="button" class="danger small-btn" data-aid="${escapeHtml(a.id)}" onclick="deletePortfolioAsset(this.dataset.aid)" aria-label="Διαγραφή θέσης" title="Διαγραφή">🗑️</button>
           </div>
         </div>
         <div class="metric privacy-sensitive" style="font-size:19px;">${money(currentNum)}</div>
@@ -849,11 +849,11 @@ function renderPortfolio() {
         <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap;">
           <div style="display:flex; align-items:center; gap:5px;">
             <span class="small">Αξία (€):</span>
-            <input type="number" step="0.01" min="0" value="${currentNum}" data-aid="${escapeHtml(a.id)}" data-change="updatePortfolioAssetValue" style="width:90px; padding:4px 7px;" />
+            <input type="number" step="0.01" min="0" value="${currentNum}" data-aid="${escapeHtml(a.id)}" onchange="updatePortfolioAssetValue(this.dataset.aid, this.value)" style="width:90px; padding:4px 7px;" />
           </div>
           <div style="display:flex; gap:4px;">
-            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" data-click="addDcaToPortfolioAsset" data-arg="50" title="Γρήγορη προσθήκη €50 DCA">+€50</button>
-            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" data-click="addDcaToPortfolioAsset" data-arg="100" title="Γρήγορη προσθήκη €100 DCA">+€100</button>
+            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" onclick="addDcaToPortfolioAsset(this.dataset.aid, 50)" title="Γρήγορη προσθήκη €50 DCA">+€50</button>
+            <button type="button" class="secondary small-btn" data-aid="${escapeHtml(a.id)}" onclick="addDcaToPortfolioAsset(this.dataset.aid, 100)" title="Γρήγορη προσθήκη €100 DCA">+€100</button>
           </div>
         </div>
       </div>
@@ -1643,8 +1643,8 @@ function renderLoansTab() {
             ${instBadge}
           </div>
           <div style="display:flex; gap:4px; flex-shrink:0;">
-            <button type="button" class="secondary small-btn" data-lid="${escapeHtml(l.id)}" data-click="editLoanLiabilityItem" aria-label="Επεξεργασία δανείου" title="Επεξεργασία">✏️</button>
-            <button type="button" class="danger small-btn" data-lid="${escapeHtml(l.id)}" data-click="deleteLiabilityItem" aria-label="Διαγραφή δανείου" title="Διαγραφή">🗑️</button>
+            <button type="button" class="secondary small-btn" data-lid="${escapeHtml(l.id)}" onclick="editLoanLiabilityItem(this.dataset.lid)" aria-label="Επεξεργασία δανείου" title="Επεξεργασία">✏️</button>
+            <button type="button" class="danger small-btn" data-lid="${escapeHtml(l.id)}" onclick="deleteLiabilityItem(this.dataset.lid)" aria-label="Διαγραφή δανείου" title="Διαγραφή">🗑️</button>
           </div>
         </div>
         <div class="metric red privacy-sensitive" style="font-size:20px;">${money(remAmt)}</div>
@@ -1657,7 +1657,7 @@ function renderLoansTab() {
         <div class="small" style="margin-bottom:10px;">
           Δόση: <strong>${monthlyStr}</strong> • Επιτόκιο: <strong>${rateStr}</strong>${l.endDate ? ` • Λήξη: ${escapeHtml(l.endDate)}` : ""}
         </div>
-        <button type="button" class="secondary small-btn" style="width:100%;" data-lid="${escapeHtml(l.id)}" data-click="openLiabilityPaymentModal" ${remAmt <= 0 ? "disabled" : ""}>
+        <button type="button" class="secondary small-btn" style="width:100%;" data-lid="${escapeHtml(l.id)}" onclick="openLiabilityPaymentModal(this.dataset.lid)" ${remAmt <= 0 ? "disabled" : ""}>
           ${remAmt <= 0 ? "✅ Εξοφλημένο" : "💸 Καταχώριση Πληρωμής Δόσης"}
         </button>
       </div>
@@ -1798,8 +1798,8 @@ function renderCreditCardsTab() {
             <span class="badge ${pct > 70 ? "expense" : (pct > 30 ? "withdrawal" : "income")}" style="font-size:10px;">${pct.toFixed(0)}% ορίου</span>
           </div>
           <div style="display:flex; gap:4px; flex-shrink:0;">
-            <button type="button" class="secondary small-btn" data-lid="${escapeHtml(c.id)}" data-click="editCreditCardItem" aria-label="Επεξεργασία κάρτας" title="Επεξεργασία">✏️</button>
-            <button type="button" class="danger small-btn" data-lid="${escapeHtml(c.id)}" data-click="deleteLiabilityItem" aria-label="Διαγραφή κάρτας" title="Διαγραφή">🗑️</button>
+            <button type="button" class="secondary small-btn" data-lid="${escapeHtml(c.id)}" onclick="editCreditCardItem(this.dataset.lid)" aria-label="Επεξεργασία κάρτας" title="Επεξεργασία">✏️</button>
+            <button type="button" class="danger small-btn" data-lid="${escapeHtml(c.id)}" onclick="deleteLiabilityItem(this.dataset.lid)" aria-label="Διαγραφή κάρτας" title="Διαγραφή">🗑️</button>
           </div>
         </div>
         <div class="metric red privacy-sensitive" style="font-size:20px;">${money(bal)}</div>
@@ -1815,7 +1815,7 @@ function renderCreditCardsTab() {
         <div class="small" style="margin-bottom:10px;">
           Επιτόκιο: <strong>${rateStr}</strong>${cycleInfo ? ` • ${cycleInfo}` : ""}
         </div>
-        <button type="button" class="secondary small-btn" style="width:100%;" data-lid="${escapeHtml(c.id)}" data-click="openLiabilityPaymentModal" ${bal <= 0 ? "disabled" : ""}>
+        <button type="button" class="secondary small-btn" style="width:100%;" data-lid="${escapeHtml(c.id)}" onclick="openLiabilityPaymentModal(this.dataset.lid)" ${bal <= 0 ? "disabled" : ""}>
           ${bal <= 0 ? "✅ Μηδενικό Υπόλοιπο" : "💸 Καταχώριση Πληρωμής Κάρτας"}
         </button>
       </div>

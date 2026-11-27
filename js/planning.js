@@ -499,7 +499,7 @@ function previewAutoBudgetAllocation(keepSelection = false) {
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; ${isChecked ? "" : "opacity:0.6;"}">
         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;">
-          <input type="checkbox" ${isChecked ? "checked" : ""} data-abcat="${escapeHtml(cat)}" data-change="toggleAutoBudgetCategory" />
+          <input type="checkbox" ${isChecked ? "checked" : ""} data-abcat="${escapeHtml(cat)}" onchange="toggleAutoBudgetCategory(this.dataset.abcat, this.checked)" />
           <div>
             <strong>${escapeHtml(cat)}</strong>
             <span class="small">${floorVal > 0 ? ` • Πάγια: ${money(floorVal)}` : ""}${histVal > 0 ? ` • Μ.Ο. 3μ: ${money(histVal)}` : ""}</span>
@@ -519,16 +519,16 @@ function previewAutoBudgetAllocation(keepSelection = false) {
         <strong style="font-size:14px;">✨ Προεπισκόπηση Αυτόματου Προϋπολογισμού (${escapeHtml(plan.scopeLabel)})</strong>
         ${sourceBadge}
       </div>
-      <button type="button" class="secondary small-btn" data-click="closeAutoBudgetPreview" aria-label="Κλείσιμο προεπισκόπησης">✕</button>
+      <button type="button" class="secondary small-btn" onclick="closeAutoBudgetPreview()" aria-label="Κλείσιμο προεπισκόπησης">✕</button>
     </div>
 
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px;">
       <span class="small" style="font-weight:600;">Επιλογή κατηγοριών:</span>
-      <button type="button" class="secondary small-btn" data-click="setAutoBudgetCategoryPreset" data-arg="all">☑️ Όλες</button>
-      <button type="button" class="secondary small-btn" data-click="setAutoBudgetCategoryPreset" data-arg="needs">🏠 Ανάγκες</button>
-      <button type="button" class="secondary small-btn" data-click="setAutoBudgetCategoryPreset" data-arg="wants">🎉 Επιθυμίες</button>
-      <button type="button" class="secondary small-btn" data-click="setAutoBudgetCategoryPreset" data-arg="empty">🆕 Μόνο κενές (€0)</button>
-      <button type="button" class="secondary small-btn" data-click="setAutoBudgetCategoryPreset" data-arg="none">⬜ Καμία</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('all')">☑️ Όλες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('needs')">🏠 Ανάγκες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('wants')">🎉 Επιθυμίες</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('empty')">🆕 Μόνο κενές (€0)</button>
+      <button type="button" class="secondary small-btn" onclick="setAutoBudgetCategoryPreset('none')">⬜ Καμία</button>
     </div>
 
     <div class="small" style="margin-bottom:6px;">${summaryLine}</div>
@@ -537,8 +537,8 @@ function previewAutoBudgetAllocation(keepSelection = false) {
     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
       <span class="small">Σύνολο ορίων (${selectedCount}/${EXPENSE_CATEGORIES.length} επιλεγμένες): <strong>${money(plan.totalProposed)}</strong></span>
       <div style="display:flex; gap:8px;">
-        <button type="button" class="secondary small-btn" data-click="closeAutoBudgetPreview">Ακύρωση</button>
-        <button type="button" class="accent small-btn" ${selectedCount === 0 ? "disabled" : ""} data-click="applyAutoBudgetAllocation">✅ Εφαρμογή σε ${selectedCount} ${selectedCount === 1 ? "κατηγορία" : "κατηγορίες"}</button>
+        <button type="button" class="secondary small-btn" onclick="closeAutoBudgetPreview()">Ακύρωση</button>
+        <button type="button" class="accent small-btn" ${selectedCount === 0 ? "disabled" : ""} onclick="applyAutoBudgetAllocation()">✅ Εφαρμογή σε ${selectedCount} ${selectedCount === 1 ? "κατηγορία" : "κατηγορίες"}</button>
       </div>
     </div>
   `;
@@ -643,7 +643,7 @@ function renderBudgets(totals) {
       : "";
 
     return `
-      <div class="kpi-card drilldown-row" data-cat="${escapeHtml(cat)}" data-click="drillDownCategory">
+      <div class="kpi-card drilldown-row" data-cat="${escapeHtml(cat)}" onclick="drillDownToTransactions({ category: this.dataset.cat, type: 'expense' })">
         <div class="kpi-label">
           <strong>${escapeHtml(cat)}</strong>
           <span class="privacy-sensitive">${money(spent)} / ${effectiveLimit > 0 ? money(effectiveLimit) : "Χωρίς όριο"}</span>
@@ -651,10 +651,10 @@ function renderBudgets(totals) {
         <div class="progress">
           <div style="width:${effectiveLimit > 0 ? pct : (spent > 0 ? 100 : 0)}%; background:${effectiveLimit > 0 ? barColor : "var(--muted)"};"></div>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:10px;" data-stop-prop="1">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:10px;" onclick="event.stopPropagation()">
           <div style="display:flex; align-items:center; gap:6px;">
             <span class="small">Όριο (€):</span>
-            <input type="number" min="0" step="10" value="${monthlyLimit || ""}" placeholder="0" data-cat="${escapeHtml(cat)}" data-change="updateCategoryBudget" style="width:86px; padding:4px 8px;" />
+            <input type="number" min="0" step="10" value="${monthlyLimit || ""}" placeholder="0" data-cat="${escapeHtml(cat)}" onchange="updateCategoryBudget(this.dataset.cat, this.value)" style="width:86px; padding:4px 8px;" />
           </div>
           ${statusHint}
         </div>
@@ -735,11 +735,11 @@ function renderSubscriptionDetector() {
     <div class="kpi-card" style="background:var(--card-soft);">
       <div class="kpi-label">
         <strong>${escapeHtml(c.title)}</strong>
-        <button type="button" class="secondary small-btn" data-subkey="${escapeHtml(c.key)}" data-click="ignoreDetectedSubscription" aria-label="Αγνόηση συνδρομής" title="Αγνόηση">✕</button>
+        <button type="button" class="secondary small-btn" data-subkey="${escapeHtml(c.key)}" onclick="ignoreDetectedSubscription(this.dataset.subkey)" aria-label="Αγνόηση συνδρομής" title="Αγνόηση">✕</button>
       </div>
       <div class="metric primary" style="font-size:18px;">${money(c.amount)} <span class="small">/ μήνα</span></div>
       <div class="small" style="margin:4px 0 8px;">Κατηγορία: ${escapeHtml(c.category)} • ${c.count} χρεώσεις</div>
-      <button type="button" class="small-btn" data-subtitle="${escapeHtml(c.title)}" data-subcat="${escapeHtml(c.category)}" data-subamt="${c.amount}" data-click="promoteSubToRecurring">➕ Προσθήκη στα Πάγια</button>
+      <button type="button" class="small-btn" data-subtitle="${escapeHtml(c.title)}" data-subcat="${escapeHtml(c.category)}" data-subamt="${c.amount}" onclick="promoteSubToRecurring(this.dataset.subtitle, this.dataset.subcat, Number(this.dataset.subamt))">➕ Προσθήκη στα Πάγια</button>
     </div>
   `).join("")}</div>`;
 }
@@ -996,9 +996,9 @@ function renderRecurringTable() {
         <td>${statusHtml}</td>
         <td style="text-align:right; font-weight:700;" class="privacy-sensitive">${money(r.amount)}</td>
         <td style="text-align:right; white-space:nowrap;">
-          <button type="button" class="secondary small-btn" data-recid="${escapeHtml(r.id)}" data-click="toggleSkipRecurringForMonth" title="${escapeHtml(skipBtnTitle)}" aria-label="${escapeHtml(skipBtnTitle)}">${skipBtnIcon}</button>
-          <button type="button" class="secondary small-btn" data-recid="${escapeHtml(r.id)}" data-click="editRecurringItem" aria-label="Επεξεργασία παγίου" title="Επεξεργασία">✏️</button>
-          <button type="button" class="danger small-btn" data-recid="${escapeHtml(r.id)}" data-click="deleteRecurringItem" aria-label="Διαγραφή παγίου" title="Διαγραφή">🗑️</button>
+          <button type="button" class="secondary small-btn" data-recid="${escapeHtml(r.id)}" onclick="toggleSkipRecurringForMonth(this.dataset.recid)" title="${escapeHtml(skipBtnTitle)}" aria-label="${escapeHtml(skipBtnTitle)}">${skipBtnIcon}</button>
+          <button type="button" class="secondary small-btn" data-recid="${escapeHtml(r.id)}" onclick="editRecurringItem(this.dataset.recid)" aria-label="Επεξεργασία παγίου" title="Επεξεργασία">✏️</button>
+          <button type="button" class="danger small-btn" data-recid="${escapeHtml(r.id)}" onclick="deleteRecurringItem(this.dataset.recid)" aria-label="Διαγραφή παγίου" title="Διαγραφή">🗑️</button>
         </td>
       </tr>
     `;
@@ -1135,17 +1135,17 @@ function renderGoals() {
       <div class="kpi-card">
         <div class="kpi-label">
           <strong>🐷 ${escapeHtml(g.title)}</strong>
-          <button type="button" class="danger small-btn" data-gid="${escapeHtml(g.id)}" data-click="deleteGoal" aria-label="Διαγραφή στόχου">🗑️</button>
+          <button type="button" class="danger small-btn" data-gid="${escapeHtml(g.id)}" onclick="deleteGoal(this.dataset.gid)" aria-label="Διαγραφή στόχου">🗑️</button>
         </div>
         <div class="metric primary privacy-sensitive" style="font-size:18px;">${money(saved)} <span class="small">/ ${money(target)}</span></div>
         <div class="progress"><div style="width:${pct}%; background:var(--accent);"></div></div>
         <div class="small" style="margin:6px 0 10px;">Πρόοδος: ${pct.toFixed(0)}%${g.targetDate ? ` • Έως ${escapeHtml(g.targetDate)}` : ""}${monthlyHint}</div>
         <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
-          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" data-click="contributeGoal" data-arg="20">+€20</button>
-          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" data-click="contributeGoal" data-arg="50">+€50</button>
-          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" data-click="contributeGoal" data-arg="-20">-€20</button>
+          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" onclick="contributeGoal(this.dataset.gid, 20)">+€20</button>
+          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" onclick="contributeGoal(this.dataset.gid, 50)">+€50</button>
+          <button type="button" class="secondary small-btn" data-gid="${escapeHtml(g.id)}" onclick="contributeGoal(this.dataset.gid, -20)">-€20</button>
           <input type="number" id="goalCustomAmt_${escapeHtml(g.id)}" step="1" placeholder="€" aria-label="Άλλο ποσό" style="width:66px; padding:4px 6px; font-size:12px;" />
-          <button type="button" class="accent small-btn" data-gid="${escapeHtml(g.id)}" data-click="contributeGoalCustom" title="Κατάθεση/Ανάληψη ποσού">+</button>
+          <button type="button" class="accent small-btn" data-gid="${escapeHtml(g.id)}" onclick="contributeGoalCustom(this.dataset.gid)" title="Κατάθεση/Ανάληψη ποσού">+</button>
         </div>
       </div>
     `;
@@ -1337,8 +1337,8 @@ function renderAnnualBills() {
         <div class="kpi-label">
           <strong>📅 ${escapeHtml(b.title)}</strong>
           <div>
-            <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" data-click="editAnnualBill" aria-label="Επεξεργασία">✏️</button>
-            <button type="button" class="danger small-btn" data-bid="${escapeHtml(b.id)}" data-click="deleteAnnualBill" aria-label="Διαγραφή">🗑️</button>
+            <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" onclick="editAnnualBill(this.dataset.bid)" aria-label="Επεξεργασία">✏️</button>
+            <button type="button" class="danger small-btn" data-bid="${escapeHtml(b.id)}" onclick="deleteAnnualBill(this.dataset.bid)" aria-label="Διαγραφή">🗑️</button>
           </div>
         </div>
         <div class="metric privacy-sensitive" style="font-size:18px;">${money(b.saved)} <span class="small">/ ${money(b.amount)}</span></div>
@@ -1347,9 +1347,9 @@ function renderAnnualBills() {
           ${isOverdue ? `⚠️ Έληξε (${escapeHtml(b.dueDate)}) • Υπόλοιπο: ${money(rem)}` : `Λήξη: ${escapeHtml(b.dueDate)} • ~${money(monthlyNeed)}/μήνα`}
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" data-click="reserveForAnnualBill" data-arg="25">+€25</button>
-          <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" data-click="reserveForAnnualBill" data-arg="50">+€50</button>
-          <button type="button" class="accent small-btn" data-bid="${escapeHtml(b.id)}" data-click="payAnnualBill">✅ Πληρώθηκε</button>
+          <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" onclick="reserveForAnnualBill(this.dataset.bid, 25)">+€25</button>
+          <button type="button" class="secondary small-btn" data-bid="${escapeHtml(b.id)}" onclick="reserveForAnnualBill(this.dataset.bid, 50)">+€50</button>
+          <button type="button" class="accent small-btn" data-bid="${escapeHtml(b.id)}" onclick="payAnnualBill(this.dataset.bid)">✅ Πληρώθηκε</button>
         </div>
       </div>
     `;

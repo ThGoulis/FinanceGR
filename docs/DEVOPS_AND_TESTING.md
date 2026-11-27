@@ -1,18 +1,24 @@
-# FinanceGR — Architecture, Vite Build, Strict CSP & CI/CD
+# FinanceGR — Architecture, Testing & DevOps Guide
 
-## Local Development & Build (Node 22+)
-- `npm install` — Installs Vite 6 bundler.
-- `npm run dev` — Starts Vite dev server on `http://127.0.0.1:4173` with instant HMR on `js/*.js`.
-- `npm run build` — Produces minified, content-hashed multi-page production bundles in `dist/` (`index.html`, `admin.html`, `assets/*.js`, `assets/*.css`, source maps, and PWA files from `public/`).
-- `npm run preview` (or `npm run serve`) — Serves the production `dist/` build locally on `http://127.0.0.1:4173`.
+## 1. Local Quality Commands (Windows PowerShell & Linux)
+- `npm run check` — Static integrity, JS/JSON syntax, inline handler audit, Service Worker precache check & security hygiene gate.
+- `npm test` — Runs all 13 automated unit test suites (Frontend runtime, Accounting, Piraeus Bank Import, Cloudflare Worker RS256/FX, Cloud Functions `createRoom`/`manageMember`/`adminOverview`).
+- `npm run test:all` — Runs both `check` and `test` in sequence.
+- `npm run serve` — Starts a zero-dependency local static server at `http://127.0.0.1:4173`.
 
-## Quality Gates & Testing
-- `npm run check` — Runs `scripts/verify-integrity.cjs`: JSON/JS syntax, Strict CSP (`script-src` without `'unsafe-inline'`), zero inline `<script>` or `on*=` attributes, 100% delegated `data-*` action coverage in `js/events.js` & `js/admin-events.js`, RTDB security rules, and zero admin leaks.
-- `npm test` — Runs all unit test suites (`tests/finance`, `tests/security`, `tests/market-data`, `tests/sync`, `tests/worker`, `tests/functions`, `tests/regression`).
-- `npm run test:all` — Runs `npm run check && npm test`.
-- `npm run test:e2e` — Runs Playwright browser smoke tests (`tests/e2e/smoke.spec.cjs`) against the built `dist/` bundle and asserts zero runtime or CSP errors.
+## 2. Optional Integration & E2E Suites
+- **Firebase Emulator Rules Test:**
+  ```powershell
+  firebase emulators:exec --only database "npm run test:emulator"
+  ```
+- **Playwright Browser E2E Smoke Test (one-time install):**
+  ```powershell
+  npm install --save-dev @playwright/test
+  npx playwright install chromium
+  npm run test:e2e
+  ```
 
-## GitHub Actions Pipelines (`.github/workflows/`)
-1. **`ci.yml`**: On push/PR — runs static gate, unit tests, `vite build`, and Playwright E2E smoke tests against `dist/`.
-2. **`deploy-pages.yml`**: On push to `main` (or manual dispatch) — verifies tests, builds `dist/`, and deploys directly to GitHub Pages (`Settings → Pages → Source: GitHub Actions`).
-3. **`health-monitor.yml`**: Scheduled daily cron (`07:00 UTC`) — probes live site availability, Cloudflare Worker RS256 auth guard (`401`), Frankfurter/ECB FX API, and Yahoo Finance (`VUAA.MI`).
+## 3. GitHub Actions CI
+Every push or pull request to `main`/`master` automatically executes `.github/workflows/ci.yml`:
+1. `integrity-and-unit-tests`: Runs `npm run check` + `npm test` on Node 22.
+2. `e2e-smoke`: Spins up Chromium via Playwright, serves the app locally, verifies tab navigation, transaction creation, 100% pass of the in-browser Self-Test, and hidden `admin.html` isolation.

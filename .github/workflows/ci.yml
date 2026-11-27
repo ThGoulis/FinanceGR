@@ -7,8 +7,8 @@ on:
     branches: [main, master]
 
 jobs:
-  integrity-unit-and-build:
-    name: Static Gate, Unit Tests & Vite Build (Node 22)
+  integrity-and-unit-tests:
+    name: Static Gate & Unit Tests (Node 22)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,30 +19,16 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install build dependencies
-        run: npm install
-
-      - name: Static Integrity, Strict CSP & Security Audit
+      - name: Static Integrity, Syntax & Security Audit
         run: npm run check
 
       - name: Run All Unit Test Suites (Frontend + Worker + Functions)
         run: npm test
 
-      - name: Production Vite Multi-Page Build (dist/)
-        run: npm run build
-
-      - name: Verify Vite Build Artifacts
-        run: |
-          test -f dist/index.html
-          test -f dist/admin.html
-          test -f dist/manifest.json
-          test -f dist/service-worker.js
-          ls -la dist/assets
-
   e2e-smoke:
-    name: Playwright E2E Smoke Tests (Built dist/)
+    name: Playwright Browser Smoke Tests
     runs-on: ubuntu-latest
-    needs: integrity-unit-and-build
+    needs: integrity-and-unit-tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,16 +37,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Install dependencies & build dist/
-        run: |
-          npm install
-          npm run build
 
       - name: Install Playwright & Chromium
         run: |
           npm install --no-save @playwright/test
           npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E Smoke Suite against dist/
+      - name: Run Playwright E2E Smoke Suite
         run: npm run test:e2e

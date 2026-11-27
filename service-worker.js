@@ -1,11 +1,25 @@
-const CACHE_NAME = "financegr-pwa-v32";
+const CACHE_NAME = "financegr-pwa-v25";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./styles.css",
   "./manifest.json",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./js/state.js",
+  "./js/firebase-config.js",
+  "./js/telemetry.js",
+  "./js/firebase-auth.js",
+  "./js/cloud-sync.js",
+  "./js/periods-ui.js",
+  "./js/transactions.js",
+  "./js/bank-import.js",
+  "./js/planning.js",
+  "./js/wealth.js",
+  "./js/overview.js",
+  "./js/settings-backup.js",
+  "./js/app.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -30,25 +44,13 @@ self.addEventListener("fetch", (event) => {
   // Only cache same-origin app assets; never intercept external APIs/CDNs
   if (url.origin !== self.location.origin) return;
 
-  // Never cache restricted console assets or chunks
-  if (/\/(?:admin|self-tests)/i.test(url.pathname)) return;
-
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match("./index.html"))
+      fetch(req).catch(() => caches.match("./index.html"))
     );
     return;
   }
 
-  // Content-hashed Vite /assets/* bundles + icons: cache-first with background refresh
   event.respondWith(
     caches.match(req).then((cached) => {
       const networkFetch = fetch(req).then((res) => {

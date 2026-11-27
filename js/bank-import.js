@@ -751,9 +751,9 @@ function renderBankPreviewTable() {
           <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px;">
             <span><strong>Πηγή: ${escapeHtml(detectedBankSource)}</strong> • Βρέθηκαν ${bankPreviewRows.length} κινήσεις (${selectedCount} επιλεγμένες)</span>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <span class="badge income" style="cursor:pointer;" data-click="filterBankRowsByStatus" data-arg="selected" title="Προβολή επιλεγμένων">✅ Αυτόματες: ${autoCategorizedCount}</span>
-              ${debtRows.length > 0 ? `<span class="badge expense" style="cursor:pointer;" data-click="filterBankRowsByStatus" data-arg="debt" title="Κλικ για έλεγχο δόσεων, δανείων &amp; καρτών">🏦 Δόσεις/Δάνεια: ${debtRows.length}</span>` : ""}
-              ${reviewCount > 0 ? `<span class="badge withdrawal" style="cursor:pointer;" data-click="filterBankRowsByStatus" data-arg="review" title="Κλικ για εμφάνιση μόνο όσων θέλουν έλεγχο">❓ Θέλουν έλεγχο: ${reviewCount}</span>` : ""}
+              <span class="badge income" style="cursor:pointer;" onclick="filterBankRowsByStatus('selected')" title="Προβολή επιλεγμένων">✅ Αυτόματες: ${autoCategorizedCount}</span>
+              ${debtRows.length > 0 ? `<span class="badge expense" style="cursor:pointer;" onclick="filterBankRowsByStatus('debt')" title="Κλικ για έλεγχο δόσεων, δανείων &amp; καρτών">🏦 Δόσεις/Δάνεια: ${debtRows.length}</span>` : ""}
+              ${reviewCount > 0 ? `<span class="badge withdrawal" style="cursor:pointer;" onclick="filterBankRowsByStatus('review')" title="Κλικ για εμφάνιση μόνο όσων θέλουν έλεγχο">❓ Θέλουν έλεγχο: ${reviewCount}</span>` : ""}
             </div>
           </div>
           ${debtRows.length > 0 ? `<div class="small" style="color:var(--warn); font-weight:700; margin-top:4px;">⚠️ Εντοπίστηκαν ${debtRows.length} πιθανές χρεώσεις δόσεων / δανείου / πιστωτικής. Έλεγξε αν συνδέονται με Οφειλή πριν την εισαγωγή.</div>` : ""}
@@ -765,12 +765,12 @@ function renderBankPreviewTable() {
             const safeTop = escapeHtml(top.displayName);
             const extraBtns = cands.slice(1).map(c => {
               const s = escapeHtml(c.displayName);
-              return `<button type="button" class="secondary small-btn" data-holder="${s}" data-click="applyDetectedAccountHolder">Ή «${s}» (${c.count} • ${money(c.totalAmt)})</button>`;
+              return `<button type="button" class="secondary small-btn" data-holder="${s}" onclick="applyDetectedAccountHolder(this.dataset.holder)">Ή «${s}» (${c.count} • ${money(c.totalAmt)})</button>`;
             }).join("");
             return `<div class="small" style="margin-top:6px; padding:7px 10px; background:var(--card-soft); border:1px solid var(--primary); border-radius:9px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
               <span>👤 Εντοπίστηκαν <strong>${top.count}</strong> μεταφορές προς/από <strong>«${safeTop}»</strong> (${money(top.totalAmt)}). Είναι δικός σου λογαριασμός;</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="accent small-btn" data-holder="${safeTop}" data-click="applyDetectedAccountHolder">🔄 Εξαίρεση «${safeTop}»</button>
+                <button type="button" class="accent small-btn" data-holder="${safeTop}" onclick="applyDetectedAccountHolder(this.dataset.holder)">🔄 Εξαίρεση «${safeTop}»</button>
                 ${extraBtns}
               </div>
             </div>`;
@@ -795,36 +795,36 @@ function renderBankPreviewTable() {
 
     return `
       <tr style="${r.selected ? "" : "opacity:0.65;"}">
-        <td><input type="checkbox" ${r.selected ? "checked" : ""} data-rowid="${escapeHtml(r.rowId)}" data-change="toggleBankRowSelection" /></td>
+        <td><input type="checkbox" ${r.selected ? "checked" : ""} onchange="toggleBankRowSelection('${r.rowId}', this.checked)" /></td>
         <td style="white-space:nowrap;">
           <div>${escapeHtml(r.date)}</div>
           <span class="badge" style="font-size:10px; margin-top:2px;">${escapeHtml(r.source)}</span>
         </td>
         <td>
           <div style="display:flex; gap:4px; align-items:center;">
-            <input type="text" value="${escapeHtml(r.description)}" data-rowid="${escapeHtml(r.rowId)}" data-change="updateBankRowDescription" style="width:100%; min-width:160px; padding:5px 8px;" />
-            <button type="button" class="secondary small-btn" data-rowid="${escapeHtml(r.rowId)}" data-click="filterSimilarBankRows" title="Αναζήτηση όλων των ίδιων συναλλαγών">🔍</button>
+            <input type="text" value="${escapeHtml(r.description)}" onchange="updateBankRowDescription('${r.rowId}', this.value)" style="width:100%; min-width:160px; padding:5px 8px;" />
+            <button type="button" class="secondary small-btn" onclick="filterSimilarBankRows('${r.rowId}')" title="Αναζήτηση όλων των ίδιων συναλλαγών">🔍</button>
           </div>
         </td>
         <td>
           <div style="display:flex; gap:4px; align-items:center;">
-            <select data-rowid="${escapeHtml(r.rowId)}" data-change="updateBankRowCategory" style="padding:5px 7px;">${catOptions}</select>
-            ${r.type === "income" ? `<button type="button" class="secondary small-btn" data-rowid="${escapeHtml(r.rowId)}" data-click="markBankRowAsSalary" title="Ορισμός ως Μισθός">📌 Μισθός</button>` : ""}
+            <select onchange="updateBankRowCategory('${r.rowId}', this.value)" style="padding:5px 7px;">${catOptions}</select>
+            ${r.type === "income" ? `<button type="button" class="secondary small-btn" onclick="markBankRowAsSalary('${r.rowId}')" title="Ορισμός ως Μισθός">📌 Μισθός</button>` : ""}
           </div>
         </td>
-        ${split.hasPartner ? `<td><input type="checkbox" ${r.isShared ? "checked" : ""} data-rowid="${escapeHtml(r.rowId)}" data-change="toggleBankRowShared" /></td>` : ""}
+        ${split.hasPartner ? `<td><input type="checkbox" ${r.isShared ? "checked" : ""} onchange="toggleBankRowShared('${r.rowId}', this.checked)" /></td>` : ""}
         <td>
           <span class="badge ${r.debtInfo ? "expense" : ""}">${escapeHtml(r.statusReason)}</span>
           ${r.debtInfo ? `
             <div style="margin-top:4px; display:flex; flex-direction:column; gap:4px;">
-              <select data-rowid="${escapeHtml(r.rowId)}" data-change="updateBankRowDebtAction" style="padding:3px 6px; font-size:11px; max-width:190px;">
+              <select onchange="updateBankRowDebtAction('${r.rowId}', this.value)" style="padding:3px 6px; font-size:11px; max-width:190px;">
                 <option value="expense" ${(r.debtAction || "expense") === "expense" ? "selected" : ""}>Κανονικό έξοδο</option>
                 ${(data.liabilities || []).map(l => `<option value="link:${escapeHtml(l.id)}" ${r.debtAction === `link:${l.id}` ? "selected" : ""}>🔗 Οφειλή: ${escapeHtml(l.name)}</option>`).join("")}
                 <option value="skip" ${r.debtAction === "skip" ? "selected" : ""}>⏭️ Εξαίρεση</option>
               </select>
               ${(r.debtAction || "").startsWith("link:") ? `
                 <label class="small" style="display:flex; align-items:center; gap:4px; font-size:10.5px;">
-                  Τόκοι (€): <input type="number" step="0.01" min="0" max="${r.amount}" value="${Number(r.debtInterest || 0).toFixed(2)}" data-rowid="${escapeHtml(r.rowId)}" data-change="updateBankRowDebtInterest" style="width:68px; padding:2px 5px; font-size:11px;" />
+                  Τόκοι (€): <input type="number" step="0.01" min="0" max="${r.amount}" value="${Number(r.debtInterest || 0).toFixed(2)}" onchange="updateBankRowDebtInterest('${r.rowId}', this.value)" style="width:68px; padding:2px 5px; font-size:11px;" />
                 </label>
               ` : ""}
             </div>

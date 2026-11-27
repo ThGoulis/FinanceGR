@@ -69,7 +69,6 @@ function makeRes() {
 
 test("Cloud Functions: createRoom, manageMember, listMyRooms, and adminOverview enforce roles, last-owner guard, and roomIndex isolation", async () => {
   const db = createMockRtdb();
-  const deletedAuthUids = [];
   const tokenMap = {
     "tok-admin": { uid: "uid-admin", email: "admin@test.gr", email_verified: true, firebase: { sign_in_provider: "google.com" } },
     "tok-owner": { uid: "uid-owner", email: "owner@test.gr", email_verified: true, firebase: { sign_in_provider: "google.com" } },
@@ -93,9 +92,6 @@ test("Cloud Functions: createRoom, manageMember, listMyRooms, and adminOverview 
         async getUserByEmail(email) {
           if (!usersByEmail[email]) throw new Error("User not found");
           return usersByEmail[email];
-        },
-        async deleteUser(uid) {
-          deletedAuthUids.push(uid);
         }
       };
     },
@@ -215,10 +211,6 @@ test("Cloud Functions: createRoom, manageMember, listMyRooms, and adminOverview 
   assert.equal(res.out.statusCode, 200);
   assert.equal(res.out.body.analytics.totals.bank_import_success, 1);
   assert.equal(res.out.body.parserErrors.length, 1);
-  assert.equal(res.out.body.infra.region, "europe-west1");
-  assert.equal(res.out.body.infra.maxInstances, 2);
-  assert.ok(res.out.body.infra.rtdbMetadataBytes.total > 0);
-  assert.equal(res.out.body.infra.blazeFreeTier.functionsInvocationsPerMonth, 2000000);
 
   res = makeRes();
   await fns.clearTelemetry({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { target: "parserErrors" } }, res);
@@ -228,54 +220,6 @@ test("Cloud Functions: createRoom, manageMember, listMyRooms, and adminOverview 
   await fns.clearTelemetry({ method: "POST", headers: { authorization: "Bearer tok-admin" }, body: { target: "parserErrors" } }, res);
   assert.equal(res.out.statusCode, 200);
   assert.equal(db.tree.adminTelemetry.parserErrors, undefined);
-
-  // 11. Server-side Entitlements: getMyEntitlements (default free) & setUserPlan (admin-only -> pro)
-  res = makeRes();
-  await fns.getMyEntitlements({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: {} }, res);
-  assert.equal(res.out.statusCode, 200);
-  assert.equal(res.out.body.entitlement.plan, "free");
-
-  res = makeRes();
-  await fns.setUserPlan({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { targetUid: "uid-owner", plan: "pro" } }, res);
-  assert.equal(res.out.statusCode, 403);
-
-  res = makeRes();
-  await fns.setUserPlan({ method: "POST", headers: { authorization: "Bearer tok-admin" }, body: { targetUid: "uid-owner", plan: "pro" } }, res);
-  assert.equal(res.out.statusCode, 200);
-  assert.equal(res.out.body.entitlement.plan, "pro");
-  assert.equal(res.out.body.entitlement.maxRooms, 20);
-
-  // 12. GDPR Art. 17 Self-Service deleteMyAccount: purges sole room, promotes successor in shared room, deletes Auth user
-  res = makeRes();
-  await fns.createRoom({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { roomId: "FG-SOLO-01" } }, res);
-  assert.equal(res.out.statusCode, 201);
-
-  res = makeRes();
-  await fns.createRoom({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { roomId: "FG-SHARED-01" } }, res);
-  assert.equal(res.out.statusCode, 201);
-  res = makeRes();
-  await fns.manageMember({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { roomId: "FG-SHARED-01", action: "add", targetEmail: "other@test.gr", role: "editor" } }, res);
-  assert.equal(res.out.statusCode, 200);
-
-  // Missing confirmation string -> 400
-  res = makeRes();
-  await fns.deleteMyAccount({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { confirm: "NO" } }, res);
-  assert.equal(res.out.statusCode, 400);
-
-  // Confirmed GDPR deletion -> sole room purged, shared room transferred to uid-other, userRooms/userEntitlements & Auth deleted
-  res = makeRes();
-  await fns.deleteMyAccount({ method: "POST", headers: { authorization: "Bearer tok-owner" }, body: { confirm: "DELETE_MY_ACCOUNT" } }, res);
-  assert.equal(res.out.statusCode, 200);
-  assert.equal(res.out.body.purgedRooms, 1);
-  assert.equal(res.out.body.leftSharedRooms, 1);
-  assert.equal(db.tree.rooms["FG-SOLO-01"], undefined);
-  assert.equal(db.tree.roomIndex["FG-SOLO-01"], undefined);
-  assert.equal(db.tree.rooms["FG-SHARED-01"].members["uid-owner"], undefined);
-  assert.equal(db.tree.rooms["FG-SHARED-01"].members["uid-other"].role, "owner");
-  assert.equal(db.tree.userRooms["uid-owner"], undefined);
-  assert.equal(db.tree.userEntitlements["uid-owner"], undefined);
-  assert.ok(deletedAuthUids.includes("uid-owner"));
 });
-
 
 

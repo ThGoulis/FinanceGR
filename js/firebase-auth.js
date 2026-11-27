@@ -3,7 +3,6 @@
    ========================================================================== */
 let _fbAuthInstance = null;
 let _fbCurrentUser = null;
-let _fbCurrentEntitlement = null;
 
 function isFirebaseAuthConfigured() {
   const cfg = window.FINANCEGR_FIREBASE_CONFIG;
@@ -57,11 +56,7 @@ function initFirebaseAuthIfConfigured() {
         data.settings.cloudSync.authUid = user ? user.uid : "";
         data.settings.cloudSync.authEmail = user ? (user.email || "") : "";
       }
-      if (!user) _fbCurrentEntitlement = null;
       updateFirebaseAuthUI();
-      if (user) {
-        loadMyEntitlementsSilent();
-      }
       if (user && data.settings?.cloudSync?.enabled && data.settings.cloudSync.authMode === "firebase_auth") {
         pullCloudSyncNow(true);
       }
@@ -175,7 +170,7 @@ function updateFirebaseAuthUI() {
         const label = escapeHtml(info?.email || uid);
         const isMe = uid === user.uid;
         const removeBtn = (isOwner && !isMe)
-          ? `<button type="button" class="danger small-btn" style="padding:2px 7px; font-size:11px;" data-uid="${escapeHtml(uid)}" data-email="${label}" data-click="removeRoomMemberByUid">✕</button>`
+          ? `<button type="button" class="danger small-btn" style="padding:2px 7px; font-size:11px;" data-uid="${escapeHtml(uid)}" data-email="${label}" onclick="removeRoomMemberByUid(this.dataset.uid, this.dataset.email)">✕</button>`
           : "";
         return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border);">
           <span><strong>${label}</strong>${isMe ? " (Εσύ)" : ""}</span>
@@ -185,23 +180,6 @@ function updateFirebaseAuthUI() {
           </span>
         </div>`;
       }).join("");
-    }
-  }
-
-  const gdprRow = document.getElementById("gdprAccountDeletionRow");
-  if (gdprRow) {
-    gdprRow.style.display = (configured && user) ? "flex" : "none";
-  }
-  const planBadge = document.getElementById("fbAuthPlanBadge");
-  if (planBadge) {
-    if (configured && user) {
-      const planName = (_fbCurrentEntitlement?.label || "Free");
-      const maxR = _fbCurrentEntitlement?.maxRooms || 5;
-      planBadge.style.display = "inline-flex";
-      planBadge.className = `badge ${_fbCurrentEntitlement?.plan === "pro" ? "income" : "saving"}`;
-      planBadge.textContent = `Πλάνο: ${planName} (έως ${maxR} rooms)`;
-    } else {
-      planBadge.style.display = "none";
     }
   }
 
@@ -380,57 +358,4 @@ async function removeRoomMemberByUid(targetUid, label = "") {
   } catch (err) {
     showModal(`Αποτυχία αφαίρεσης μέλους: ${err?.message || "Σφάλμα"}`);
   }
-}
-
-async function loadMyEntitlementsSilent() {
-  try {
-    if (!getCurrentFirebaseUser()) return null;
-    const res = await callFinanceGrCloudFunction("getMyEntitlements", {});
-    if (res?.entitlement) {
-      _fbCurrentEntitlement = res.entitlement;
-      updateFirebaseAuthUI();
-    }
-    return _fbCurrentEntitlement;
-  } catch {
-    return null;
-  }
-}
-
-function confirmDeleteMyAccountGDPR() {
-  const user = getCurrentFirebaseUser();
-  if (!user) {
-    showModal("Δεν είσαι συνδεδεμένος/η σε λογαριασμό Cloud. Για τοπική εκκαθάριση χρησιμοποίησε «Διαγραφή Όλων των Δεδομένων».");
-    return;
-  }
-  const msg =
-    `ΠΡΟΣΟΧΗ — Οριστική Διαγραφή Λογαριασμού (GDPR Άρθρο 17):\n\n` +
-    `• Θα διαγραφεί οριστικά ο λογαριασμός σου (${user.email || user.uid}) από το Firebase Auth.\n` +
-    `• Θα διαγραφούν οριστικά όλα τα προσωπικά Cloud Sync δωμάτια όπου είσαι μοναδικό μέλος.\n` +
-    `• Σε κοινά δωμάτια με άλλα μέλη, θα αφαιρεθεί η πρόσβασή σου χωρίς να χαθούν τα δεδομένα των υπολοίπων.\n` +
-    `• Θα καθαριστούν και όλα τα τοπικά δεδομένα αυτού του browser.\n\n` +
-    `Η ενέργεια αυτή ΔΕΝ αναιρείται. Κάνε πρώτα «Εξαγωγή JSON» αν θέλεις αντίγραφο. Συνέχεια;`;
-
-  showModal(msg, true, async (ok) => {
-    if (!ok) return;
-    try {
-      await callFinanceGrCloudFunction("deleteMyAccount", { confirm: "DELETE_MY_ACCOUNT" });
-      try { if (_fbAuthInstance) await _fbAuthInstance.signOut(); } catch {}
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
-        sessionStorage.removeItem(SESSION_PIN_KEY);
-      } catch {}
-      _fbCurrentUser = null;
-      _fbCurrentEntitlement = null;
-      const fresh = createDefaultState();
-      fresh.settings.onboardingCompleted = true;
-      data = fresh;
-      persist(true, true);
-      updateFirebaseAuthUI();
-      render();
-      showToast("🗑️ Ο λογαριασμός και τα Cloud δεδομένα σου διαγράφηκαν οριστικά (GDPR).");
-    } catch (err) {
-      showModal(`Αποτυχία διαγραφής λογαριασμού: ${err?.message || "Σφάλμα επικοινωνίας"}`);
-    }
-  }, "⚠️ Διαγραφή Λογαριασμού (GDPR)");
 }

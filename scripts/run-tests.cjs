@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Cross-platform unit test runner (works identically on Windows PowerShell & Linux CI).
- * Runs all tests/**.test.cjs EXCEPT emulator/ and e2e/ suites.
+ * Runs all tests/*.test.cjs EXCEPT emulator/ and e2e/ suites.
  */
 const fs = require("node:fs");
 const path = require("node:path");

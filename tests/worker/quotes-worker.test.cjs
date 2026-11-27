@@ -143,10 +143,6 @@ test("Cloudflare Worker enforces CORS, RS256 Google JWT, email_verified, symbol 
   const badSymRes = await worker.fetch(new Request("https://financegr-quotes.tgoulis.workers.dev/?symbol=BAD%20SYMBOL!", { headers: { Authorization: `Bearer ${validToken}` } }), {}, {});
   assert.equal(badSymRes.status, 400);
 
-  // 7b. Exact-symbol strictness: unknown broker suffix (1ANT.XETRA) returns 404 and is NEVER silently rewritten
-  const unknownRes = await worker.fetch(new Request("https://financegr-quotes.tgoulis.workers.dev/?symbol=1ANT.XETRA", { headers: { Authorization: `Bearer ${validToken}` } }), {}, {});
-  assert.equal(unknownRes.status, 404);
-
   // 8. Per-user rate limiter blocks excess requests with 429 (dedicated user sub for isolated window)
   const rlToken = await createSignedJwt({
     aud: "financegr-sync", iss: "https://securetoken.google.com/financegr-sync",
