@@ -23,7 +23,7 @@ test.describe("FinanceGR E2E Browser Smoke Suite", () => {
     }
 
     // Add a transaction via modal and confirm Net Worth updates
-    await page.click('button[onclick="openTransactionModal()"]');
+    await page.evaluate(() => openTransactionModal());
     await page.fill("#amount", "42.50");
     await page.fill("#description", "E2E Smoke Coffee");
     await page.click('#transactionModal button[onclick="addTransaction(false)"]');

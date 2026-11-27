@@ -9,7 +9,7 @@ functions/.env
 functions/.env.*
 !.env.example
 !functions/.env.example
-.vite/deps
+.vite/
 dist/
 
 # Firebase & Emulator logs
